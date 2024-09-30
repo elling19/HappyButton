@@ -168,3 +168,14 @@ if classFileName == "SHAMAN" then
         end)
     end
 end
+
+if classFileName == "DRUID" then
+    local duridTeleportList = {
+       {itemID=193753, itemType=U.Cate.SPELL}, -- [梦境行者]
+   }
+   for _, teleport in ipairs(duridTeleportList) do
+       table.insert(HT.ToolTeleportCallbackList, function ()
+           return HtItem.CallbackByItem(teleport.itemID, teleport.itemType)
+       end)
+   end
+end

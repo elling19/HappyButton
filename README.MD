@@ -14,9 +14,12 @@ This is a World of Warcraft addon that collect your toys and items, use them any
 ### TODO:
 1. Add more useful toys and items.
 2. Support for players to manually add toys and items.
+3. Hide the button if the button can not used.
 
 ### Known Bugs:
 1. There is a lag when hovering the mouse over the icons.
 2. Sometimes show "?" icons.
+3. Scroll bar position is incorrect.
+
 
 If you have any suggestions or discover any bugs, please raise them in the issues.
