@@ -376,7 +376,7 @@ function ToolkitGUI.SetPoolLearnable(pool)
             pool.showButton:SetAlpha(0.5)
         end
         if pool.execButton then
-            pool.showButton:SetEnabled(false)
+            pool.execButton:SetEnabled(false)
             pool.execButton:SetAlpha(0.5)
         end
         if pool.text then
