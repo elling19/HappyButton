@@ -30,6 +30,7 @@ local HearthstoneItemList =
     {itemID=163045, itemType=U.Cate.TOY}, -- [无头骑士的炉石] 节日
     {itemID=165669, itemType=U.Cate.TOY}, -- [春节长者的炉石] 节日
     {itemID=166747, itemType=U.Cate.TOY}, -- [美酒节狂欢者的炉石] 节日
+    {itemID=228940, itemType=U.Cate.TOY}, -- [恶名丝线炉石] 11.0
 }
 
 local function RandomChooseItem()
@@ -47,8 +48,7 @@ local function RandomChooseItem()
         local selectedItem = usableItemList[randomIndex]
         return selectedItem
     end
-    -- 没有可用的item时返回 nil
-    return nil
+    return HearthstoneItemList[0]
 end
 
 
