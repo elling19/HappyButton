@@ -50,7 +50,6 @@ function G_HAPPY_TOOLKIT.RunWishByKeyBinding()
     ToolkitCore.ToggleToolkitGUI()
 end
 
-
 for _, callback in ipairs(HT.ToolTeleportCallbackList) do
     G_HAPPY_TOOLKIT.Register("teleprot", callback)
 end

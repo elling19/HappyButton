@@ -20,6 +20,21 @@ local ToolkitGUI = {
     currentTabIndex = 1,
 }
 
+-- 收集注册的回调函数，执行回调函数，返回nil或者具体的函数，
+-- 如果是nil则不注册到列表中
+-- 如果不是nil，则注册到列表
+function ToolkitGUI.CollectCallbackList()
+    for _, catePool in ipairs(ToolkitPool) do
+        catePool.pool = {}  -- 清空原来的pool
+        for _, cb in ipairs(catePool.cbPool) do
+            local cbResult = cb()
+            if not (cbResult == nil ) and type(cbResult) == "function" then
+                table.insert(catePool.pool, {callback=cbResult, execButton=nil, showButton=nil, text=nil})
+            end
+        end
+    end
+end
+
 function ToolkitGUI.CreateFrame()
     local window = AceGUI:Create("Window")
     local windowWidth = ToolkitGUI.UISize.Num * (ToolkitGUI.UISize.Width + ToolkitGUI.UISize.IconSize)
@@ -246,9 +261,9 @@ function ToolkitGUI.SetButtonMacro(pool, targetButton)
             macroText = "/cast " .. name
         end
     elseif callbackResult.macro.petID then
-        local speciesID, customName, level, xp, maxXp, displayID, isFavorite, name, icon, petType, creatureID, sourceText, description, isWild, canBattle, isTradeable, isUnique, obtainable = C_PetJournal.GetPetInfoByPetID(callbackResult.macro.petID)
-        if name then
-            macroText = "/SummonPet " .. name
+        local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID = C_PetJournal.GetPetInfoBySpeciesID(callbackResult.macro.petID)
+        if speciesName then
+            macroText = "/SummonPet " .. speciesName
         end
     end
     -- 宏命令附加更新冷却计时
@@ -291,7 +306,7 @@ function ToolkitGUI.SetButtonCooldown(pool, targetButton)
         targetButton.cooldown:SetHideCountdownNumbers(true)  -- 隐藏倒计时数字
     end
     local macro = callbackResult.macro
-    local itemID, spellID, toyID = macro.itemID, macro.spellID, macro.toyID
+    local itemID, spellID, toyID, petID = macro.itemID, macro.spellID, macro.toyID, macro.petID
     -- 更新冷却倒计时
     if itemID then
         local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(itemID)
@@ -313,6 +328,19 @@ function ToolkitGUI.SetButtonCooldown(pool, targetButton)
             targetButton.cooldown:SetCooldown(spellCooldownInfo.startTime, spellCooldownInfo.duration)
         else
             targetButton.cooldown:Clear()
+        end
+    elseif petID then
+        local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID = C_PetJournal.GetPetInfoBySpeciesID(petID)
+        if speciesName then
+            local speciesId, petGUID = C_PetJournal.FindPetIDByName(speciesName)
+            if petGUID then
+                local start, duration, isEnabled = C_PetJournal.GetPetCooldownByGUID(petGUID)
+                if isEnabled and duration > 0 then
+                    targetButton.cooldown:SetCooldown(start, duration)
+                else
+                    targetButton.cooldown:Clear()
+                end
+            end
         end
     end
 end
@@ -362,8 +390,8 @@ function ToolkitGUI.SetPoolLearnable(pool)
         end
     elseif petID then
         for petIndex = 1, C_PetJournal.GetNumPets() do
-            local _petID, _ = C_PetJournal.GetPetInfoByIndex(petIndex)
-            if _petID == petID then
+            local _, speciesID, owned, customName, level, favorite, isRevoked, speciesName, icon, petType, companionID, tooltip, description, isWild, canBattle, isTradeable, isUnique, obtainable = C_PetJournal.GetPetInfoByIndex(petIndex)
+            if speciesID == petID then
                 hasThisThing = true
                 break
             end
@@ -423,14 +451,16 @@ function ToolkitGUI.SetShowGameTooltip(pool, targetButton)
         if itemID then
             GameTooltip:SetItemByID(itemID)
         elseif toyID then
-            GameTooltip:SetItemByID(toyID)
+            GameTooltip:SetToyByItemID(toyID)
         elseif spellID then
             GameTooltip:SetSpellByID(spellID)
         elseif mountID then
             local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight = C_MountJournal.GetMountInfoByID(mountID)
             GameTooltip:SetMountBySpellID(spellID)
         elseif petID then
-            GameTooltip:SetCompanionPet(petID)
+            local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID = C_PetJournal.GetPetInfoBySpeciesID(petID)
+            local speciesId, petGUID = C_PetJournal.FindPetIDByName(speciesName)
+            GameTooltip:SetCompanionPet(petGUID)
         end
 end
 
@@ -483,6 +513,7 @@ end
 
 -- 初始化UI模块
 function ToolkitGUI.Initial()
+    ToolkitGUI.CollectCallbackList()
     ToolkitGUI.CreateFrame()
     ToolkitGUI.Update()
 end

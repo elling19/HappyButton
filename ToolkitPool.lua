@@ -24,13 +24,13 @@ local function getPlayerClassIcon()
 end
 
 local ToolkitPool = {
-    {cate="teleprot", title=L["Teleprot"], icon=134414, pool={}},
-    {cate="class", title=L["Class"], icon=getPlayerClassIcon(), pool={}},
-    {cate="profession", title=L["Profession"], icon=4620673, pool={}},
-    {cate="mail", title=L["Mail"] , icon=463542, pool={}},
-    {cate="bank", title=L["Bank"], icon=413587, pool={}},
-    {cate="merchant", title=L["Merchant"], icon=616692, pool={}},
-    {cate="other", title=L["Others"], icon=237285, pool={}}
+    {cate="teleprot", title=L["Teleprot"], icon=134414, pool={}, cbPool={}},
+    {cate="class", title=L["Class"], icon=getPlayerClassIcon(), pool={}, cbPool={}},
+    {cate="profession", title=L["Profession"], icon=4620673, pool={}, cbPool={}},
+    {cate="mail", title=L["Mail"] , icon=463542, pool={}, cbPool={}},
+    {cate="bank", title=L["Bank"], icon=413587, pool={}, cbPool={}},
+    {cate="merchant", title=L["Merchant"], icon=616692, pool={}, cbPool={}},
+    {cate="other", title=L["Others"], icon=237285, pool={}, cbPool={}}
 }
 
 HT.ToolkitPool = ToolkitPool

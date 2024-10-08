@@ -6,9 +6,6 @@ local HtItem = HT.HtItem
 HT.ToolTeleportCallbackList = {}
 
 
-local englishFaction, _ = UnitFactionGroup("player")  -- 获取阵营
-local _, classFileName = UnitClass("player")  -- 获取职业
-
 -- 炉石玩具列表
 local HearthstoneItemList =
 {
@@ -33,42 +30,18 @@ local HearthstoneItemList =
     {itemID=228940, itemType=U.Cate.TOY}, -- [恶名丝线炉石] 11.0
 }
 
-local function RandomChooseItem()
-    local usableItemList = {}
-    for _, item in ipairs(HearthstoneItemList) do
-        local itemID, itemType = item.itemID, item.itemType
-        local isUsable = HtItem.CheckUseable(itemID, itemType)
-        if isUsable then
-            table.insert(usableItemList, item)
-        end
-    end
-    -- 如果有可用的item，随机选择一个
-    if #usableItemList > 0 then
-        local randomIndex = math.random(1, #usableItemList)
-        local selectedItem = usableItemList[randomIndex]
-        return selectedItem
-    end
-    return HearthstoneItemList[0]
-end
-
 
 local toolRandomHearthstoneCallback = function ()
-    local item = RandomChooseItem()
-    if not item then
-        return nil
-    end
-    if item then
+    return function ()
+        local item = HT.RandomChooseItem(HearthstoneItemList)
         local result = HtItem.CallbackByItem(item.itemID, item.itemType)
         result.text = L["Random Hearthstone"]
         return result
-    else
-        return nil
     end
 end
 
 
 table.insert(HT.ToolTeleportCallbackList, toolRandomHearthstoneCallback)
-
 
 
 -- 传送玩具列表
@@ -89,93 +62,143 @@ local teleportList =
 
 for _, teleport in ipairs(teleportList) do
     table.insert(HT.ToolTeleportCallbackList, function ()
-        return HtItem.CallbackByItem(teleport.itemID, teleport.itemType)
+        if not HtItem.IsLearned(teleport.itemID, teleport.itemType) then
+            return nil
+        end
+        return function ()
+            return HtItem.CallbackByItem(teleport.itemID, teleport.itemType)
+        end
     end)
 end
 
-
-if classFileName == "MAGE" then
+table.insert(HT.ToolTeleportCallbackList, function ()
+    local englishFaction, _ = UnitFactionGroup("player")
     if englishFaction == "Alliance" then
-        -- 联盟法师专属传送门
-        local allianceTeleprotList = {
-            {itemID=3561, itemType=U.Cate.SPELL}, -- [传送：暴风城]
-            {itemID=10059, itemType=U.Cate.SPELL}, -- [传送门：暴风城]
-            {itemID=3562, itemType=U.Cate.SPELL}, -- [传送：铁炉堡]
-            {itemID=11416, itemType=U.Cate.SPELL}, -- [传送门：铁炉堡]
-            {itemID=3565, itemType=U.Cate.SPELL}, -- [传送：达纳苏斯]
-            {itemID=11419, itemType=U.Cate.SPELL}, -- [传送门：达纳苏斯]
-            {itemID=32271, itemType=U.Cate.SPELL}, -- [传送：埃索达]
-            {itemID=32266, itemType=U.Cate.SPELL}, -- [传送门：埃索达]
-            {itemID=49359, itemType=U.Cate.SPELL}, -- [传送：塞拉摩]
-            {itemID=49360, itemType=U.Cate.SPELL}, -- [传送门：塞拉摩]
-            {itemID=281403, itemType=U.Cate.SPELL}, -- [传送：伯拉勒斯]
-            {itemID=281400, itemType=U.Cate.SPELL}, -- [传送门：伯拉勒斯]
-            {itemID=395277, itemType=U.Cate.SPELL}, -- [传送：瓦德拉肯]
-            {itemID=395289, itemType=U.Cate.SPELL}, -- [传送门：瓦德拉肯]
-            {itemID=446540, itemType=U.Cate.SPELL}, -- [传送：多恩诺嘉尔]
-            {itemID=446534, itemType=U.Cate.SPELL}, -- [传送门：多恩诺嘉尔]
-        }
-        for _, teleport in ipairs(allianceTeleprotList) do
-            table.insert(HT.ToolTeleportCallbackList, function ()
-                return HtItem.CallbackByItem(teleport.itemID, teleport.itemType)
-            end)
+        local item = {itemID=169297, itemType=U.Cate.TOY} -- [雷矛勋章]
+        return function ()
+            return HtItem.CallbackByItem(item.itemID, item.itemType)
+        end
+    elseif englishFaction == "Horde" then
+        local item = {itemID=169298, itemType=U.Cate.TOY} -- [霜狼勋章]
+        return function ()
+            return HtItem.CallbackByItem(item.itemID, item.itemType)
         end
     end
-    if englishFaction == "Horde" then
-        -- 部落法师专属传送门
-        local hordeTeleprotList = {
-            {itemID=32272, itemType=U.Cate.SPELL}, -- [传送：银月城]
-            {itemID=32267, itemType=U.Cate.SPELL}, -- [传送门：银月城]
-        }
-        for _, teleport in ipairs(hordeTeleprotList) do
-            table.insert(HT.ToolTeleportCallbackList, function ()
-                return HtItem.CallbackByItem(teleport.itemID, teleport.itemType)
-            end)
+end)
+
+-- 联盟法师专属传送门
+local allianceTeleprotList = {
+    {itemID=3561, itemType=U.Cate.SPELL}, -- [传送：暴风城]
+    {itemID=10059, itemType=U.Cate.SPELL}, -- [传送门：暴风城]
+    {itemID=3562, itemType=U.Cate.SPELL}, -- [传送：铁炉堡]
+    {itemID=11416, itemType=U.Cate.SPELL}, -- [传送门：铁炉堡]
+    {itemID=3565, itemType=U.Cate.SPELL}, -- [传送：达纳苏斯]
+    {itemID=11419, itemType=U.Cate.SPELL}, -- [传送门：达纳苏斯]
+    {itemID=32271, itemType=U.Cate.SPELL}, -- [传送：埃索达]
+    {itemID=32266, itemType=U.Cate.SPELL}, -- [传送门：埃索达]
+    {itemID=33690, itemType=U.Cate.SPELL}, -- [传送：沙塔斯]
+    {itemID=33691, itemType=U.Cate.SPELL}, -- [传送门：沙塔斯]
+    {itemID=88342, itemType=U.Cate.SPELL}, -- [传送：托尔巴拉德]
+    {itemID=88345, itemType=U.Cate.SPELL}, -- [传送门：托尔巴拉德]
+    {itemID=49359, itemType=U.Cate.SPELL}, -- [传送：塞拉摩]
+    {itemID=49360, itemType=U.Cate.SPELL}, -- [传送门：塞拉摩]
+    {itemID=132621, itemType=U.Cate.SPELL}, -- [传送：锦绣谷]
+    {itemID=132620, itemType=U.Cate.SPELL}, -- [传送门：锦绣谷]
+    {itemID=176248, itemType=U.Cate.SPELL}, -- [传送：暴风之盾]
+    {itemID=176246, itemType=U.Cate.SPELL}, -- [传送门：暴风之盾]
+    {itemID=281403, itemType=U.Cate.SPELL}, -- [传送：伯拉勒斯]
+    {itemID=281400, itemType=U.Cate.SPELL}, -- [传送门：伯拉勒斯]
+    {itemID=395277, itemType=U.Cate.SPELL}, -- [传送：瓦德拉肯]
+    {itemID=395289, itemType=U.Cate.SPELL}, -- [传送门：瓦德拉肯]
+    {itemID=446540, itemType=U.Cate.SPELL}, -- [传送：多恩诺嘉尔]
+    {itemID=446534, itemType=U.Cate.SPELL}, -- [传送门：多恩诺嘉尔]
+}
+
+-- 部落法师专属传送门
+local hordeTeleprotList = {
+    {itemID=3567, itemType=U.Cate.SPELL}, -- [传送：奥格瑞玛]
+    {itemID=11417, itemType=U.Cate.SPELL}, -- [传送门：奥格瑞玛]
+    {itemID=3563, itemType=U.Cate.SPELL}, -- [传送：幽暗城]
+    {itemID=11418, itemType=U.Cate.SPELL}, -- [传送门：幽暗城]
+    {itemID=3566, itemType=U.Cate.SPELL}, -- [传送：雷霆崖]
+    {itemID=11420, itemType=U.Cate.SPELL}, -- [传送门：雷霆崖]
+    {itemID=32272, itemType=U.Cate.SPELL}, -- [传送：银月城]
+    {itemID=32267, itemType=U.Cate.SPELL}, -- [传送门：银月城]
+    {itemID=49358, itemType=U.Cate.SPELL}, -- [传送：斯通纳德]
+    {itemID=49361, itemType=U.Cate.SPELL}, -- [传送门：斯通纳德]
+    {itemID=35715, itemType=U.Cate.SPELL}, -- [传送：沙塔斯]
+    {itemID=35717, itemType=U.Cate.SPELL}, -- [传送门：沙塔斯]
+    {itemID=88342, itemType=U.Cate.SPELL}, -- [传送：托尔巴拉德]
+    {itemID=88346, itemType=U.Cate.SPELL}, -- [传送门：托尔巴拉德]
+    {itemID=176242, itemType=U.Cate.SPELL}, -- [传送：战争子矛]
+    {itemID=176244, itemType=U.Cate.SPELL}, -- [传送门：战争子矛]
+}
+
+-- 添加全职业法师传送门
+local allFactionTeleportList = {
+    {itemID=53140, itemType=U.Cate.SPELL}, -- [传送：达拉然-诺森德]
+    {itemID=53142, itemType=U.Cate.SPELL}, -- [传送门：达拉然-诺森德]
+    {itemID=193759, itemType=U.Cate.SPELL}, -- [传送：守护者圣殿]
+    {itemID=224869, itemType=U.Cate.SPELL}, -- [传送：达拉然-破碎群岛]
+    {itemID=224871, itemType=U.Cate.SPELL}, -- [传送门：达拉然-破碎群岛]
+    {itemID=344587, itemType=U.Cate.SPELL}, -- [传送：奥利波斯]
+    {itemID=344597, itemType=U.Cate.SPELL}, -- [传送门：奥利波斯]
+}
+
+
+for _, teleport in ipairs(allianceTeleprotList) do
+    table.insert(HT.ToolTeleportCallbackList, function ()
+        local englishFaction, _ = UnitFactionGroup("player")
+        local _, classFileName = UnitClass("player")
+        if classFileName == "MAGE" and englishFaction == "Alliance" then
+            if HtItem.IsLearned(teleport.itemID, teleport.itemType) then
+                return function ()
+                    return HtItem.CallbackByItem(teleport.itemID, teleport.itemType)
+                end
+            end
         end
-    end
-       -- 添加全职业法师传送门
-       local allFactionTeleportList = {
-        {itemID=33690, itemType=U.Cate.SPELL}, -- [传送：沙塔斯]
-        {itemID=33691, itemType=U.Cate.SPELL}, -- [传送门：沙塔斯]
-        {itemID=53140, itemType=U.Cate.SPELL}, -- [传送：达拉然-诺森德]
-        {itemID=53142, itemType=U.Cate.SPELL}, -- [传送门：达拉然-诺森德]
-        {itemID=88342, itemType=U.Cate.SPELL}, -- [传送：托尔巴拉德]
-        {itemID=88345, itemType=U.Cate.SPELL}, -- [传送门：托尔巴拉德]
-        {itemID=132621, itemType=U.Cate.SPELL}, -- [传送：锦绣谷]
-        {itemID=132620, itemType=U.Cate.SPELL}, -- [传送门：锦绣谷]
-        {itemID=176248, itemType=U.Cate.SPELL}, -- [传送：暴风之盾]
-        {itemID=176246, itemType=U.Cate.SPELL}, -- [传送门：暴风之盾]
-        {itemID=193759, itemType=U.Cate.SPELL}, -- [传送：守护者圣殿]
-        {itemID=224869, itemType=U.Cate.SPELL}, -- [传送：达拉然-破碎群岛]
-        {itemID=224871, itemType=U.Cate.SPELL}, -- [传送门：达拉然-破碎群岛]
-        {itemID=344587, itemType=U.Cate.SPELL}, -- [传送：奥利波斯]
-        {itemID=344597, itemType=U.Cate.SPELL}, -- [传送门：奥利波斯]
-    }
-    for _, teleport in ipairs(allFactionTeleportList) do
-        table.insert(HT.ToolTeleportCallbackList, function ()
-            return HtItem.CallbackByItem(teleport.itemID, teleport.itemType)
-        end)
-    end
+    end)
 end
 
-if classFileName == "SHAMAN" then
-     local shamanTeleportList = {
-        {itemID=556, itemType=U.Cate.SPELL}, -- [星界传送]
-    }
-    for _, teleport in ipairs(shamanTeleportList) do
-        table.insert(HT.ToolTeleportCallbackList, function ()
-            return HtItem.CallbackByItem(teleport.itemID, teleport.itemType)
-        end)
-    end
+for _, teleport in ipairs(hordeTeleprotList) do
+    table.insert(HT.ToolTeleportCallbackList, function ()
+        local englishFaction, _ = UnitFactionGroup("player")
+        local _, classFileName = UnitClass("player")
+        if classFileName == "MAGE" and englishFaction == "Horde" then
+            if HtItem.IsLearned(teleport.itemID, teleport.itemType) then
+                return function ()
+                    return HtItem.CallbackByItem(teleport.itemID, teleport.itemType)
+                end
+            end
+        end
+    end)
 end
 
-if classFileName == "DRUID" then
-    local duridTeleportList = {
-       {itemID=193753, itemType=U.Cate.SPELL}, -- [梦境行者]
-   }
-   for _, teleport in ipairs(duridTeleportList) do
-       table.insert(HT.ToolTeleportCallbackList, function ()
-           return HtItem.CallbackByItem(teleport.itemID, teleport.itemType)
-       end)
-   end
+for _, teleport in ipairs(allFactionTeleportList) do
+    table.insert(HT.ToolTeleportCallbackList, function ()
+        local _, classFileName = UnitClass("player")
+        if classFileName == "MAGE" then
+            if HtItem.IsLearned(teleport.itemID, teleport.itemType) then
+                return function ()
+                    return HtItem.CallbackByItem(teleport.itemID, teleport.itemType)
+                end
+            end
+        end
+    end)
 end
+
+local otherClassTepleportList = {
+    {itemID=556, itemType=U.Cate.SPELL}, -- 萨满：[星界传送]
+    {itemID=193753, itemType=U.Cate.SPELL}, -- 德鲁伊：[梦境行者]
+    {itemID=126892, itemType=U.Cate.SPELL} -- 武僧：[禅宗朝圣]
+}
+for _, teleport in ipairs(otherClassTepleportList) do
+    table.insert(HT.ToolTeleportCallbackList, function ()
+        if HtItem.IsLearned(teleport.itemID, teleport.itemType) then
+            return function ()
+                return HtItem.CallbackByItem(teleport.itemID, teleport.itemType)
+            end
+        end
+    end)
+end
+

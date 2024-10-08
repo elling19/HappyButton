@@ -10,26 +10,36 @@ local MerchantList =
     {itemID=460, itemType=U.Cate.MOUNT}, -- [雄壮远足牦牛]
     {itemID=2237, itemType=U.Cate.MOUNT}, -- [灰熊丘陵魁熊]
     {itemID=1039, itemType=U.Cate.MOUNT}, -- [雄壮商队雷龙的缰绳]
+    {itemID=282, itemType=U.Cate.PET}, -- [公会使者]
+    {itemID=280, itemType=U.Cate.PET}, -- [公会侍从]
 }
 
 for _, thing in ipairs(MerchantList) do
     table.insert(HT.ToolMerchantCallbackList, function ()
-        return HtItem.CallbackByItem(thing.itemID, thing.itemType)
+        if HtItem.IsLearned(thing.itemID, thing.itemType) then
+            return function ()
+                return HtItem.CallbackByItem(thing.itemID, thing.itemType)
+            end
+        end
     end)
 end
 
 -- 工程专业：[可充电的里弗斯电池]
-local prof1, prof2, _, _, _ = GetProfessions()
-if prof1 == 8 or prof2 == 8 then
-    local EngineeringList =
-    {
-        {itemID=49040, itemType=U.Cate.ITEM}, -- [基维斯]
-        {itemID=132523, itemType=U.Cate.ITEM}, -- [里弗斯电池]
-        {itemID=221957, itemType=U.Cate.ITEM} -- [阿加修理机器人11O]
-    }
-    for _, thing in ipairs(EngineeringList) do
-        table.insert(HT.ToolMerchantCallbackList, function ()
-            return HtItem.CallbackByItem(thing.itemID, thing.itemType)
-        end)
-    end
+local EngineeringList =
+{
+    {itemID=49040, itemType=U.Cate.ITEM}, -- [基维斯]
+    {itemID=132523, itemType=U.Cate.ITEM}, -- [里弗斯电池]
+    {itemID=221957, itemType=U.Cate.ITEM} -- [阿加修理机器人11O]
+}
+for _, thing in ipairs(EngineeringList) do
+    table.insert(HT.ToolMerchantCallbackList, function ()
+        local prof1, prof2, _, _, _ = GetProfessions()
+        if prof1 == 8 or prof2 == 8 then
+            if HtItem.IsLearned(thing.itemID, thing.itemType) then
+                return function ()
+                    return HtItem.CallbackByItem(thing.itemID, thing.itemType)
+                end
+            end
+        end
+    end)
 end

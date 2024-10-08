@@ -16,7 +16,6 @@ function ToolkitCore.Initial()
     -- 初始化SavedVariables配置信息
     ConfigDB = nil
     ConfigDB = Config.initial(ConfigDB)
-    -- 界面初始化
     ToolkitGUI.Initial()
 end
 
@@ -35,7 +34,7 @@ function ToolkitCore.Register(cate, callback)
         if hasCate == false then
             U.PrintErrorText("Can not register toolkit, wrong cate.")
         else
-            table.insert(ToolkitPool[cateIndex].pool, {callback=callback, execButton=nil, showButton=nil, text=nil})
+            table.insert(ToolkitPool[cateIndex].cbPool, callback) -- {callback=callback, execButton=nil, showButton=nil, text=nil}
         end
     else
         U.PrintErrorText(L["Can not register toolkit: must be a callback function."])
@@ -66,14 +65,10 @@ function ToolkitCore.Start()
     ToolkitCore.Frame:SetScript("OnEvent", function(self, event, arg1)
         if event == "PLAYER_LOGIN" then
             ToolkitCore.Initial()
-            -- Wish.StartCronUpdate()
         end
-        if event == "ADDON_LOADED" and arg1 == "HappyZephrys" then
-            -- 插件需要在宏加载完成后再执行
-            U.PrintInfoText(L["Welcome to use HappyZephrys."])
+        if event == "ADDON_LOADED" and arg1 == "HappyToolkit" then
         end
         if event == "SPELL_UPDATE_COOLDOWN" then
-            -- Wish.Update()
         end
         if event == "PLAYER_REGEN_DISABLED" then
             ToolkitGUI.HideWindow()

@@ -80,36 +80,15 @@ local MorphItemTable =
         {itemID=205904, itemType=U.Cate.TOY}, -- [充满活力的啪嗒作响之爪]
         {itemID=163795, itemType=U.Cate.TOY}, -- [乌古特仪祭之鼓]
         {itemID=166308, itemType=U.Cate.TOY}, -- [为了血神！]
+        {itemID=200178, itemType=U.Cate.TOY}, -- [僵化药水]
     }
 
-local function randomChooseItem()
-    local usableItemList = {}
-    for _, item in ipairs(MorphItemTable) do
-        local itemID, itemType = item.itemID, item.itemType
-        local isUsable = HtItem.CheckUseable(itemID, itemType)
-        if isUsable then
-            table.insert(usableItemList, item)
-        end
-    end
-    -- 如果有可用的item，随机选择一个
-    if #usableItemList > 0 then
-        local randomIndex = math.random(1, #usableItemList)
-        local selectedItem = usableItemList[randomIndex]
-        return selectedItem
-    end
-    -- 没有可用的item时返回第一个
-    return MorphItemTable[0]
-end
-
-
 HT.ToolRandomMorphCallbak = function ()
-    local item = randomChooseItem()
-    if item then
+    return function ()
+        local item = HT.RandomChooseItem(MorphItemTable)
         local result = HtItem.CallbackByItem(item.itemID, item.itemType)
         result.text = L["Random Morph"]
         return result
-    else
-        return nil
     end
 end
 

@@ -57,6 +57,7 @@
         "STATICPOPUP_NUMDIALOGS",
         "MapCanvasDataProviderMixin",
         "MapCanvasPinMixin",
-        "WorldMapFrame"
+        "WorldMapFrame",
+        "class"
     ]
 }
