@@ -1,9 +1,9 @@
 ## Interface: 110002
-## Title: |cfffff700H|r|cffeeaf7ap|r|cffe38483p|r|cffd966a6y|r|cffc84dcaT|r|cffb539e6o|r|cff9f2bffo|r|cffa636f3l|r|cffbb4ed2k|r|cffe38280i|r|cffffad75t|r
+## Title: HappyToolkit
 ## Notes: |cffbc8f8fHappyToolkit |r
 ## Notes-zhCN: |cffbc8f8f工具包|r
-## Notes-zhTW: |cffbc8f8f工具包！|r
-## Author: CN Elling
+## Notes-zhTW: |cffbc8f8f工具包|r
+## Author: CN Cryy
 ## Version: 1.0.0
 ## IconTexture: 1418621
 ## SavedVariables: ConfigDB
@@ -17,18 +17,8 @@ Locales\Locale-zhCN.lua
 
 Utils.lua
 Result.lua
-HtItem.lua
 Config.lua
 ToolkitPool.lua
 GUI.lua
 Core.lua
-Tools/ToolTeleport.lua
-Tools/ToolRandomMorph.lua
-Tools/ToolRandomSpecialdress.lua
-Tools/ToolMerchant.lua
-Tools/ToolMail.lua
-Tools/ToolBank.lua
-Tools/ToolProfession.lua
-Tools/ToolClass.lua
-Tools/ToolOther.LUA
 HappyToolkit.lua

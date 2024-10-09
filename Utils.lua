@@ -4,15 +4,6 @@ local Utils = {}
 
 HT.Utils = Utils
 
--- 分类
-Utils.Cate = {
-    ITEM = 1,
-    TOY = 2,
-    SPELL = 3,
-    MOUNT = 4,
-    PET = 5,
-}
-
 -- 检查表中是否包含某个元素
 function Utils.Contains(table, element)
     for _, value in ipairs(table) do

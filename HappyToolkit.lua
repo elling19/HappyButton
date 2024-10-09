@@ -49,27 +49,3 @@ end
 function G_HAPPY_TOOLKIT.RunWishByKeyBinding()
     ToolkitCore.ToggleToolkitGUI()
 end
-
-for _, callback in ipairs(HT.ToolTeleportCallbackList) do
-    G_HAPPY_TOOLKIT.Register("teleprot", callback)
-end
-for _, callback in ipairs(HT.ToolMailCallbackList) do
-    G_HAPPY_TOOLKIT.Register("mail", callback)
-end
-for _, callback in ipairs(HT.ToolBankCallbackList) do
-    G_HAPPY_TOOLKIT.Register("bank", callback)
-end
-for _, callback in ipairs(HT.ToolMerchantCallbackList) do
-    G_HAPPY_TOOLKIT.Register("merchant", callback)
-end
-for _, callback in ipairs(HT.ToolProfessionCallbackList) do
-    G_HAPPY_TOOLKIT.Register("profession", callback)
-end
-for _, callback in ipairs(HT.ToolClassCallbackList) do
-    G_HAPPY_TOOLKIT.Register("class", callback)
-end
-G_HAPPY_TOOLKIT.Register("other", HT.ToolRandomMorphCallbak)
-G_HAPPY_TOOLKIT.Register("other", HT.ToolRandomSpecialdressCallbak)
-for _, callback in ipairs(HT.ToolOtherCallbackList) do
-    G_HAPPY_TOOLKIT.Register("other", callback)
-end
