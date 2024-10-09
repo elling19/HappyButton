@@ -1,7 +1,6 @@
 local _, HT = ...
 
 local AceGUI = LibStub("AceGUI-3.0")
-local L = LibStub("AceLocale-3.0"):GetLocale("HappyToolkit", false)
 local ToolkitPool = HT.ToolkitPool
 
 

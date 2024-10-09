@@ -41,7 +41,7 @@ frame:RegisterEvent("ADDON_LOADED")
 frame:SetScript("OnEvent", function(self, event, addonName)
     if addonName == "your addon name" then
         if G_HAPPY_TOOLKIT and G_HAPPY_TOOLKIT.Register then
-            G_HAPPY_TOOLKIT.Register("{category}", callbackFunc) -- category options: teleprot,class,profession,mail,bank,merchant,other
+            G_HAPPY_TOOLKIT.Register("{category}", callbackFunc) -- category options: teleport,class,profession,mail,bank,merchant,other
         end
     end
 end)

@@ -24,7 +24,7 @@ local function getPlayerClassIcon()
 end
 
 local ToolkitPool = {
-    {cate="teleprot", title=L["Teleprot"], icon=134414, pool={}, cbPool={}},
+    {cate="teleport", title=L["Teleport"], icon=134414, pool={}, cbPool={}},
     {cate="class", title=L["Class"], icon=getPlayerClassIcon(), pool={}, cbPool={}},
     {cate="profession", title=L["Profession"], icon=4620673, pool={}, cbPool={}},
     {cate="mail", title=L["Mail"] , icon=463542, pool={}, cbPool={}},

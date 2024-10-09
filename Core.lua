@@ -32,7 +32,7 @@ function ToolkitCore.Register(cate, callback)
             end
         end
         if hasCate == false then
-            U.PrintErrorText("Can not register toolkit, wrong cate.")
+            U.PrintErrorText("Can not register toolkit, wrong category.")
         else
             table.insert(ToolkitPool[cateIndex].cbPool, callback) -- {callback=callback, execButton=nil, showButton=nil, text=nil}
         end
