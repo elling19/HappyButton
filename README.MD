@@ -1,6 +1,6 @@
 # HappyToolkit
 
-<img src="./Media/logo.jpg" alt="HappyToolkit" width="160" height="300">
+<img src="./Media/logo.jpeg" alt="HappyToolkit" width="300" height="300">
 
 This is a World of Warcraft addon that collect your toys and items, use them anytime without searching it.
 
@@ -56,6 +56,6 @@ end)
 1. `leftClickCallback` not working.
 
 ### Logo Attribution
-- **Logo Source**: The logo is sourced from [wowhead](https://www.wowhead.com/item=151351/glowing-gift).
+- **Logo Source**: The logo is created by AI.
 
 If you have any suggestions or discover any bugs, please raise them in the issues.
