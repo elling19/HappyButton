@@ -11,8 +11,7 @@ local ToolkitGUI = {
     IsOpen = false,
     UISize = {
         IconSize = 32,
-        HeadingHeight = 32, -- 每个分类标题高度
-        ScrollHeight = 480,  -- 刚好是图标大小（32+8） * 12 = 504，默认显示11个图标+HeadingHeight
+        IconNum = 15, -- 最多展示15个图标
         Width = 204, -- 每个图标32，一共7个。32*7=224。减去20的边框。224-20=204
         Num = 1
     },
@@ -29,7 +28,7 @@ function ToolkitGUI.CollectCallbackList()
         for _, cb in ipairs(catePool.cbPool) do
             local cbResult = cb()
             if not (cbResult == nil ) and type(cbResult) == "function" then
-                table.insert(catePool.pool, {callback=cbResult, execButton=nil, showButton=nil, text=nil})
+                table.insert(catePool.pool, {callback=cbResult, button=nil, text=nil})
             end
         end
     end
@@ -42,9 +41,9 @@ function ToolkitGUI.CreateFrame()
     -- UI高度计算
     -- 分类切换按钮高度：ToolkitGUI.UISize.IconSize = 32
     -- 输入框高度：ToolkitGUI.UISize.IconSize = 32
-    -- 滚动高度 = ToolkitGUI.UISize.ScrollHeight = 500
+    -- 滚动高度 = ToolkitGUI.UISize.IconNum * ToolkitGUI.UISize.IconSize
     -- 整体高度 = 滚动高度 + （类切换按钮高度 + 标题/padding这些高度）
-    local windowHeight = ToolkitGUI.UISize.ScrollHeight + ToolkitGUI.UISize.IconSize + 64
+    local windowHeight = ToolkitGUI.UISize.IconNum * ToolkitGUI.UISize.IconSize + ToolkitGUI.UISize.IconSize + 64
     window:SetHeight(windowHeight)
     window:SetPoint("TOPLEFT")
     window:SetLayout("List")
@@ -57,12 +56,20 @@ function ToolkitGUI.CreateFrame()
     tabGroup:SetWidth(windowWidth)
     tabGroup:SetHeight(ToolkitGUI.UISize.IconSize)
     tabGroup:SetLayout("Flow")
-    local tabScrollIconNum = 0 -- 计算每个tab点击时候滚动图标的个数
+    local buttonCount = 0 -- 计算图标总数量，用来计算滚动距离
     for _, catePool in ipairs(ToolkitPool) do
-        table.insert(ToolkitGUI.tabs, {title=catePool.title, icon=catePool.icon, button=nil, scrollIconNum=tabScrollIconNum})
-        -- 每个分类图标的个数为：标签+图标个数
-        local currentIconNum = 1 + #catePool.pool
-        tabScrollIconNum =  tabScrollIconNum + currentIconNum
+        buttonCount =  buttonCount + #catePool.pool + 1  -- 分类图标个数 + 分类标题
+    end
+    local scrollRatio  -- 滚动系数
+    if buttonCount <= ToolkitGUI.UISize.IconNum then
+        scrollRatio = 1
+    else
+        scrollRatio = 1000 / (buttonCount - ToolkitGUI.UISize.IconNum)
+    end
+    local topCount = 0
+    for _, catePool in ipairs(ToolkitPool) do
+        table.insert(ToolkitGUI.tabs, {title=catePool.title, icon=catePool.icon, button=nil, scrollHeight=topCount * scrollRatio})
+        topCount =  topCount + #catePool.pool + 1
     end
     for index, tab in ipairs(ToolkitGUI.tabs) do
         local tabIcon = AceGUI:Create("Icon")
@@ -86,60 +93,45 @@ function ToolkitGUI.CreateFrame()
     end
     window:AddChild(tabGroup)
 
-    -- 创建内容容器，用于显示每个标签页对应的内容
+    -- 创建内容容器，用于包裹scrollFrame容器
     local container = AceGUI:Create("SimpleGroup")
     container = AceGUI:Create("SimpleGroup")
     container:SetWidth(windowWidth)
-    container:SetHeight(ToolkitGUI.UISize.ScrollHeight)
+    container:SetHeight(ToolkitGUI.UISize.IconSize * ToolkitGUI.UISize.IconNum)
     container:SetLayout("Fill")
-
     -- 创建内容容器滚动区域
     local scrollFrame = AceGUI:Create("ScrollFrame")
     scrollFrame:SetLayout("List")
+
     for cateIndex, catePool in ipairs(ToolkitPool) do
         -- 创建包裹元素
-        local cateGroup = AceGUI:Create("SimpleGroup")
-        cateGroup:SetFullWidth(true)
-        cateGroup:SetLayout("List")
-        cateGroup:SetPoint("CENTER")
         local labelContainer = AceGUI:Create("SimpleGroup")
         labelContainer:SetFullWidth(true)
-        labelContainer:SetHeight(ToolkitGUI.UISize.HeadingHeight)
+        labelContainer:SetHeight(ToolkitGUI.UISize.IconSize)
         labelContainer:SetLayout("Fill")
         local cateTitleLabel = AceGUI:Create("Heading")
         cateTitleLabel:SetText(catePool.title)
         labelContainer:AddChild(cateTitleLabel)
-        cateGroup:AddChild(labelContainer)
-        -- 创建包裹button的元素
-        local toolkitGroup = AceGUI:Create("SimpleGroup")
-        toolkitGroup:SetFullWidth(true)
-        toolkitGroup:SetHeight(ToolkitGUI.UISize.IconSize)
-        toolkitGroup:SetLayout("Flow")
+        scrollFrame:AddChild(labelContainer)
         for poolIndex, pool in ipairs(catePool.pool) do
             local callbackResult = pool.callback()
             pool._cateIndex = cateIndex
             pool._poolIndex = poolIndex
             pool._callbackResult = callbackResult
-            -- 创建包裹button的元素
-            local toolkitContainer = AceGUI:Create("SimpleGroup")
-            toolkitContainer:SetRelativeWidth(1 / ToolkitGUI.UISize.Num)
-            toolkitContainer:SetHeight(ToolkitGUI.UISize.IconSize)
-            toolkitContainer:SetLayout("Flow")
             local buttonContainer = AceGUI:Create("SimpleGroup")
             buttonContainer:SetWidth(ToolkitGUI.UISize.IconSize)
             buttonContainer:SetHeight(ToolkitGUI.UISize.IconSize)
             buttonContainer:SetLayout("Fill")
-            pool.showButton = CreateFrame("Button", ("%s-%s"):format(cateIndex, poolIndex), buttonContainer.frame)
+            pool.button = CreateFrame("Button", ("%s-%s"):format(cateIndex, poolIndex), buttonContainer.frame, "SecureActionButtonTemplate, UIPanelButtonTemplate")
             pool._button_container = buttonContainer
-            pool.showButton:SetNormalTexture(134400)
-            pool.showButton:SetSize(ToolkitGUI.UISize.IconSize, ToolkitGUI.UISize.IconSize)
-            pool.showButton:SetPoint("CENTER", buttonContainer.frame, "CENTER")
-            local label1Container = AceGUI:Create("SimpleGroup")
-            label1Container:SetFullWidth(true)
-            pool.text = label1Container.frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            pool.button:SetNormalTexture(134400)
+            pool.button:SetSize(ToolkitGUI.UISize.IconSize, ToolkitGUI.UISize.IconSize)
+            pool.button:SetPoint("CENTER", buttonContainer.frame, "CENTER")
+            pool.button:RegisterForClicks("AnyDown", "AnyUp")
+            pool.button:SetAttribute("macrotext", "/say 123")
+            pool.text = buttonContainer.frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
             pool.text:SetWidth(ToolkitGUI.UISize.Width - ToolkitGUI.UISize.IconSize - 5)  -- 5是距离图标的边距
-            pool.text:SetText("")
-            pool.text:SetPoint("LEFT", label1Container.frame, "LEFT", 5 + ToolkitGUI.UISize.IconSize, 0)  -- 将文本靠左对齐，并设置一些间距
+            pool.text:SetPoint("LEFT", buttonContainer.frame, "LEFT", 5 + ToolkitGUI.UISize.IconSize, 0)  -- 将文本靠左对齐，并设置一些间距
             pool.text:SetJustifyH("LEFT")  -- 确保文本左对齐
             if not (callbackResult == nil) then
                 -- 如果回调函数返回的是宏命名模式
@@ -149,7 +141,7 @@ function ToolkitGUI.CreateFrame()
                     -- 更新冷却计时
                     ToolkitGUI.SetPoolCooldown(pool)
                     -- 更新鼠标移入移出事件
-                    ToolkitGUI.SetShowButtonMouseEvent(pool)
+                    ToolkitGUI.SetButtonMouseEvent(pool)
                     ToolkitGUI.SetPoolLearnable(pool)
                 elseif not (callbackResult.leftClickCallback == nil) then
                     callbackResult.leftClickCallback()
@@ -158,12 +150,8 @@ function ToolkitGUI.CreateFrame()
                     pool.text:SetText(callbackResult.text)
                 end
             end
-            toolkitContainer:AddChild(buttonContainer)
-            toolkitContainer:AddChild(label1Container)
-            toolkitGroup:AddChild(toolkitContainer)
+            scrollFrame:AddChild(buttonContainer)
         end
-        cateGroup:AddChild(toolkitGroup)
-        scrollFrame:AddChild(cateGroup)
     end
     container:AddChild(scrollFrame)
     window:AddChild(container)
@@ -177,20 +165,10 @@ end
 
 function ToolkitGUI.selectTab(index)
     ToolkitGUI.currentTabIndex = index
-    -- 将当前tab设置为不可点击，其他tab可以点击
     for tabIndex, tab in ipairs(ToolkitGUI.tabs) do
         if tabIndex == index then
             if not (tab.button == nil) then
-                tab.button:SetDisabled(true)
-                if index == 1 then
-                    ToolkitGUI.ScrollFrame:SetScroll(0)
-                else
-                    ToolkitGUI.ScrollFrame:SetScroll((tab.scrollIconNum + 1) * 20)
-                end
-            end
-        else
-            if not (tab.button == nil) then
-                tab.button:SetDisabled(false)
+                ToolkitGUI.ScrollFrame:SetScroll(tab.scrollHeight)
             end
         end
     end
@@ -206,9 +184,6 @@ function ToolkitGUI.Update()
                 ToolkitGUI.SetPoolCooldown(pool)
                 ToolkitGUI.SetPoolMacro(pool)
                 ToolkitGUI.SetPoolLearnable(pool)
-                if callbackResult.text then
-                    pool.text:SetText(callbackResult.text)
-                end
             end
         end
     end
@@ -231,19 +206,20 @@ function ToolkitGUI.ShowWindow()
     end
 end
 
--- 更新宏文案
-function ToolkitGUI.SetButtonMacro(pool, targetButton)
+
+-- 更新pool的宏文案
+function ToolkitGUI.SetPoolMacro(pool)
     local callbackResult = pool._callbackResult
     if callbackResult == nil or callbackResult.macro == nil then
         return
     end
-    if targetButton == nil then
+    if pool.button == nil then
         return
     end
     -- 设置宏命令
-    targetButton:SetAttribute("type", "macro") -- 设置按钮为宏类型
+    pool.button:SetAttribute("type", "macro") -- 设置按钮为宏类型
     if callbackResult.icon then
-        targetButton:SetNormalTexture(callbackResult.icon)
+        pool.button:SetNormalTexture(callbackResult.icon)
     end
     local macroText = ""
     if callbackResult.macro.itemID then
@@ -272,38 +248,25 @@ function ToolkitGUI.SetButtonMacro(pool, targetButton)
     if callbackResult.closeGUIAfterClick == nil or callbackResult.closeGUIAfterClick == true then
         macroText = macroText .. "\r" .. "/closehappytoolkitgui"
     end
-    targetButton:SetAttribute("macrotext", macroText)
-end
-
--- 更新pool的宏文案
-function ToolkitGUI.SetPoolMacro(pool)
-    if pool == nil then
-        return
-    end
-    if pool.showButton then
-        ToolkitGUI.SetButtonMacro(pool, pool.showButton)
-    end
-    if pool.execButton then
-        ToolkitGUI.SetButtonMacro(pool, pool.execButton)
-    end
+    pool.button:SetAttribute("macrotext", macroText)
 end
 
 
--- 更新图标创建冷却计时
-function ToolkitGUI.SetButtonCooldown(pool, targetButton)
-    if targetButton == nil then
+-- 设置pool的冷却
+function ToolkitGUI.SetPoolCooldown(pool)
+    if pool.button == nil then
         return
     end
     local callbackResult = pool._callbackResult
     if callbackResult == nil or callbackResult.macro == nil then
         return
     end
-    if targetButton.cooldown == nil then
+    if pool.button.cooldown == nil then
         -- 创建冷却效果
-        targetButton.cooldown = CreateFrame("Cooldown", nil, targetButton, "CooldownFrameTemplate")
-        targetButton.cooldown:SetAllPoints(targetButton)  -- 设置冷却效果覆盖整个按钮
-        targetButton.cooldown:SetDrawEdge(true)  -- 显示边缘
-        targetButton.cooldown:SetHideCountdownNumbers(true)  -- 隐藏倒计时数字
+        pool.button.cooldown = CreateFrame("Cooldown", nil, pool.button, "CooldownFrameTemplate")
+        pool.button.cooldown:SetAllPoints(pool.button)  -- 设置冷却效果覆盖整个按钮
+        pool.button.cooldown:SetDrawEdge(true)  -- 显示边缘
+        pool.button.cooldown:SetHideCountdownNumbers(true)  -- 隐藏倒计时数字
     end
     local macro = callbackResult.macro
     local itemID, spellID, toyID, petID = macro.itemID, macro.spellID, macro.toyID, macro.petID
@@ -311,23 +274,23 @@ function ToolkitGUI.SetButtonCooldown(pool, targetButton)
     if itemID then
         local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(itemID)
         if enableCooldownTimer and durationSeconds > 0 then
-            targetButton.cooldown:SetCooldown(startTimeSeconds, durationSeconds)
+            pool.button.cooldown:SetCooldown(startTimeSeconds, durationSeconds)
         else
-            targetButton.cooldown:Clear()
+            pool.button.cooldown:Clear()
         end
     elseif toyID then
         local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(toyID)
         if enableCooldownTimer and durationSeconds > 0 then
-            targetButton.cooldown:SetCooldown(startTimeSeconds, durationSeconds)
+            pool.button.cooldown:SetCooldown(startTimeSeconds, durationSeconds)
         else
-            targetButton.cooldown:Clear()
+            pool.button.cooldown:Clear()
         end
     elseif spellID then
         local spellCooldownInfo = C_Spell.GetSpellCooldown(spellID)
         if spellCooldownInfo and spellCooldownInfo.isEnabled == true and spellCooldownInfo.duration > 0 then
-            targetButton.cooldown:SetCooldown(spellCooldownInfo.startTime, spellCooldownInfo.duration)
+            pool.button.cooldown:SetCooldown(spellCooldownInfo.startTime, spellCooldownInfo.duration)
         else
-            targetButton.cooldown:Clear()
+            pool.button.cooldown:Clear()
         end
     elseif petID then
         local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID = C_PetJournal.GetPetInfoBySpeciesID(petID)
@@ -336,27 +299,15 @@ function ToolkitGUI.SetButtonCooldown(pool, targetButton)
             if petGUID then
                 local start, duration, isEnabled = C_PetJournal.GetPetCooldownByGUID(petGUID)
                 if isEnabled and duration > 0 then
-                    targetButton.cooldown:SetCooldown(start, duration)
+                    pool.button.cooldown:SetCooldown(start, duration)
                 else
-                    targetButton.cooldown:Clear()
+                    pool.button.cooldown:Clear()
                 end
             end
         end
     end
 end
 
--- 设置pool的冷却
-function ToolkitGUI.SetPoolCooldown(pool)
-    if pool == nil then
-        return
-    end
-    if pool.showButton then
-        ToolkitGUI.SetButtonCooldown(pool, pool.showButton)
-    end
-    if pool.execButton then
-        ToolkitGUI.SetButtonCooldown(pool, pool.execButton)
-    end
-end
 
 -- 当pool上的技能没有学习的时候，置为灰色
 function ToolkitGUI.SetPoolLearnable(pool)
@@ -399,25 +350,17 @@ function ToolkitGUI.SetPoolLearnable(pool)
     end
     -- 如果没有学习这个技能，则将图标和文字改成灰色半透明
     if hasThisThing == false then
-        if pool.showButton then
-            pool.showButton:SetEnabled(false)
-            pool.showButton:SetAlpha(0.5)
-        end
-        if pool.execButton then
-            pool.execButton:SetEnabled(false)
-            pool.execButton:SetAlpha(0.5)
+        if pool.button then
+            pool.button:SetEnabled(false)
+            pool.button:SetAlpha(0.5)
         end
         if pool.text then
             pool.text:SetTextColor(0.5, 0.5, 0.5)
         end
     else
-        if pool.showButton then
-            pool.showButton:SetEnabled(true)
-            pool.showButton:SetAlpha(1)
-        end
-        if pool.execButton then
-            pool.execButton:SetEnabled(true)
-            pool.execButton:SetAlpha(1)
+        if pool.button then
+            pool.button:SetEnabled(true)
+            pool.button:SetAlpha(1)
         end
         if pool.text then
             pool.text:SetTextColor(1, 1, 1)
@@ -425,79 +368,46 @@ function ToolkitGUI.SetPoolLearnable(pool)
     end
 end
 
--- 设置execButton的鼠标移入移出事件
-function ToolkitGUI.SetExecButtonMouseEvent(pool)
-    if pool == nil or pool.execButton == nil then
-        return
-    end
-    pool.execButton:SetScript("OnEnter", function (_)
-        ToolkitGUI.SetShowGameTooltip(pool, pool.execButton)
-    end)
-    pool.execButton:SetScript("OnLeave", function(_)
-        GameTooltip:Hide() -- 隐藏提示
-    end)
-end
-
 
 -- 设置button鼠标移入事件
-function ToolkitGUI.SetShowGameTooltip(pool, targetButton)
+function ToolkitGUI.SetShowGameTooltip(pool)
     local callbackResult = pool._callbackResult
-        if callbackResult == nil or callbackResult.macro == nil then
-            return
-        end
-        local macro = callbackResult.macro
-        local itemID, toyID, spellID, mountID, petID = macro.itemID, macro.toyID, macro.spellID, macro.mountID, macro.petID
-        GameTooltip:SetOwner(targetButton, "ANCHOR_RIGHT") -- 设置提示显示的位置
-        if itemID then
-            GameTooltip:SetItemByID(itemID)
-        elseif toyID then
-            GameTooltip:SetToyByItemID(toyID)
-        elseif spellID then
-            GameTooltip:SetSpellByID(spellID)
-        elseif mountID then
-            local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight = C_MountJournal.GetMountInfoByID(mountID)
-            GameTooltip:SetMountBySpellID(spellID)
-        elseif petID then
-            local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID = C_PetJournal.GetPetInfoBySpeciesID(petID)
-            local speciesId, petGUID = C_PetJournal.FindPetIDByName(speciesName)
-            GameTooltip:SetCompanionPet(petGUID)
-        end
-end
-
--- 设置ShowButton的鼠标移入移出事件
-function ToolkitGUI.SetShowButtonMouseEvent(pool)
-    if pool == nil or pool.showButton == nil then
+    if callbackResult == nil or callbackResult.macro == nil then
         return
     end
-    pool.showButton:SetScript("OnLeave", function(_)
+    local macro = callbackResult.macro
+    local itemID, toyID, spellID, mountID, petID = macro.itemID, macro.toyID, macro.spellID, macro.mountID, macro.petID
+    GameTooltip:SetOwner(pool.button, "ANCHOR_RIGHT") -- 设置提示显示的位置
+    if itemID then
+        GameTooltip:SetItemByID(itemID)
+    elseif toyID then
+        GameTooltip:SetToyByItemID(toyID)
+    elseif spellID then
+        GameTooltip:SetSpellByID(spellID)
+    elseif mountID then
+        local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight = C_MountJournal.GetMountInfoByID(mountID)
+        GameTooltip:SetMountBySpellID(spellID)
+    elseif petID then
+        local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID = C_PetJournal.GetPetInfoBySpeciesID(petID)
+        local speciesId, petGUID = C_PetJournal.FindPetIDByName(speciesName)
+        GameTooltip:SetCompanionPet(petGUID)
+    end
+end
+
+-- 设置button的鼠标移入移出事件
+function ToolkitGUI.SetButtonMouseEvent(pool)
+    if pool == nil or pool.button == nil then
+        return
+    end
+    pool.button:SetScript("OnLeave", function(_)
         GameTooltip:Hide() -- 隐藏提示
     end)
-    pool.showButton:SetScript("OnEnter", function (self)
-        ToolkitGUI.SetShowGameTooltip(pool, self)
-        if pool.execButton then
-            return
-        end
-        -- 创建可以点击的按钮button来替换仅仅可以显示的showButton
-        -- 创建可以点击的button
-        pool.execButton = CreateFrame("Button", ("%s-%s"):format(pool._cateIndex, pool._poolIndex), pool._button_container.frame, "SecureActionButtonTemplate, UIPanelButtonTemplate")
-        pool.execButton:SetNormalTexture(134400)
-        pool.execButton:SetSize(ToolkitGUI.UISize.IconSize, ToolkitGUI.UISize.IconSize)
-        pool.execButton:SetPoint("CENTER", pool._button_container.frame, "CENTER")
-        pool.execButton:RegisterForClicks("AnyDown", "AnyUp")
+    pool.button:SetScript("OnEnter", function (_)
+        ToolkitGUI.SetShowGameTooltip(pool)
         -- 设置鼠标移入时候的高亮效果为白色半透明效果
-        local highlightTexture = pool.execButton:CreateTexture()
+        local highlightTexture = pool.button:CreateTexture()
         highlightTexture:SetColorTexture(255, 255, 255, 0.2)
-        pool.execButton:SetHighlightTexture(highlightTexture)
-        -- 移除初次展示的showButton
-        pool.showButton:Hide()
-        pool.showButton:SetParent(nil)
-        pool.showButton:ClearAllPoints()
-        pool.showButton = nil
-
-        -- 更新execButton的宏和冷却
-        ToolkitGUI.SetExecButtonMouseEvent(pool)
-        ToolkitGUI.SetPoolMacro(pool)
-        ToolkitGUI.SetPoolCooldown(pool)
+        pool.button:SetHighlightTexture(highlightTexture)
     end)
 end
 

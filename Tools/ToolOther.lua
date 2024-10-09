@@ -69,7 +69,7 @@ table.insert(HT.ToolOtherCallbackList, function ()
 end)
 
 
--- 猪队友
+-- 纪念逝去的队友
 local deadPartyList = {
     {itemID=194052, itemType=U.Cate.TOY}, -- [被遗忘的葬礼棺罩]
     {itemID=187174, itemType=U.Cate.TOY}, -- [便携式审判石]
