@@ -47,10 +47,10 @@ frame:SetScript("OnEvent", function(self, event, addonName)
 end)
 ```
 
+[HappyToolkit_Example](https://github.com/elling19/HappyToolkit_Example)
+
 ### TODO:
-1. Add more useful toys and items.
-2. Support for players to manually add toys and items.
-3. Hide the button if the button can not used.
+1. Support for players to manually add toys and items.
 
 ### Known Bugs:
 1. `leftClickCallback` not working.
