@@ -26,7 +26,7 @@ end
 
 
 -- 修改全局打印方法，在打印信息前加上插件名称
-function Utils.print(...) _G.print("|cfffff700H|r|cffeeaf7ap|r|cffe38483p|r|cffd966a6y|r|cffc84dcaT|r|cffb539e6o|r|cff9f2bffo|r|cffa636f3l|r|cffbb4ed2k|r|cffe38280i|r|cffffad75t|r" .. "|cfffff700:|r", ...) end
+function Utils.print(...) _G.print("|cfffff700H|r|cffeeaf7aa|r|cffe38483pp|r|cffd966a6y|r|cffc84dcaT|r|cffb539e6o|r|cff9f2bffo|r|cffa636f3l|r|cffbb4ed2k|r|cffe38280i|r|cffffad75t|r" .. "|cfffff700:|r", ...) end
 
 -- 打印彩色字体
 function Utils.PrintColoredText(text, color)

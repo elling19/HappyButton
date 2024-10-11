@@ -6,7 +6,7 @@
 ## Author: CN Cryy
 ## Version: 1.0.0
 ## IconTexture: 1418621
-## SavedVariables: ConfigDB
+## SavedVariables: HappyToolkitDB
 
 # 引入Libs中的模块
 Libs\embeds.xml
