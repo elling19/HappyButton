@@ -5,13 +5,17 @@ HT.AceAddon = LibStub("AceAddon-3.0"):NewAddon(HT.AceAddonName, "AceConsole-3.0"
 local AceConfig = LibStub("AceConfig-3.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 
--- 准备分类的默认数据库结构
-local defaultCategories = {
-    { title = "Category 1", icon = "Interface\\Icons\\INV_Misc_QuestionMark" },
-    { title = "Category 2", icon = "Interface\\Icons\\INV_Misc_QuestionMark" },
+-- 添加物品类型选项
+local itemTypeOptions = {
+    ITEM="Item",
+    TOY="Toy",
+    SPELL="Spell",
+    PET="Pet",
+    MOUNT="Mount",
+    SCRIPT="Script",
 }
-
 local selectedCategoryIndex = 1 -- 用于存储当前选择的分类索引
+local selectedItemIndex = 1
 
 local options = {
     name = "HappyToolkit Options",
@@ -21,7 +25,7 @@ local options = {
         general = {
             order=1,
             type = 'group',
-            name = "General Settings",
+            name = "General",
             args = {
                 enable = {
                     type = 'toggle',
@@ -63,41 +67,32 @@ local options = {
                 },
             },
         },
-        categories = {
+        categoryList = {
             order=2,
             type = 'group',
-            name = "Categories Settings",
+            name = "Category",
             args = {
                 addCategory = {
                     order=2,
-                    type = 'execute',
-                    name = "Add New Category",
-                    func = function()
-                        -- 检查是否输入了标题和图标
-                        local title = "New Category"
-                        local icon = "Interface\\Icons\\INV_Misc_QuestionMark"
-                        -- 将新的分类添加到数据库中
-                        table.insert(HT.AceAddon.db.profile.categories, { title = title, icon = icon })
-                        -- 获取刚添加的分类索引
-                        selectedCategoryIndex = #HT.AceAddon.db.profile.categories
+                    type = 'input',
+                    name = "New Category",
+                    width = "full",
+                    desc = "Input category title to a new category",
+                    set = function(info, val)
+                        table.insert(HT.AceAddon.db.profile.categoryList, { title=val, icon=nil, itemList={} })
+                        selectedCategoryIndex = #HT.AceAddon.db.profile.categoryList
+                        HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].title = val
                     end,
-                    width = "double",
-                },
-                 -- 在这里添加一个heading，显示在Add Category按钮下方
-                heading = {
-                    order = 3,
-                    type = 'header',
-                    name = "Category Management",
                 },
                 selectCategory = {
                     order=4,
-                    type = 'select',
-                    name = "",
-                    desc = "Choose a category to edit",
                     width = 1,
+                    type = 'select',
+                    name = "Edit Category",
+                    desc = "Choose a category to edit",
                     values = function()
                         local categoryValues = {}
-                        for i, category in ipairs(HT.AceAddon.db.profile.categories) do
+                        for i, category in ipairs(HT.AceAddon.db.profile.categoryList) do
                             categoryValues[i] = category.title
                         end
                         return categoryValues
@@ -108,46 +103,189 @@ local options = {
                     get = function()
                         return selectedCategoryIndex
                     end,
+                    hidden = function()
+                        return #HT.AceAddon.db.profile.categoryList == 0
+                    end,
                 },
                 deleteCategory = {
                     order=5,
+                    width = 1,
                     type = 'execute',
                     name = "Delete",
                     func = function()
-                        table.remove(HT.AceAddon.db.profile.categories, selectedCategoryIndex)
+                        table.remove(HT.AceAddon.db.profile.categoryList, selectedCategoryIndex)
                         -- 更新下拉列表
-                        selectedCategoryIndex = #HT.AceAddon.db.profile.categories
+                        selectedCategoryIndex = #HT.AceAddon.db.profile.categoryList
                     end,
-                    width = 1,
+                    hidden = function()
+                        return #HT.AceAddon.db.profile.categoryList == 0
+                    end,
                 },
-                editTitle = {
+                editCategoryTitle = {
                     order=7,
                     type = 'input',
                     name = "Category Title:",
-                    width = "harf",
+                    width = 1,
                     desc = "Edit the title of the selected category",
                     set = function(info, val)
-                        HT.AceAddon.db.profile.categories[selectedCategoryIndex].title = val
+                        HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].title = val
                     end,
                     get = function()
-                        return HT.AceAddon.db.profile.categories[selectedCategoryIndex].title
+                        return HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].title
+                    end,
+                    hidden = function()
+                        return #HT.AceAddon.db.profile.categoryList == 0
                     end,
                 },
-                editIcon = {
+                editCategoryIcon = {
                     order=9,
                     type = 'input',
                     name = "Category Icon:",
-                    width = "harf",
+                    width = 1,
                     desc = "Edit the icon path of the selected category",
                     set = function(info, val)
-                        HT.AceAddon.db.profile.categories[selectedCategoryIndex].icon = val
+                        HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].icon = val
                     end,
                     get = function()
-                        return HT.AceAddon.db.profile.categories[selectedCategoryIndex].icon
+                        return HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].icon
+                    end,
+                    hidden = function()
+                        return #HT.AceAddon.db.profile.categoryList == 0
+                    end,
+                },
+                itemHeading = {
+                    order = 11,
+                    type = 'header',
+                    name = "Item Management",
+                    hidden = function()
+                        return #HT.AceAddon.db.profile.categoryList == 0
+                    end,
+                },
+                addItem = {
+                    order=12,
+                    type = 'input',
+                    name = "New Item",
+                    width = "full",
+                    desc = "Input item title to a new item",
+                    set = function(info, val)
+                        table.insert(HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList, { title=val })
+                        selectedItemIndex = #HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList
+                    end,
+                    hidden = function()
+                        return #HT.AceAddon.db.profile.categoryList == 0
+                    end,
+                },
+                selectItem = {
+                    order=13,
+                    type = 'select',
+                    name = "",
+                    desc = "Choose a item to edit",
+                    width = 1,
+                    values = function()
+                        local itemValues = {}
+                        for i, item in ipairs(HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList) do
+                            itemValues[i] = item.title
+                        end
+                        return itemValues
+                    end,
+                    set = function(info, val)
+                        selectedItemIndex = val
+                    end,
+                    get = function()
+                        return selectedItemIndex
+                    end,
+                    hidden = function()
+                        return #HT.AceAddon.db.profile.categoryList == 0 or #HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList == 0
+                    end,
+                },
+                deleteItem = {
+                    order=14,
+                    type = 'execute',
+                    name = "Delete",
+                    func = function()
+                        table.remove(HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList, selectedItemIndex)
+                        -- 更新下拉列表
+                        selectedItemIndex = #HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList
+                    end,
+                    width = 1,
+                    hidden = function()
+                        return #HT.AceAddon.db.profile.categoryList == 0 or #HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList == 0
+                    end,
+                },
+                editItemType = {
+                    order=15,
+                    type = 'select',
+                    name = "Item Type",
+                    values = itemTypeOptions,
+                    set = function(info, val) HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList[selectedItemIndex].itemType = val end,
+                    get = function(info)
+                        if #HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList == 0 then
+                            return nil
+                        else
+                            return HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList[selectedItemIndex].itemType
+                        end
+                    end,
+                    hidden = function()
+                        if #HT.AceAddon.db.profile.categoryList == 0 or #HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList == 0 then
+                            return true
+                        end
+                        return false
+                    end,
+                },
+                editItemId = {
+                    order=16,
+                    type = 'input',
+                    name = "Item ID:",
+                    width = "harf",
+                    desc = "Edit the icon path of the selected item",
+                    set = function(info, val)
+                        HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList[selectedItemIndex].itemID = val
+                    end,
+                    get = function()
+                        if #HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList == 0 then
+                            return ""
+                        else
+                            return HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList[selectedItemIndex].itemID
+                        end
+                    end,
+                    hidden = function()
+                        if #HT.AceAddon.db.profile.categoryList == 0 or #HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList == 0 then
+                            return true
+                        end
+                        if HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList[selectedItemIndex].itemType == "SCRIPT" then
+                            return true
+                        end
+                        return false
+                    end,
+                },
+                editItemScript = {
+                    type = 'input', -- 使用 input 类型以支持富文本输入
+                    name = "Script:",
+                    multiline = true, -- 允许多行输入
+                    width = "full",
+                    set = function(info, val)
+                        -- 存储输入的脚本
+                        HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList[selectedItemIndex].script = val
+                    end,
+                    get = function()
+                        return HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList[selectedItemIndex].script
+                    end,
+                    hidden = function()
+                        if #HT.AceAddon.db.profile.categoryList == 0 or #HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList == 0 then
+                            return true
+                        end
+                        return HT.AceAddon.db.profile.categoryList[selectedCategoryIndex].itemList[selectedItemIndex].itemType ~= "SCRIPT" -- 只有当选择为 SCRIPT 类型时显示
                     end,
                 },
             },
         },
+        itemGroupList = {
+            order=2,
+            type = 'group',
+            name = "ItemGroup",
+            args = {
+            }
+        }
     },
 }
 
@@ -158,7 +296,7 @@ function HT.AceAddon:OnInitialize()
             enable = true, threshold = 50,
             windowPositionX = 500, -- 默认X位置
             windowPositionY = 500, -- 默认Y位置
-            categories = defaultCategories, -- 默认分类
+            categoryList = {}, -- 默认分类
         }
     }, true)
 
