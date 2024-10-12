@@ -1,12 +1,33 @@
 local _, HT = ...
+local HtItem = HT.HtItem
+local U = HT.Utils
 HT.AceAddonName = "HappyToolkit"
 HT.AceAddonConfigDB = "HappyToolkitDB"
 HT.AceAddon = LibStub("AceAddon-3.0"):NewAddon(HT.AceAddonName, "AceConsole-3.0", "AceEvent-3.0")
 local AceConfig = LibStub("AceConfig-3.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 local AceDBOptions = LibStub("AceDBOptions-3.0")
-local HtItem = HT.HtItem
-local U = HT.Utils
+local AceSerializer = LibStub("AceSerializer-3.0")
+local AceGUI = LibStub("AceGUI-3.0")
+
+local function ShowExportDialog(exportData)
+    local dialog = AceGUI:Create("Window")
+    dialog:SetTitle("Copy Export Data")
+    dialog:SetWidth(500)
+    dialog:SetHeight(300)
+    dialog:SetLayout("Fill")
+
+    local editBox = AceGUI:Create("MultiLineEditBox")
+    editBox:SetLabel("")
+    editBox:DisableButton(true)
+    editBox:SetFullWidth(true)
+    editBox:SetFullHeight(true)
+    editBox:SetText(exportData)
+    editBox:SetCallback("OnEnterPressed", function(widget)
+        widget:ClearFocus()
+    end)
+    dialog:AddChild(editBox)
+end
 
 -- 添加物品组类型选项
 local itemGroupModeOptions = {
@@ -18,6 +39,10 @@ local itemGroupModeOptions = {
 local tmpNewItemType = nil
 local tmpNewItemVal = nil
 local newItem = {type=nil, title = nil, id = nil, icon = nil, name = nil}
+
+local function ResetNewItem()
+    newItem = {type=nil, title = nil, id = nil, icon = nil, name = nil}
+end
 
 local function CategoryOptions()
     local options = {
@@ -42,7 +67,7 @@ local function CategoryOptions()
                     return true
                 end,
                 set = function(_, val)
-                    table.insert(HT.AceAddon.db.profile.categoryList, { title = val, icon = nil, itemGroupDict = {}, scriptDict = {} })
+                    table.insert(HT.AceAddon.db.profile.categoryList, { title = val, icon = nil, thingList = {} })
                     HT.AceAddon:UpdateOptions()
                     AceConfigDialog:SelectGroup(HT.AceAddonName, "category", "categoryMenu" .. #HT.AceAddon.db.profile.categoryList)
                 end,
@@ -104,10 +129,30 @@ local function CategoryOptions()
                         return values
                     end,
                     get = function(_, key)
-                        return category.itemGroupDict[key] == true
+                        for _, thing in ipairs(category.thingList) do
+                            if thing.type == "ITEM_GROUP" and thing.title == key then
+                                return true
+                            end
+                        end
+                        return false
                     end,
                     set = function(_, key, value)
-                        category.itemGroupDict[key] = value
+                        if value == true then
+                            for _, thing in ipairs(category.thingList) do
+                                if thing.type == "ITEM_GROUP" and thing.title == key then
+                                    return
+                                end
+                            end
+                            table.insert(category.thingList, {type="ITEM_GROUP", title=key})
+                        end
+                        if value == false then
+                            for index, thing in ipairs(category.thingList) do
+                                if thing.type == "ITEM_GROUP" and thing.title == key then
+                                    table.remove(category.thingList, index)
+                                    return
+                                end
+                            end
+                        end
                     end,
                 },
                 scriptList = {
@@ -123,10 +168,30 @@ local function CategoryOptions()
                         return values
                     end,
                     get = function(_, key)
-                        return category.scriptDict[key] == true
+                        for _, thing in ipairs(category.thingList) do
+                            if thing.type == "SCRIPT" and thing.title == key then
+                                return true
+                            end
+                        end
+                        return false
                     end,
                     set = function(_, key, value)
-                        category.scriptDict[key] = value
+                        if value == true then
+                            for _, thing in ipairs(category.thingList) do
+                                if thing.type == "SCRIPT" and thing.title == key then
+                                    return
+                                end
+                            end
+                            table.insert(category.thingList, {type="SCRIPT", title=key})
+                        end
+                        if value == false then
+                            for index, thing in ipairs(category.thingList) do
+                                if thing.type == "SCRIPT" and thing.title == key then
+                                    table.remove(category.thingList, index)
+                                    return
+                                end
+                            end
+                        end
                     end,
                 },
                 space2 = {
@@ -207,11 +272,10 @@ local function ScriptOptions()
                     set = function(_, val)
                         -- 在category中修改对应的script
                         for _, category in ipairs(HT.AceAddon.db.profile.categoryList) do
-                            if category.scriptDict ~= nil then
-                                for s, _ in pairs(category.scriptDict) do
-                                    if s == script.title then
-                                        category.scriptDict[val] = category.scriptDict[s]
-                                        category.scriptDict[s] = nil
+                            if category.thingList ~= nil then
+                                for index, thing in ipairs(category.thingList) do
+                                    if thing.type == "SCRIPT" and thing.title == script.title then
+                                        category.thingList[index].title = val
                                         break
                                     end
                                 end
@@ -246,10 +310,10 @@ local function ScriptOptions()
                         table.remove(HT.AceAddon.db.profile.scriptList, i)
                         -- 从category中删除对应的script
                         for _, category in ipairs(HT.AceAddon.db.profile.categoryList) do
-                            if category.scriptDict ~= nil then
-                                for s, _ in pairs(category.scriptDict) do
-                                    if s == script.title then
-                                        category.scriptDict[s] = nil
+                            if category.thingList ~= nil then
+                                for index, thing in ipairs(category.thingList) do
+                                    if thing.type == "SCRIPT" and thing.title == script.title then
+                                        table.remove(category.thingList, index)
                                         break
                                     end
                                 end
@@ -289,9 +353,67 @@ local function ItemGroupOptions()
                     return true
                 end,
                 set = function(info, val)
-                    table.insert(HT.AceAddon.db.profile.itemGroupList, { title=val, mode="ALL", displayUnUseable=false, displayUnLearned=false, itemList={} })
+                    table.insert(HT.AceAddon.db.profile.itemGroupList, { title=val, mode="MULTIPLE", displayUnUseable=false, displayUnLearned=false, itemList={} })
                     HT.AceAddon:UpdateOptions()
                     AceConfigDialog:SelectGroup(HT.AceAddonName, "itemGroup", "itemGroupMenu" .. #HT.AceAddon.db.profile.itemGroupList)
+                end,
+            },
+            sapce1 = {
+                order = 2,
+                type = 'description',
+                name = "\n\n\n"
+            },
+            itemHeading = {
+                order = 3,
+                type = 'header',
+                name = "Import Config",
+            },
+            importEditBox = {
+                order = 4,
+                type = 'input',
+                name = "Import ItemGroup Config String:",
+                multiline = 20,
+                width = "full",
+                set = function(info, val)
+                    if val == nil or val == "" then
+                        print("Please input the config string.")
+                        return
+                    end
+                    local success, configTable = AceSerializer:Deserialize(val)
+                    if not success then
+                        print("Import failed: Invalid data.")
+                        return
+                    end
+                    -- 校验反序列是否正确
+                    -- table需要包含{ title=val, mode="MULTIPLE", displayUnUseable=false, displayUnLearned=false, itemList={} }
+                    if type(configTable) ~= "table" then
+                        print("Import failed: Invalid data.")
+                        return
+                    end
+                    if configTable.title == nil then
+                        print("Import failed: Invalid data.")
+                        return
+                    end
+                    if configTable.mode == nil then
+                        print("Import failed: Invalid data.")
+                        return
+                    end
+                    if configTable.itemList == nil or type(configTable.itemList) ~= "table" then
+                        print("Import failed: Invalid data.")
+                        return
+                    end
+                    local hasRepeatTitle = false
+                    repeat
+                        hasRepeatTitle = false
+                        for _, group in ipairs(HT.AceAddon.db.profile.itemGroupList) do
+                            if group and group.title == configTable.title then
+                                configTable.title = configTable.title .. "1"
+                                hasRepeatTitle = true
+                                break
+                            end
+                        end
+                    until hasRepeatTitle == false
+                    table.insert(HT.AceAddon.db.profile.itemGroupList, configTable)
                 end,
             },
         },
@@ -305,7 +427,7 @@ local function ItemGroupOptions()
             args = {
                 title = {
                     order = 1,
-                    width=2,
+                    width=1,
                     type = 'input',
                     name = 'ItemGroup Title',
                     validate = function (_, val)
@@ -320,11 +442,10 @@ local function ItemGroupOptions()
                     set = function(_, val)
                         -- 在category中修改对应的itemGroup
                         for _, category in ipairs(HT.AceAddon.db.profile.categoryList) do
-                            if category.itemGroupDict ~= nil then
-                                for s, _ in pairs(category.itemGroupDict) do
-                                    if s == itemGroup.title then
-                                        category.itemGroupDict[val] = category.itemGroupDict[s]
-                                        category.itemGroupDict[s] = nil
+                            if category.thingList ~= nil then
+                                for index, thing in ipairs(category.thingList) do
+                                    if thing.type == "ITEM_GROUP" and thing.title == itemGroup.title then
+                                        category.thingList[index].title = val
                                         break
                                     end
                                 end
@@ -334,8 +455,23 @@ local function ItemGroupOptions()
                         HT.AceAddon:UpdateOptions()
                     end,
                 },
+                export = {
+                    order=2,
+                    width=1,
+                    type = 'execute',
+                    name = 'Export ItemGroup',
+                    func = function()
+                        local serializedData = AceSerializer:Serialize(itemGroup)
+                        if C_Clipboard then
+                            C_Clipboard.SetText(serializedData)
+                        else
+                            ShowExportDialog(serializedData)
+                        end
+                        local success, deserializedTable = AceSerializer:Deserialize(serializedData)
+                    end,
+                },
                 mode = {
-                    order = 2,
+                    order = 3,
                     width=2,
                     type = 'select',
                     name = "ItemGroup Mode",
@@ -346,7 +482,7 @@ local function ItemGroupOptions()
                     get = function () return itemGroup.mode end,
                 },
                 displayLearnedToggle = {
-                    order = 3,
+                    order = 4,
                     width=2,
                     type = 'toggle',
                     name = "Only display learned item.",
@@ -354,7 +490,7 @@ local function ItemGroupOptions()
                     get = function(_) return not itemGroup.displayUnLearned end,
                 },
                 displayUseableToggle = {
-                    order = 4,
+                    order = 5,
                     width=2,
                     type = 'toggle',
                     name = "Only display useable item.",
@@ -362,17 +498,17 @@ local function ItemGroupOptions()
                     get = function(_) return not itemGroup.displayUnUseable end,
                 },
                 sapce1 = {
-                    order = 5,
+                    order = 6,
                     type = 'description',
                     name = "\n\n\n"
                 },
                 itemHeading = {
-                    order = 6,
+                    order = 7,
                     type = 'header',
                     name = "Add Item",
                 },
                 itemType = {
-                    order = 7,
+                    order = 8,
                     type = 'select',
                     name = "Item Type",
                     values = HtItem.TypeOptions,
@@ -384,16 +520,17 @@ local function ItemGroupOptions()
                     end
                 },
                 itemTitle = {
-                    order = 8,
+                    order = 9,
                     type = 'input',
                     name = "Item title or item id",
                     validate = function (_, val)
+                        if val == nil or val == "" or val == " " then
+                            return "Please input effect title."
+                        end
+                        ResetNewItem()
                         newItem.type = tmpNewItemType
                         if newItem.type == nil then
                             return "Please select item type."
-                        end
-                        if val == nil or val == "" or val == " " then
-                            return "Please input effect title."
                         end
                         -- 添加物品逻辑
                         if newItem.type == HtItem.Type.ITEM or newItem.type == HtItem.Type.EQUIPMENT or newItem.type == HtItem.Type.TOY then
@@ -501,12 +638,12 @@ local function ItemGroupOptions()
                     end
                 },
                 sapce2 = {
-                    order = 9,
+                    order = 10,
                     type = 'description',
                     name = "\n\n\n"
                 },
                 delete = {
-                    order = 10,
+                    order = 11,
                     width=2,
                     type = 'execute',
                     name = 'Delete ItemGroup',
@@ -515,10 +652,10 @@ local function ItemGroupOptions()
                         table.remove(HT.AceAddon.db.profile.itemGroupList, i)
                         -- 从category中删除对应的itemGroup
                         for _, category in ipairs(HT.AceAddon.db.profile.categoryList) do
-                            if category.itemGroupDict ~= nil then
-                                for s, _ in pairs(category.itemGroupDict) do
-                                    if s == itemGroup.title then
-                                        category.itemGroupDict[s] = nil
+                            if category.thingList ~= nil then
+                                for index, thing in ipairs(category.thingList) do
+                                    if thing.type == "ITEM_GROUP" and thing.title == itemGroup.title then
+                                        table.remove(category.thingList, index)
                                         break
                                     end
                                 end
@@ -661,7 +798,6 @@ function HT.AceAddon:OnInitialize()
             categoryList = {},
             itemGroupList = {},
             scriptList = {},
-            selectedOptions={}
         }
     }, true)
     -- 注册选项表

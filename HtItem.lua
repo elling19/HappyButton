@@ -25,28 +25,81 @@ HtItem.TypeOptions = {
     [HtItem.Type.PET]="Pet",
 }
 
+-- 随机选择callback
+function HtItem.CallbackOfRandomMode(itemList)
+    local usableItemList = {}
+    local cooldownItemList = {}
+    for _, item in ipairs(itemList) do
+        local isUsable = HtItem.IsLearnedAndUsable(item)
+        local isCooldown = HtItem.IsUseableAndCooldown(item)
+        if isUsable then
+            table.insert(usableItemList, item)
+        end
+        if isCooldown then
+            table.insert(cooldownItemList, item)
+        end
+    end
+    -- 如果有冷却可用的item，随机选择一个
+    if #cooldownItemList > 0 then
+        local randomIndex = math.random(1, #usableItemList)
+        local selectedItem = cooldownItemList[randomIndex]
+        return HtItem.CallbackByItem(selectedItem)
+    end
+    -- 没有没有冷却可用，则选择可用
+    if #usableItemList > 0 then
+        return HtItem.CallbackByItem(usableItemList[1])
+    end
+    -- 没有可用的item时返回第一个
+    return HtItem.CallbackByItem(itemList[1])
+end
+
+-- 顺序选择callback
+function HtItem.CallbackOfSeqMode(itemList)
+    for _, item in ipairs(itemList) do
+        local isUsable = HtItem.IsLearnedAndUsable(item)
+        if isUsable == true then
+            local isCooldown = HtItem.IsUseableAndCooldown(item)
+            if isCooldown then
+                return HtItem.CallbackByItem(item)
+            end
+        end
+    end
+    -- 没有可用的item时返回第一个
+    return HtItem.CallbackByItem(itemList[1])
+end
+
+-- 全展示模式
+function HtItem.CallbackOfMultipleMode(item)
+    return HtItem.CallbackByItem(item)
+end
+
+-- 脚本模式
+function HtItem.CallbackOfScriptMode(script)
+    return nil
+end
+
 
 -- 判断玩家是否拥有/学习某个物品
 function HtItem.IsLearned(itemID, itemType)
-    if itemType == U.Cate.ITEM then
+    if itemType == HtItem.Type.ITEM then
         local count = C_Item.GetItemCount(itemID, false)  -- 检查背包中是否拥有
         if count > 0 then
             return true
         end
-    elseif itemType == U.Cate.TOY then
+    elseif itemType == HtItem.Type.TOY then
         if PlayerHasToy(itemID) then
             return true
         end
-    elseif itemType == U.Cate.SPELL then
+    elseif itemType == HtItem.Type.SPELL then
         if IsSpellKnown(itemID) then
             return true
         end
-    elseif itemType == U.Cate.MOUNT then
+    elseif itemType == HtItem.Type.MOUNT then
         local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight = C_MountJournal.GetMountInfoByID(itemID)
         if isCollected then
             return true
         end
-    elseif itemType == U.Cate.PET then
+    elseif itemType == HtItem.Type.PET then
         for petIndex = 1, C_PetJournal.GetNumPets() do
             local _, speciesID, owned, customName, level, favorite, isRevoked, speciesName, icon, petType, companionID, tooltip, description, isWild, canBattle, isTradeable, isUnique, obtainable = C_PetJournal.GetPetInfoByIndex(petIndex)
             if speciesID == itemID then
@@ -58,20 +111,21 @@ function HtItem.IsLearned(itemID, itemType)
 end
 
 -- 判断物品是否可用
-function HtItem.IsLearnedAndUsable(itemID, itemType)
+function HtItem.IsLearnedAndUsable(item)
+    local itemID, itemType = item.id, item.type
     if not HtItem.IsLearned(itemID, itemType) then
         return false
     end
-    if itemType == U.Cate.ITEM then
+    if itemType == HtItem.Type.ITEM then
         local usable, _ = C_Item.IsUsableItem(itemID)  -- 检查是否可用
         if usable == true then
             return true
         end
-    elseif itemType == U.Cate.TOY then
+    elseif itemType == HtItem.Type.TOY then
         if C_ToyBox.IsToyUsable(itemID) then
             return true
         end
-    elseif itemType == U.Cate.SPELL then
+    elseif itemType == HtItem.Type.SPELL then
         local isUsable, _ = C_Spell.IsSpellUsable(itemID)
         if isUsable then
             return true
@@ -82,26 +136,25 @@ end
 
 
 -- 确认物品是否可以使用并且不在冷却中
--- @param itemID number 物品ID
--- @param itemType number 物品类型
 -- @return boolean 是否可用
-function HtItem.IsUseableAndCooldown(itemID, itemType)
-    if not HtItem.IsLearnedAndUsable(itemID, itemType) then
+function HtItem.IsUseableAndCooldown(item)
+    if not HtItem.IsLearnedAndUsable(item) then
         return false
     end
-    if itemType == U.Cate.ITEM then
+    local itemID, itemType = item.id, item.type
+    if itemType == HtItem.Type.ITEM then
         local _, duration, _ = C_Item.GetItemCooldown(itemID)  -- 检查是否冷却中
         if not duration == 0 then
             return false
         end
         return true
-    elseif itemType == U.Cate.TOY then
+    elseif itemType == HtItem.Type.TOY then
         local _, duration, _ = C_Container.GetItemCooldown(itemID)
         if not duration == 0 then
             return false
         end
         return true
-    elseif itemType == U.Cate.SPELL then
+    elseif itemType == HtItem.Type.SPELL then
         local spellCooldownInfo = C_Spell.GetSpellCooldown(itemID)
         if not spellCooldownInfo.duration == 0 then
             return false
@@ -125,7 +178,7 @@ function HtItem.GetItemInfo(itemID, itemType, itemIcon)
         icon = itemIcon,
         name = nil,
     }
-    if itemType == U.Cate.ITEM or itemType == U.Cate.TOY then
+    if itemType == HtItem.Type.ITEM or itemType == HtItem.Type.TOY then
         local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType, expansionID, setID, isCraftingReagent = C_Item.GetItemInfo(itemID)
         if itemName then
             ItemInfo.name = itemName
@@ -140,7 +193,7 @@ function HtItem.GetItemInfo(itemID, itemType, itemIcon)
             end)
             return ItemInfo
         end
-    elseif itemType == U.Cate.SPELL then
+    elseif itemType == HtItem.Type.SPELL then
         local spellInfo = C_Spell.GetSpellInfo(itemID)
         if spellInfo then
             ItemInfo.name = spellInfo.name
@@ -155,7 +208,7 @@ function HtItem.GetItemInfo(itemID, itemType, itemIcon)
             end)
             return ItemInfo
         end
-    elseif itemType == U.Cate.MOUNT then
+    elseif itemType == HtItem.Type.MOUNT then
         local name, spellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID = C_MountJournal.GetMountInfoByID(itemID)
         if name then
             ItemInfo.name = name
@@ -164,7 +217,7 @@ function HtItem.GetItemInfo(itemID, itemType, itemIcon)
         else
             return ItemInfo
         end
-    elseif itemType == U.Cate.PET then
+    elseif itemType == HtItem.Type.PET then
         -- local speciesID, customName, level, xp, maxXp, displayID, isFavorite, name, icon, petType, creatureID, sourceText, description, isWild, canBattle, isTradeable, isUnique, obtainable = C_PetJournal.GetPetInfoByPetID(itemID)
         local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID = C_PetJournal.GetPetInfoBySpeciesID(itemID)
         if speciesName then
@@ -179,71 +232,12 @@ function HtItem.GetItemInfo(itemID, itemType, itemIcon)
     end
 end
 
-function HtItem.CallbackByItem(itemID, itemType, itemIcon)
-    local itemInfo = HtItem.GetItemInfo(itemID, itemType, itemIcon)
-    if itemInfo == nil then
-        U.PrintWarnText(("Can not find itemInfo: id: %s, type: %s"):format(itemID, itemType))
-        return nil
-    end
-    local result = {
+function HtItem.CallbackByItem(item)
+    return {
         closeGUIAfterClick = nil,
-        icon = nil,
-        text = nil,
-        macro = {
-            itemID = nil,
-            toyID = nil,
-            spellID = nil,
-            petID = nil,
-            mountID = nil,
-        },
+        icon = item.icon,
+        text = item.name,
+        item = item,
         leftClickCallback = nil
     }
-    result.icon = itemInfo.icon
-    result.text = itemInfo.name
-    if itemType == U.Cate.ITEM then
-        result.macro.itemID = itemID
-        return result
-    elseif itemType == U.Cate.TOY  then
-        result.macro.toyID = itemID
-        return result
-    elseif itemType == U.Cate.SPELL then
-        result.macro.spellID = itemID
-        return result
-    elseif itemType == U.Cate.MOUNT then
-        result.macro.mountID = itemID
-        return result
-    elseif itemType == U.Cate.PET then
-        result.macro.petID = itemID
-        return result
-    else
-        return nil
-    end
-end
-
-function HT.RandomChooseItem(itemList)
-    local usableItemList = {}
-    local cooldownItemList = {}
-    for _, item in ipairs(itemList) do
-        local itemID, itemType = item.itemID, item.itemType
-        local isUsable = HtItem.IsLearnedAndUsable(itemID, itemType)
-        local isCooldown = HtItem.IsUseableAndCooldown(itemID, itemType)
-        if isUsable then
-            table.insert(usableItemList, item)
-        end
-        if isCooldown then
-            table.insert(cooldownItemList, item)
-        end
-    end
-    -- 如果有冷却可用的item，随机选择一个
-    if #cooldownItemList > 0 then
-        local randomIndex = math.random(1, #usableItemList)
-        local selectedItem = cooldownItemList[randomIndex]
-        return selectedItem
-    end
-    -- 没有没有冷却可用，则选择可用
-    if #usableItemList > 0 then
-        return usableItemList[1]
-    end
-    -- 没有可用的item时返回第一个
-    return itemList[1]
 end
