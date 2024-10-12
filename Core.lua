@@ -2,7 +2,6 @@ local _, HT = ...
 
 local L = LibStub("AceLocale-3.0"):GetLocale("HappyToolkit", false)
 
-local Config = HT.Config
 local U = HT.Utils
 local ToolkitGUI = HT.ToolkitGUI
 local ToolkitPool = HT.ToolkitPool
@@ -14,8 +13,6 @@ local ToolkitCore = {
 -- 初始化配置
 function ToolkitCore.Initial()
     -- 初始化SavedVariables配置信息
-    ConfigDB = nil
-    ConfigDB = Config.initial(ConfigDB)
     ToolkitGUI.Initial()
 end
 

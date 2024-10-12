@@ -5,6 +5,27 @@ local HtItem = {}
 
 HT.HtItem = HtItem
 
+-- 分类
+HtItem.Type = {
+    ITEM = 1,
+    EQUIPMENT = 2,
+    TOY = 3,
+    SPELL = 4,
+    MOUNT = 5,
+    PET = 6,
+}
+
+-- 添加物品类型选项
+HtItem.TypeOptions = {
+    [HtItem.Type.ITEM]="Item",
+    [HtItem.Type.EQUIPMENT]="Equipment",
+    [HtItem.Type.TOY]="Toy",
+    [HtItem.Type.SPELL]="Spell",
+    [HtItem.Type.MOUNT]="Mount",
+    [HtItem.Type.PET]="Pet",
+}
+
+
 -- 判断玩家是否拥有/学习某个物品
 function HtItem.IsLearned(itemID, itemType)
     if itemType == U.Cate.ITEM then

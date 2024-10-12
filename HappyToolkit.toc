@@ -16,9 +16,10 @@ Locales\Locale-enUS.lua
 Locales\Locale-zhCN.lua
 
 Utils.lua
+HtItem.lua
 Result.lua
-Config.lua
 ToolkitPool.lua
+Config.lua
 GUI.lua
 Core.lua
 HappyToolkit.lua

@@ -34,21 +34,43 @@ function ToolkitGUI.CollectCallbackList()
 end
 
 function ToolkitGUI.CreateFrame()
-    local window = AceGUI:Create("Window")
-    local windowWidth = ToolkitGUI.UISize.Num * (ToolkitGUI.UISize.Width + ToolkitGUI.UISize.IconSize)
-    window:SetWidth(windowWidth + 20)
     -- UI高度计算
     -- 分类切换按钮高度：ToolkitGUI.UISize.IconSize = 32
     -- 输入框高度：ToolkitGUI.UISize.IconSize = 32
     -- 滚动高度 = ToolkitGUI.UISize.IconNum * ToolkitGUI.UISize.IconSize
     -- 整体高度 = 滚动高度 + （类切换按钮高度 + 标题/padding这些高度）
     local windowHeight = ToolkitGUI.UISize.IconNum * ToolkitGUI.UISize.IconSize + ToolkitGUI.UISize.IconSize + 64
-    window:SetHeight(windowHeight)
-    window:SetPoint("TOPLEFT")
+    local windowWidth = ToolkitGUI.UISize.Num * (ToolkitGUI.UISize.Width + ToolkitGUI.UISize.IconSize)
+    local window = AceGUI:Create("SimpleGroup")
     window:SetLayout("List")
-    window:EnableResize(false)
-    window:SetTitle("HappyToolkit")
     window.frame:Hide()
+    window:SetHeight(windowHeight)
+    window:SetWidth(windowWidth + 20)
+
+    -- 将窗口定位到初始位置
+    window.frame:ClearAllPoints()
+    local x = HT.AceAddon.db.profile.windowPositionX or 0
+    local y = - (HT.AceAddon.db.profile.windowPositionY or 0)
+    window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
+   
+    -- 确保窗口可以拖动
+    window.frame:SetMovable(true)
+    window.frame:EnableMouse(true)
+    window.frame:RegisterForDrag("LeftButton")
+
+    -- 监听拖动事件并更新位置
+    window.frame:SetScript("OnDragStart", function(frame)
+        frame:StartMoving()
+    end)
+
+    -- 监听窗口的拖拽事件
+    window.frame:SetScript("OnDragStop", function(frame)
+        frame:StopMovingOrSizing()
+        local newX, newY = frame:GetLeft(), frame:GetTop() - UIParent:GetHeight()
+        -- 更新数据库中的位置
+        HT.AceAddon.db.profile.windowPositionX = math.floor(newX)
+        HT.AceAddon.db.profile.windowPositionY = - math.floor(newY)
+    end)
 
     -- 创建TabGroup
     local tabGroup = AceGUI:Create("SimpleGroup")
@@ -156,10 +178,10 @@ function ToolkitGUI.CreateFrame()
     window:AddChild(container)
     ToolkitGUI.Window = window
     ToolkitGUI.ScrollFrame = scrollFrame
-    ToolkitGUI.Window.closebutton:SetScript("OnClick", function()
-        ToolkitGUI.Window:Hide()
-        ToolkitGUI.IsOpen = false
-    end)
+    -- ToolkitGUI.Window.closebutton:SetScript("OnClick", function()
+    --     ToolkitGUI.Window:Hide()
+    --     ToolkitGUI.IsOpen = false
+    -- end)
 end
 
 function ToolkitGUI.selectTab(index)
@@ -198,6 +220,11 @@ end
 
 -- 显示窗口
 function ToolkitGUI.ShowWindow()
+     -- 将窗口定位到初始位置
+     ToolkitGUI.Window.frame:ClearAllPoints()
+     local x = HT.AceAddon.db.profile.windowPositionX or 0
+     local y = - (HT.AceAddon.db.profile.windowPositionY or 0)
+     ToolkitGUI.Window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
     if ToolkitGUI.IsOpen == false then
         ToolkitGUI.Window.frame:Show()
         ToolkitGUI.Update()
