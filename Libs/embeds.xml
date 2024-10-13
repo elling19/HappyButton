@@ -13,5 +13,6 @@
 <Include file="Ace3\AceHook-3.0\AceHook-3.0.xml" />
 <Include file="Ace3\AceLocale-3.0\AceLocale-3.0.xml" />
 <Include file="Ace3\AceSerializer-3.0\AceSerializer-3.0.xml" />
+<Include file="LibDeflate\lib.xml"/>
 </Ui>
 

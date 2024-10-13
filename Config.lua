@@ -8,8 +8,23 @@ local AceConfig = LibStub("AceConfig-3.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 local AceDBOptions = LibStub("AceDBOptions-3.0")
 local AceSerializer = LibStub("AceSerializer-3.0")
+local LibDeflate = LibStub:GetLibrary("LibDeflate")
 local AceGUI = LibStub("AceGUI-3.0")
 
+-- 临时变量
+local tmpCoverConfig = false  -- 默认选择不覆盖配置，创建副本
+local tmpImportItemGroupConfigString = nil  -- 导入itemGroup配置字符串
+local tmpNewItemType = nil
+local tmpNewItemVal = nil
+local tmpNewItem = {type=nil, title = nil, id = nil, icon = nil, name = nil}
+
+
+local function ResetTmpNewItem()
+    tmpNewItem = {type=nil, title = nil, id = nil, icon = nil, name = nil}
+end
+
+
+-- 展示导出配置框
 local function ShowExportDialog(exportData)
     local dialog = AceGUI:Create("Window")
     dialog:SetTitle("Copy Export Data")
@@ -29,6 +44,29 @@ local function ShowExportDialog(exportData)
     dialog:AddChild(editBox)
 end
 
+-- 检查标题是否重复的函数
+local function isTitleDuplicated(title, titleList)
+    for _, _title in pairs(titleList) do
+        if _title == title then
+            return true
+        end
+    end
+    return false
+end
+
+-- 创建副本标题的函数
+local function createDuplicateTitle(title, titleList)
+    local count = 1
+    local newTitle = title .. " [" .. count .. "]"
+    -- 检查新标题是否也重复，如果是则继续递增
+    while isTitleDuplicated(newTitle, titleList) do
+        count = count + 1
+        newTitle = title .. " [" .. count .. "]"
+    end
+    return newTitle
+end
+
+
 -- 添加物品组类型选项
 local itemGroupModeOptions = {
     RANDOM = "Display only one item, randomly selected.",
@@ -36,13 +74,6 @@ local itemGroupModeOptions = {
     MULTIPLE = "Display multiple items."
 }
 
-local tmpNewItemType = nil
-local tmpNewItemVal = nil
-local newItem = {type=nil, title = nil, id = nil, icon = nil, name = nil}
-
-local function ResetNewItem()
-    newItem = {type=nil, title = nil, id = nil, icon = nil, name = nil}
-end
 
 local function CategoryOptions()
     local options = {
@@ -368,6 +399,14 @@ local function ItemGroupOptions()
                 type = 'header',
                 name = "Import Config",
             },
+            coverToggle = {
+                order = 4,
+                width=2,
+                type = 'toggle',
+                name = "Cover the config if exists.",
+                set = function(_, _) tmpCoverConfig = not tmpCoverConfig end,
+                get = function(_) return tmpCoverConfig end,
+            },
             importEditBox = {
                 order = 4,
                 type = 'input',
@@ -375,11 +414,22 @@ local function ItemGroupOptions()
                 multiline = 20,
                 width = "full",
                 set = function(info, val)
+                    tmpImportItemGroupConfigString = val
                     if val == nil or val == "" then
                         print("Please input the config string.")
                         return
                     end
-                    local success, configTable = AceSerializer:Deserialize(val)
+                    local decodedData = LibDeflate:DecodeForPrint(val)
+                    if decodedData == nil then
+                        print("Import failed: Invalid data.")
+                        return
+                    end
+                    local decompressedData = LibDeflate:DecompressDeflate(decodedData)
+                    if decompressedData == nil then
+                        print("Import failed: Invalid data.")
+                        return
+                    end
+                    local success, configTable = AceSerializer:Deserialize(decompressedData)
                     if not success then
                         print("Import failed: Invalid data.")
                         return
@@ -402,19 +452,30 @@ local function ItemGroupOptions()
                         print("Import failed: Invalid data.")
                         return
                     end
-                    local hasRepeatTitle = false
-                    repeat
-                        hasRepeatTitle = false
-                        for _, group in ipairs(HT.AceAddon.db.profile.itemGroupList) do
-                            if group and group.title == configTable.title then
-                                configTable.title = configTable.title .. "1"
-                                hasRepeatTitle = true
-                                break
+                    -- 判断标题是否重复
+                    local titleList = {}
+                    for _, itemGroup in ipairs(HT.AceAddon.db.profile.itemGroupList) do
+                        table.insert(titleList, itemGroup.title)
+                    end
+                    if isTitleDuplicated(configTable.title, titleList) then
+                        if tmpCoverConfig == true then
+                            for i, itemGroup in ipairs(HT.AceAddon.db.profile.itemGroupList) do
+                                if itemGroup.title == configTable.title then
+                                    HT.AceAddon.db.profile.itemGroupList[i] = configTable
+                                    HT.AceAddon:UpdateOptions()
+                                    AceConfigDialog:SelectGroup(HT.AceAddonName, "itemGroup", "itemGroupMenu" .. i)
+                                    return true
+                                end
                             end
+                        else
+                            configTable.title = createDuplicateTitle(configTable.title, titleList)
                         end
-                    until hasRepeatTitle == false
+                    end
                     table.insert(HT.AceAddon.db.profile.itemGroupList, configTable)
+                    HT.AceAddon:UpdateOptions()
+                    AceConfigDialog:SelectGroup(HT.AceAddonName, "itemGroup", "itemGroupMenu" .. #HT.AceAddon.db.profile.itemGroupList)
                 end,
+                get = function (_) return tmpImportItemGroupConfigString end
             },
         },
     }
@@ -462,12 +523,9 @@ local function ItemGroupOptions()
                     name = 'Export ItemGroup',
                     func = function()
                         local serializedData = AceSerializer:Serialize(itemGroup)
-                        if C_Clipboard then
-                            C_Clipboard.SetText(serializedData)
-                        else
-                            ShowExportDialog(serializedData)
-                        end
-                        local success, deserializedTable = AceSerializer:Deserialize(serializedData)
+                        local compressedData = LibDeflate:CompressDeflate(serializedData)
+                        local base64Encoded = LibDeflate:EncodeForPrint(compressedData)
+                        ShowExportDialog(base64Encoded)
                     end,
                 },
                 mode = {
@@ -527,96 +585,96 @@ local function ItemGroupOptions()
                         if val == nil or val == "" or val == " " then
                             return "Please input effect title."
                         end
-                        ResetNewItem()
-                        newItem.type = tmpNewItemType
-                        if newItem.type == nil then
+                        ResetTmpNewItem()
+                        tmpNewItem.type = tmpNewItemType
+                        if tmpNewItem.type == nil then
                             return "Please select item type."
                         end
                         -- 添加物品逻辑
-                        if newItem.type == HtItem.Type.ITEM or newItem.type == HtItem.Type.EQUIPMENT or newItem.type == HtItem.Type.TOY then
+                        if tmpNewItem.type == HtItem.Type.ITEM or tmpNewItem.type == HtItem.Type.EQUIPMENT or tmpNewItem.type == HtItem.Type.TOY then
                             local itemID = C_Item.GetItemIDForItemInfo(val)
                             if itemID then
-                                newItem.id = itemID
+                                tmpNewItem.id = itemID
                             else
                                 return "Can not get the id, please check your input."
                             end
-                            local itemName = C_Item.GetItemNameByID(newItem.id)
+                            local itemName = C_Item.GetItemNameByID(tmpNewItem.id)
                             if itemName then
-                                newItem.name = itemName
-                                newItem.title = itemName
+                                tmpNewItem.name = itemName
+                                tmpNewItem.title = itemName
                             else
                                 return "Can not get the name, please check your input."
                             end
-                            local itemIcon = C_Item.GetItemIconByID(newItem.id)
+                            local itemIcon = C_Item.GetItemIconByID(tmpNewItem.id)
                             if itemIcon then
-                                newItem.icon = itemIcon
+                                tmpNewItem.icon = itemIcon
                             else
                                 return "Can not get the icon, please check your input."
                             end
-                        elseif newItem.type == HtItem.Type.SPELL then
+                        elseif tmpNewItem.type == HtItem.Type.SPELL then
                             local spellID = C_Spell.GetSpellIDForSpellIdentifier(val)
                             if spellID then
-                                newItem.id = spellID
+                                tmpNewItem.id = spellID
                             else
                                 return "Can not get the id, please check your input."
                             end
-                            local spellName = C_Spell.GetSpellName(newItem.id)
+                            local spellName = C_Spell.GetSpellName(tmpNewItem.id)
                             if spellName then
-                                newItem.name = spellName
-                                newItem.title = spellName
+                                tmpNewItem.name = spellName
+                                tmpNewItem.title = spellName
                             else
                                 return "Can not get the name, please check your input."
                             end
-                            local iconID, originalIconID = C_Spell.GetSpellTexture(newItem.id)
+                            local iconID, originalIconID = C_Spell.GetSpellTexture(tmpNewItem.id)
                             if iconID then
-                                newItem.icon = iconID
+                                tmpNewItem.icon = iconID
                             else
                                 return "Can not get the icon, please check your input."
                             end
-                        elseif newItem.type == HtItem.Type.MOUNT then
-                            newItem.id = tonumber(val)
-                            if newItem.id == nil then
+                        elseif tmpNewItem.type == HtItem.Type.MOUNT then
+                            tmpNewItem.id = tonumber(val)
+                            if tmpNewItem.id == nil then
                                 for mountDisplayIndex = 1, C_MountJournal.GetNumDisplayedMounts() do
                                     local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight = C_MountJournal.GetDisplayedMountInfo(mountDisplayIndex)
                                     if name == val then
-                                        newItem.id = mountID
-                                        newItem.name = name
-                                        newItem.title = name
-                                        newItem.icon = icon
+                                        tmpNewItem.id = mountID
+                                        tmpNewItem.name = name
+                                        tmpNewItem.title = name
+                                        tmpNewItem.icon = icon
                                         break
                                     end
                                 end
                             end
-                            if newItem.id == nil then
+                            if tmpNewItem.id == nil then
                                 return "Can not get the id, please check your input."
                             end
-                            if newItem.icon == nil then
+                            if tmpNewItem.icon == nil then
                                 local name, spellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID = C_MountJournal.GetMountInfoByID(newItem.id)
                                 if name then
-                                    newItem.id = mountID
-                                    newItem.name = name
-                                    newItem.title = name
-                                    newItem.icon = icon
+                                    tmpNewItem.id = mountID
+                                    tmpNewItem.name = name
+                                    tmpNewItem.title = name
+                                    tmpNewItem.icon = icon
                                 else
                                     return "Can not get the name, please check your input."
                                 end
                             end
-                        elseif newItem.type == HtItem.Type.PET then
-                            newItem.id = tonumber(val)
-                            if newItem.id == nil then
+                        elseif tmpNewItem.type == HtItem.Type.PET then
+                            tmpNewItem.id = tonumber(val)
+                            if tmpNewItem.id == nil then
                                 local speciesId, petGUID = C_PetJournal.FindPetIDByName(val)
                                 if speciesId then
-                                    newItem.id = speciesId
+                                    tmpNewItem.id = speciesId
                                 end
                             end
-                            if newItem.id == nil then
+                            if tmpNewItem.id == nil then
                                 return "Can not get the id, please check your input."
                             end
                             local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID = C_PetJournal.GetPetInfoBySpeciesID(newItem.id)
                             if speciesName then
-                                newItem.name = speciesName
-                                newItem.title = speciesName
-                                newItem.icon = speciesIcon
+                                tmpNewItem.name = speciesName
+                                tmpNewItem.title = speciesName
+                                tmpNewItem.icon = speciesIcon
                             else
                                 return "Can not get the name, please check your input."
                             end
@@ -629,7 +687,7 @@ local function ItemGroupOptions()
                         tmpNewItemVal = nil
                         local x = U.DeepCopy(newItem)
                         table.insert(itemGroup.itemList, U.DeepCopy(newItem))
-                        newItem = {}
+                        tmpNewItem = {}
                         HT.AceAddon:UpdateOptions()
                         AceConfigDialog:SelectGroup(HT.AceAddonName, "itemGroup", "itemGroupMenu" .. i, "item" .. #itemGroup.itemList)
                     end,
