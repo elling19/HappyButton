@@ -158,13 +158,21 @@ function ConfigOptions.CategoryOptions()
                         HT.AceAddon:UpdateOptions()
                     end,
                 },
-                space1 = {
+                displayToogle = {
                     order = 3,
+                    width=2,
+                    type = 'toggle',
+                    name = L["Display"] ,
+                    set = function(_, _) category.isDisplay = not category.isDisplay end,
+                    get = function(_) return category.isDisplay == true end,
+                },
+                space1 = {
+                    order = 4,
                     type = 'description',
                     name = "\n"
                 },
                 iconSourceList = {
-                    order = 4,
+                    order = 5,
                     width=2,
                     type = 'multiselect',
                     name = L["Select items to display"],
@@ -630,7 +638,7 @@ function ConfigOptions.IconSourceOptions()
                                     return L["Unable to get the id, please check the input."]
                                 end
                                 if Config.tmpNewItem.icon == nil then
-                                    local name, spellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID = C_MountJournal.GetMountInfoByID(newItem.id)
+                                    local name, spellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID = C_MountJournal.GetMountInfoByID(Config.tmpNewItem.id)
                                     if name then
                                         Config.tmpNewItem.id = mountID
                                         Config.tmpNewItem.name = name
@@ -650,7 +658,7 @@ function ConfigOptions.IconSourceOptions()
                                 if Config.tmpNewItem.id == nil then
                                     return L["Unable to get the id, please check the input."]
                                 end
-                                local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID = C_PetJournal.GetPetInfoBySpeciesID(newItem.id)
+                                local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID = C_PetJournal.GetPetInfoBySpeciesID(Config.tmpNewItem.id)
                                 if speciesName then
                                     Config.tmpNewItem.name = speciesName
                                     Config.tmpNewItem.icon = speciesIcon

@@ -58,3 +58,4 @@ L["Toy"]=true
 L["Spell"] = true
 L["Mount"] = true
 L["Pet"] = true
+L["Display"] = true

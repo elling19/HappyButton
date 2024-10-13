@@ -24,38 +24,40 @@ function ToolkitGUI.CollectConfig()
     local categoryList = HT.AceAddon.db.profile.categoryList
     local iconSourceList = HT.AceAddon.db.profile.iconSourceList
     for _, category in ipairs(categoryList) do
-        local pool = {}
-        pool.icon = category.icon
-        pool.title = category.title
-        pool.sourceList = {}
-        for _, thing in ipairs(category.sourceList) do
-            local source
-            for _, _source in ipairs(iconSourceList) do
-                if _source.title == thing.title then
-                    source = _source
-                    break
-                end
-            end
-            if source then
-                if source.type == "SCRIPT" then
-                    table.insert(pool.sourceList, {type="SCRIPT", callback=HtItem.CallbackOfScriptMode, parameters=source.attrs.script})
-                end
-                if source.type == "ITEM_GROUP" then
-                    if source.attrs.mode == "RANDOM" then
-                        table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfRandomMode, parameters=source.attrs.itemList})
+        if category.isDisplay then
+            local pool = {}
+            pool.icon = category.icon
+            pool.title = category.title
+            pool.sourceList = {}
+            for _, thing in ipairs(category.sourceList) do
+                local source
+                for _, _source in ipairs(iconSourceList) do
+                    if _source.title == thing.title then
+                        source = _source
+                        break
                     end
-                    if source.attrs.mode == "SEQ" then
-                        table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfSeqMod, parameters=source.attrs.itemList})
+                end
+                if source then
+                    if source.type == "SCRIPT" then
+                        table.insert(pool.sourceList, {type="SCRIPT", callback=HtItem.CallbackOfScriptMode, parameters=source.attrs.script})
                     end
-                    if source.attrs.mode == "MULTIPLE" then
-                        for _, item in ipairs(source.attrs.itemList) do
-                            table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfMultipleMode, parameters=item})
+                    if source.type == "ITEM_GROUP" then
+                        if source.attrs.mode == HtItem.ItemGroupMode.RANDOM then
+                            table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfRandomMode, parameters=source.attrs.itemList})
+                        end
+                        if source.attrs.mode == HtItem.ItemGroupMode.SEQ then
+                            table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfSeqMod, parameters=source.attrs.itemList})
+                        end
+                        if source.attrs.mode == HtItem.ItemGroupMode.MULTIPLE then
+                            for _, item in ipairs(source.attrs.itemList) do
+                                table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfMultipleMode, parameters=item})
+                            end
                         end
                     end
                 end
             end
+            table.insert(ToolkitGUI.CategoryList, pool)
         end
-        table.insert(ToolkitGUI.CategoryList, pool)
     end
 end
 
@@ -65,9 +67,11 @@ function ToolkitGUI.CreateFrame()
     -- 输入框高度：ToolkitGUI.UISize.IconSize = 32
     -- 滚动高度 = ToolkitGUI.UISize.IconNum * ToolkitGUI.UISize.IconSize
     -- 整体高度 = 滚动高度 + （类切换按钮高度 + 标题/padding这些高度）
-    local windowHeight = ToolkitGUI.UISize.IconNum * ToolkitGUI.UISize.IconSize + ToolkitGUI.UISize.IconSize + 64
+    local windowHeight = ToolkitGUI.UISize.IconNum * ToolkitGUI.UISize.IconSize + 44
     local windowWidth = ToolkitGUI.UISize.Num * (ToolkitGUI.UISize.Width + ToolkitGUI.UISize.IconSize)
-    local window = AceGUI:Create("SimpleGroup")
+    local window = AceGUI:Create("Window")
+    window:EnableResize(false)
+    window:SetTitle("HappyToolkit")
     window:SetLayout("List")
     window.frame:Hide()
     window:SetHeight(windowHeight)
@@ -100,9 +104,11 @@ function ToolkitGUI.CreateFrame()
 
     -- 创建TabGroup
     local tabGroup = AceGUI:Create("SimpleGroup")
-    tabGroup:SetWidth(windowWidth)
+    tabGroup:SetWidth(ToolkitGUI.UISize.IconSize * #ToolkitGUI.CategoryList)
     tabGroup:SetHeight(ToolkitGUI.UISize.IconSize)
-    tabGroup:SetLayout("Flow")
+    tabGroup:SetLayout("List")
+    tabGroup.frame:SetParent(window.frame)
+    tabGroup.frame:SetPoint("TOPLEFT", window.frame, "TOPRIGHT", 0, 0)
     local buttonCount = 0 -- 计算图标总数量，用来计算滚动距离
     for _, category in ipairs(ToolkitGUI.CategoryList) do
         buttonCount = buttonCount + #category.sourceList + 1  -- 分类图标个数 + 分类标题
@@ -119,6 +125,10 @@ function ToolkitGUI.CreateFrame()
         topCount =  topCount + #category.sourceList + 1
     end
     for index, tab in ipairs(ToolkitGUI.tabs) do
+        local tabContainer = AceGUI:Create("SimpleGroup")
+        tabContainer:SetWidth(ToolkitGUI.UISize.IconSize)
+        tabContainer:SetHeight(ToolkitGUI.UISize.IconSize)
+        tabContainer:SetLayout("Fill")
         local tabIcon = AceGUI:Create("Icon")
         tabIcon:SetWidth(ToolkitGUI.UISize.IconSize)
         tabIcon:SetHeight(ToolkitGUI.UISize.IconSize)
@@ -135,10 +145,11 @@ function ToolkitGUI.CreateFrame()
         tabIcon:SetCallback("OnLeave", function()
             GameTooltip:Hide()
         end)
-        tabGroup:AddChild(tabIcon)
+        tabContainer:AddChild(tabIcon)
+        tabGroup:AddChild(tabContainer)
         tab.button = tabIcon
     end
-    window:AddChild(tabGroup)
+  
 
     -- 创建内容容器，用于包裹scrollFrame容器
     local container = AceGUI:Create("SimpleGroup")
