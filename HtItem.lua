@@ -1,5 +1,6 @@
 local _, HT = ...
 local U = HT.Utils
+local L = LibStub("AceLocale-3.0"):GetLocale("HappyToolkit", false)
 
 local HtItem = {}
 
@@ -17,12 +18,25 @@ HtItem.Type = {
 
 -- 添加物品类型选项
 HtItem.TypeOptions = {
-    [HtItem.Type.ITEM]="Item",
-    [HtItem.Type.EQUIPMENT]="Equipment",
-    [HtItem.Type.TOY]="Toy",
-    [HtItem.Type.SPELL]="Spell",
-    [HtItem.Type.MOUNT]="Mount",
-    [HtItem.Type.PET]="Pet",
+    [HtItem.Type.ITEM]=L["Item"],
+    [HtItem.Type.EQUIPMENT]=L["Equipment"],
+    [HtItem.Type.TOY]=L["Toy"],
+    [HtItem.Type.SPELL]=L["Spell"],
+    [HtItem.Type.MOUNT]=L["Mount"],
+    [HtItem.Type.PET]=L["Pet"],
+}
+
+-- 物品组分类
+HtItem.ItemGroupMode = {
+    RANDOM = 1,
+    SEQ = 2,
+    MULTIPLE = 3,
+}
+-- 添加物品组类型选项
+HtItem.ItemGroupModeOptions = {
+    [HtItem.ItemGroupMode.RANDOM] = L["Display only one item, randomly selected."] ,
+    [HtItem.ItemGroupMode.SEQ] = L["Display only one item, selected sequentially."],
+    [HtItem.ItemGroupMode.MULTIPLE] = L["Display multiple items."]
 }
 
 -- 随机选择callback

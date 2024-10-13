@@ -22,31 +22,35 @@ local ToolkitGUI = {
 function ToolkitGUI.CollectConfig()
     ToolkitGUI.CategoryList = {}
     local categoryList = HT.AceAddon.db.profile.categoryList
-    local itemGroupList = HT.AceAddon.db.profile.itemGroupList
+    local iconSourceList = HT.AceAddon.db.profile.iconSourceList
     for _, category in ipairs(categoryList) do
         local pool = {}
         pool.icon = category.icon
         pool.title = category.title
-        pool.thingList = {}
-        for _, thing in ipairs(category.thingList) do
-            if thing.type == "SCRIPT" then
-                table.insert(pool.thingList, {type="SCRIPT", callback=HtItem.CallbackOfScriptMode, parameters=thing.script})
+        pool.sourceList = {}
+        for _, thing in ipairs(category.sourceList) do
+            local source
+            for _, _source in ipairs(iconSourceList) do
+                if _source.title == thing.title then
+                    source = _source
+                    break
+                end
             end
-            if thing.type == "ITEM_GROUP" then
-                for _, itemGroup in ipairs(itemGroupList) do
-                    if itemGroup.title == thing.title then
-                        if itemGroup.mode == "RANDOM" then
-                            table.insert(pool.thingList, {type="ITEM_GROUP", callback=HtItem.CallbackOfRandomMode, parameters=itemGroup.itemList})
+            if source then
+                if source.type == "SCRIPT" then
+                    table.insert(pool.sourceList, {type="SCRIPT", callback=HtItem.CallbackOfScriptMode, parameters=source.attrs.script})
+                end
+                if source.type == "ITEM_GROUP" then
+                    if source.attrs.mode == "RANDOM" then
+                        table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfRandomMode, parameters=source.attrs.itemList})
+                    end
+                    if source.attrs.mode == "SEQ" then
+                        table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfSeqMod, parameters=source.attrs.itemList})
+                    end
+                    if source.attrs.mode == "MULTIPLE" then
+                        for _, item in ipairs(source.attrs.itemList) do
+                            table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfMultipleMode, parameters=item})
                         end
-                        if itemGroup.mode == "SEQ" then
-                            table.insert(pool.thingList, {type="ITEM_GROUP", callback=HtItem.CallbackOfSeqMod, parameters=itemGroup.itemList})
-                        end
-                        if itemGroup.mode == "MULTIPLE" then
-                            for _, item in ipairs(itemGroup.itemList) do
-                                table.insert(pool.thingList, {type="ITEM_GROUP", callback=HtItem.CallbackOfMultipleMode, parameters=item})
-                            end
-                        end
-                        break
                     end
                 end
             end
@@ -101,7 +105,7 @@ function ToolkitGUI.CreateFrame()
     tabGroup:SetLayout("Flow")
     local buttonCount = 0 -- 计算图标总数量，用来计算滚动距离
     for _, category in ipairs(ToolkitGUI.CategoryList) do
-        buttonCount = buttonCount + #category.thingList + 1  -- 分类图标个数 + 分类标题
+        buttonCount = buttonCount + #category.sourceList + 1  -- 分类图标个数 + 分类标题
     end
     local scrollRatio  -- 滚动系数
     if buttonCount <= ToolkitGUI.UISize.IconNum then
@@ -112,7 +116,7 @@ function ToolkitGUI.CreateFrame()
     local topCount = 0
     for _, category in ipairs(ToolkitGUI.CategoryList) do
         table.insert(ToolkitGUI.tabs, {title=category.title, icon=category.icon, button=nil, scrollHeight=topCount * scrollRatio})
-        topCount =  topCount + #category.thingList + 1
+        topCount =  topCount + #category.sourceList + 1
     end
     for index, tab in ipairs(ToolkitGUI.tabs) do
         local tabIcon = AceGUI:Create("Icon")
@@ -156,7 +160,7 @@ function ToolkitGUI.CreateFrame()
         cateTitleLabel:SetText(category.title)
         labelContainer:AddChild(cateTitleLabel)
         scrollFrame:AddChild(labelContainer)
-        for poolIndex, pool in ipairs(category.thingList) do
+        for poolIndex, pool in ipairs(category.sourceList) do
             local callbackResult = pool.callback(pool.parameters)
             pool._cateIndex = cateIndex
             pool._poolIndex = poolIndex
@@ -220,7 +224,7 @@ end
 
 function ToolkitGUI.Update()
     for _, category in ipairs(ToolkitGUI.CategoryList) do
-        for _, pool in ipairs(category.thingList) do
+        for _, pool in ipairs(category.sourceList) do
             local callbackResult = pool.callback(pool.parameters)
             if not (callbackResult == nil) then
                 pool._callbackResult = callbackResult
@@ -453,7 +457,7 @@ function ToolkitGUI.GetPoolByIndex(cate, poolIndex)
     if catePool == nil then
         return nil
     end
-    local pool = catePool.thingList[poolIndex]
+    local pool = catePool.sourceList[poolIndex]
     return pool
 end
 
