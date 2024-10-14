@@ -40,32 +40,37 @@ function ToolkitGUI.CollectConfig()
                 end
                 if source then
                     if source.type == "SCRIPT" then
-                        table.insert(pool.sourceList, {type="SCRIPT", callback=HtItem.CallbackOfScriptMode, parameters=source.attrs.script})
+                        table.insert(pool.sourceList, {type="SCRIPT", callback=HtItem.CallbackOfScriptMode, source=source})
                     end
                     if source.type == "ITEM_GROUP" then
                         if source.attrs.mode == HtItem.ItemGroupMode.RANDOM then
-                            table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfRandomMode, parameters=source.attrs.itemList})
+                            table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfRandomMode, source=source})
                         end
                         if source.attrs.mode == HtItem.ItemGroupMode.SEQ then
-                            table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfSeqMode, parameters=source.attrs.itemList})
+                            table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfSeqMode, source=source})
                         end
                         if source.attrs.mode == HtItem.ItemGroupMode.MULTIPLE then
                             for _, item in ipairs(source.attrs.itemList) do
                                 ---@type boolean
                                 local needDisplay = true
-                                if source.attrs.displayUnUseable == false then
-                                    if HtItem.IsLearnedAndUsable(item) == false then
+                                if source.attrs.displayUnLearned == false then
+                                    if HtItem.IsLearned(item) == false then
                                         needDisplay = false
-                                    end
-                                else
-                                    if source.attrs.displayUnLearned == false then
-                                        if HtItem.IsLearned(item) == false then
-                                            needDisplay = false
-                                        end
                                     end
                                 end
                                 if needDisplay == true then
-                                    table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfMultipleMode, parameters=item})
+                                    ---@type IconSource
+                                    local newSource = {
+                                        attrs = {
+                                            mode=HtItem.ItemGroupMode.SINGLE,
+                                            replaceName=source.attrs.replaceName,
+                                            displayUnLearned=source.attrs.displayUnLearned,
+                                            item=item
+                                        },
+                                        title = source.title,
+                                        type = "ITEM_GROUP"
+                                    }
+                                    table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfSingleMode, source=newSource})
                                 end
                             end
                         end
@@ -199,7 +204,7 @@ function ToolkitGUI.CreateFrame()
         labelContainer:AddChild(cateTitleLabel)
         scrollFrame:AddChild(labelContainer)
         for poolIndex, pool in ipairs(category.sourceList) do
-            local callbackResult = pool.callback(pool.parameters)
+            local callbackResult = pool.callback(pool.source)
             pool._cateIndex = cateIndex
             pool._poolIndex = poolIndex
             pool._callbackResult = callbackResult
@@ -266,7 +271,7 @@ end
 function ToolkitGUI.Update()
     for _, category in ipairs(ToolkitGUI.CategoryList) do
         for _, pool in ipairs(category.sourceList) do
-            local callbackResult = pool.callback(pool.parameters)
+            local callbackResult = pool.callback(pool.source)
             if not (callbackResult == nil) then
                 pool._callbackResult = callbackResult
                 ToolkitGUI.SetPoolCooldown(pool)

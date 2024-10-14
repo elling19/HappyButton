@@ -20,12 +20,13 @@ local CallbackOfHtItem = {}
 ---@class HtItem
 ---@field Type {ITEM: 1, EQUIPMENT: 2, TOY: 3, SPELL: 4, MOUNT: 5, PET: 6}
 ---@field TypeOptions table
----@field ItemGroupMode { RANDOM: 1, SEQ: 2, MULTIPLE: 3 }
+---@field ItemGroupMode { RANDOM: 1, SEQ: 2, MULTIPLE: 3, SINGLE: 4 }
 ---@field ItemGroupModeOptions table
----@field CallbackOfRandomMode fun(itemList: ItemOfHtItem[]): CallbackOfHtItem
----@field CallbackOfSeqMode fun(itemList: ItemOfHtItem[]): CallbackOfHtItem
----@field CallbackOfMultipleMode fun(item: ItemOfHtItem): CallbackOfHtItem
----@field CallbackOfScriptMode fun(script: string): CallbackOfHtItem
+---@field CallbackOfRandomMode fun(source: IconSource): CallbackOfHtItem
+---@field CallbackOfSeqMode fun(source: IconSource): CallbackOfHtItem
+---@field CallbackOfSingleMode fun(source: IconSource): CallbackOfHtItem
+---@field CallbackOfMultipleMode fun(source: IconSource): CallbackOfHtItem
+---@field CallbackOfScriptMode fun(source: IconSource): CallbackOfHtItem
 ---@field IsLearned fun(item: ItemOfHtItem): boolean
 ---@field IsLearnedAndUsable fun(item: ItemOfHtItem): boolean
 ---@field IsUseableAndCooldown fun(item: ItemOfHtItem): boolean
@@ -60,6 +61,7 @@ HtItem.ItemGroupMode = {
     RANDOM = 1,
     SEQ = 2,
     MULTIPLE = 3,
+    SINGLE = 4
 }
 
 -- 添加物品组类型选项
@@ -70,10 +72,10 @@ HtItem.ItemGroupModeOptions = {
 }
 
 -- 随机选择callback
-function HtItem.CallbackOfRandomMode(itemList)
+function HtItem.CallbackOfRandomMode(source)
     local usableItemList = {}
     local cooldownItemList = {}
-    for _, item in ipairs(itemList) do
+    for _, item in ipairs(source.attrs.itemList) do
         local isUsable = HtItem.IsLearnedAndUsable(item)
         local isCooldown = HtItem.IsUseableAndCooldown(item)
         if isUsable then
@@ -83,43 +85,73 @@ function HtItem.CallbackOfRandomMode(itemList)
             table.insert(cooldownItemList, item)
         end
     end
+    ---@type CallbackOfHtItem
+    local cb
     -- 如果有冷却可用的item，随机选择一个
     if #cooldownItemList > 0 then
         local randomIndex = math.random(1, #usableItemList)
         local selectedItem = cooldownItemList[randomIndex]
-        return HtItem.CallbackByItem(selectedItem)
+        cb = HtItem.CallbackByItem(selectedItem)
+    elseif #usableItemList > 0  then
+        -- 没有没有冷却可用，则选择可用
+        cb = HtItem.CallbackByItem(usableItemList[1])
+    else
+        -- 没有可用的item时返回第一个
+        cb = HtItem.CallbackByItem(source.attrs.itemList[1])
     end
-    -- 没有没有冷却可用，则选择可用
-    if #usableItemList > 0 then
-        return HtItem.CallbackByItem(usableItemList[1])
+    if source.attrs.replaceName == true then
+        cb.text = source.title
     end
-    -- 没有可用的item时返回第一个
-    return HtItem.CallbackByItem(itemList[1])
+    return cb
 end
 
 -- 顺序选择callback
-function HtItem.CallbackOfSeqMode(itemList)
-    for _, item in ipairs(itemList) do
+function HtItem.CallbackOfSeqMode(source)
+    ---@type CallbackOfHtItem
+    local cb
+    for _, item in ipairs(source.attrs.itemList) do
         local isUsable = HtItem.IsLearnedAndUsable(item)
         if isUsable == true then
             local isCooldown = HtItem.IsUseableAndCooldown(item)
             if isCooldown then
-                return HtItem.CallbackByItem(item)
+                cb = HtItem.CallbackByItem(item)
+                break
             end
         end
     end
-    -- 没有可用的item时返回第一个
-    return HtItem.CallbackByItem(itemList[1])
+    if cb == nil then
+         -- 没有可用的item时返回第一个
+        cb = HtItem.CallbackByItem(source.attrs.itemList[1])
+    end
+    if source.attrs.replaceName then
+        cb.text = source.title
+    end
+    return cb
 end
 
 -- 全展示模式
-function HtItem.CallbackOfMultipleMode(item)
-    return HtItem.CallbackByItem(item)
+function HtItem.CallbackOfMultipleMode(source)
+    ---@type CallbackOfHtItem
+    local cb = HtItem.CallbackByItem(source.attrs.itemList)
+    if source.attrs.replaceName then
+        cb.text = source.title
+    end
+    return cb
+end
+
+-- 单个展示模式
+function HtItem.CallbackOfSingleMode(source)
+    ---@type CallbackOfHtItem
+    local cb = HtItem.CallbackByItem(source.attrs.item)
+    if source.attrs.replaceName then
+        cb.text = source.title
+    end
+    return cb
 end
 
 -- 脚本模式
-function HtItem.CallbackOfScriptMode(script)
-    return nil
+function HtItem.CallbackOfScriptMode(source)
+    return source.attrs.script
 end
 
 

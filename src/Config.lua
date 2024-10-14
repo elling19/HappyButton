@@ -22,9 +22,10 @@ local AceGUI = LibStub("AceGUI-3.0")
 
 ---@class IconSourceAttrs
 ---@field mode integer
----@field displayUnUseable boolean
----@field displayUnLearned boolean
----@field itemList table | nil
+---@field replaceName boolean | nil
+---@field displayUnLearned boolean | nil
+---@field item ItemOfHtItem | nil
+---@field itemList ItemOfHtItem[] | nil
 ---@field script string | nil
 local IconSourceAttrs = {}
 
@@ -293,7 +294,7 @@ function ConfigOptions.IconSourceOptions()
                         newItemGroupTitle = Config.CreateDuplicateTitle(newItemGroupTitle, titleList)
                     end
                     ---@type IconSource
-                    local iconSource = {title=newItemGroupTitle, type="ITEM_GROUP", attrs={ mode=HtItem.ItemGroupMode.MULTIPLE, displayUnUseable=false, displayUnLearned=false, itemList={} }}
+                    local iconSource = {title=newItemGroupTitle, type="ITEM_GROUP", attrs={ mode=HtItem.ItemGroupMode.MULTIPLE, replaceName=false, displayUnLearned=false, itemList={} }}
                     table.insert(HT.AceAddon.db.profile.iconSourceList, iconSource)
                     HT.AceAddon:UpdateOptions()
                     AceConfigDialog:SelectGroup(HT.AceAddonName, "iconSource", "SourceMenu" .. #HT.AceAddon.db.profile.iconSourceList)
@@ -366,7 +367,7 @@ function ConfigOptions.IconSourceOptions()
                     end
                     -- 校验反序列是否正确
                     -- table需要包含:
-                    -- {title=val, type="ITEM_GROUP", attrs={ mode=HtItem.ItemGroupMode.MULTIPLE, displayUnUseable=false, displayUnLearned=false, itemList={} }}
+                    -- {title=val, type="ITEM_GROUP", attrs={ mode=HtItem.ItemGroupMode.MULTIPLE, replaceName=false, displayUnLearned=false, itemList={} }}
                     -- {title=val, type="SCRIPT", attrs={script=nil}}
                     if type(configTable) ~= "table" then
                         print(errorMsg)
@@ -577,17 +578,17 @@ function ConfigOptions.IconSourceOptions()
                         order = 4,
                         width=2,
                         type = 'toggle',
-                        name = L["Only display learned item."],
+                        name = L["Only display learned or owned items."],
                         set = function(_, val) source.attrs.displayUnLearned = not val end,
                         get = function(_) return not source.attrs.displayUnLearned end,
                     },
-                    displayUseableToggle = {
-                        order = 5,
+                    replaceNameToggle = {
+                        order = 4,
                         width=2,
                         type = 'toggle',
-                        name = L["Only display useable item."],
-                        set = function(_, val) source.attrs.displayUnUseable = not val end,
-                        get = function(_) return not source.attrs.displayUnUseable end,
+                        name = L["Use icon source title to replace item name."],
+                        set = function(_, val) source.attrs.replaceName = val end,
+                        get = function(_) return source.attrs.replaceName == true end,
                     },
                     sapce1 = {
                         order = 6,
