@@ -16,11 +16,11 @@ Libs\embeds.xml
 Locales\Locale-enUS.lua
 Locales\Locale-zhCN.lua
 
-Utils.lua
-HtItem.lua
-Result.lua
-ToolkitPool.lua
-Config.lua
-GUI.lua
-Core.lua
+Src\Result.lua
+Src\Utils.lua
+Src\HtItem.lua
+Src\Config.lua
+Src\GUI.lua
+Src\Core.lua
+Src\Command.lua
 HappyToolkit.lua

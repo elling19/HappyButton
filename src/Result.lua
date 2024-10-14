@@ -1,6 +1,8 @@
 local _, HT = ...
 
-Result = {_value = nil, _error = nil}
+---@class Result
+---@field __index Result
+local Result = {_value = nil, _error = nil}
 Result.__index = Result
 
 -- 定义 Result 的 Ok 构造函数
@@ -56,5 +58,3 @@ function Result:unwrap_err()
 end
 
 HT.Result = Result
-
-return Result

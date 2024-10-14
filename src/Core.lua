@@ -3,9 +3,15 @@ local _, HT = ...
 local L = LibStub("AceLocale-3.0"):GetLocale("HappyToolkit", false)
 
 local U = HT.Utils
-local ToolkitGUI = HT.ToolkitGUI
-local ToolkitPool = HT.ToolkitPool
 
+---@type ToolkitGUI
+local ToolkitGUI = HT.ToolkitGUI
+
+---@class ToolkitCore
+---@field Frame table
+---@field Initial fun(): nil
+---@field ToggleToolkitGUI fun(): nil
+---@field Start fun(): nil
 local ToolkitCore = {
     Frame = CreateFrame("Frame"),
 }
@@ -15,29 +21,6 @@ function ToolkitCore.Initial()
     -- 初始化SavedVariables配置信息
     ToolkitGUI.Initial()
 end
-
-
-function ToolkitCore.Register(cate, callback)
-    if type(callback) == "function" then
-        local hasCate = false
-        local cateIndex = nil
-        for index, catePool in ipairs(ToolkitPool) do
-            if catePool.cate == cate then
-                hasCate = true
-                cateIndex = index
-                break
-            end
-        end
-        if hasCate == false then
-            U.PrintErrorText("Can not register toolkit, wrong category.")
-        else
-            table.insert(ToolkitPool[cateIndex].cbPool, callback) -- {callback=callback, execButton=nil, showButton=nil, text=nil}
-        end
-    else
-        U.PrintErrorText(L["Can not register toolkit: must be a callback function."])
-    end
-end
-
 
 -- 切换GUI显示状态
 function ToolkitCore.ToggleToolkitGUI()
@@ -74,5 +57,3 @@ function ToolkitCore.Start()
 end
 
 HT.ToolkitCore = ToolkitCore
-
-return ToolkitCore

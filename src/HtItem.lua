@@ -1,8 +1,37 @@
 local _, HT = ...
-local U = HT.Utils
 local L = LibStub("AceLocale-3.0"):GetLocale("HappyToolkit", false)
 
-local HtItem = {}
+---@class ItemOfHtItem
+---@field type integer | nil
+---@field id integer | nil
+---@field icon integer | string | nil
+---@field name string | nil
+local ItemOfHtItem = {}
+
+
+---@class CallbackOfHtItem
+---@field closeGUIAfterClick boolean | nil
+---@field icon string | number
+---@field text string
+---@field item ItemOfHtItem
+---@field leftClickCallback function | nil
+local CallbackOfHtItem = {}
+
+---@class HtItem
+---@field Type {ITEM: 1, EQUIPMENT: 2, TOY: 3, SPELL: 4, MOUNT: 5, PET: 6}
+---@field TypeOptions table
+---@field ItemGroupMode { RANDOM: 1, SEQ: 2, MULTIPLE: 3 }
+---@field ItemGroupModeOptions table
+---@field CallbackOfRandomMode fun(itemList: ItemOfHtItem[]): CallbackOfHtItem
+---@field CallbackOfSeqMode fun(itemList: ItemOfHtItem[]): CallbackOfHtItem
+---@field CallbackOfMultipleMode fun(item: ItemOfHtItem): CallbackOfHtItem
+---@field CallbackOfScriptMode fun(script: string): CallbackOfHtItem
+---@field IsLearned fun(item: ItemOfHtItem): boolean
+---@field IsLearnedAndUsable fun(item: ItemOfHtItem): boolean
+---@field IsUseableAndCooldown fun(item: ItemOfHtItem): boolean
+---@field CallbackByItem fun(item: ItemOfHtItem): CallbackOfHtItem
+local HtItem = {
+}
 
 HT.HtItem = HtItem
 
@@ -32,6 +61,7 @@ HtItem.ItemGroupMode = {
     SEQ = 2,
     MULTIPLE = 3,
 }
+
 -- 添加物品组类型选项
 HtItem.ItemGroupModeOptions = {
     [HtItem.ItemGroupMode.RANDOM] = L["Display only one item, randomly selected."] ,
@@ -94,7 +124,8 @@ end
 
 
 -- 判断玩家是否拥有/学习某个物品
-function HtItem.IsLearned(itemID, itemType)
+function HtItem.IsLearned(item)
+    local itemID, itemType = item.id, item.type
     if itemType == HtItem.Type.ITEM then
         local count = C_Item.GetItemCount(itemID, false)  -- 检查背包中是否拥有
         if count > 0 then
@@ -127,7 +158,7 @@ end
 -- 判断物品是否可用
 function HtItem.IsLearnedAndUsable(item)
     local itemID, itemType = item.id, item.type
-    if not HtItem.IsLearned(itemID, itemType) then
+    if not HtItem.IsLearned(item) then
         return false
     end
     if itemType == HtItem.Type.ITEM then
@@ -150,7 +181,6 @@ end
 
 
 -- 确认物品是否可以使用并且不在冷却中
--- @return boolean 是否可用
 function HtItem.IsUseableAndCooldown(item)
     if not HtItem.IsLearnedAndUsable(item) then
         return false
@@ -179,73 +209,6 @@ function HtItem.IsUseableAndCooldown(item)
     end
 end
 
-
-function HtItem.GetItemInfo(itemID, itemType, itemIcon)
-    ---@class ItemInfo
-    ---@field id number 物品id
-    ---@field type number 物品类型
-    ---@field name string? 物品名称（用于显示宏图标，鼠标悬浮提示）
-    ---@field icon number? 物品图标ID（用于显示技能图标）
-    local ItemInfo = {
-        id = itemID,
-        type = itemType,
-        icon = itemIcon,
-        name = nil,
-    }
-    if itemType == HtItem.Type.ITEM or itemType == HtItem.Type.TOY then
-        local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType, expansionID, setID, isCraftingReagent = C_Item.GetItemInfo(itemID)
-        if itemName then
-            ItemInfo.name = itemName
-            ItemInfo.icon = itemTexture
-            return ItemInfo
-        else
-            local item = Item:CreateFromItemID(itemID)
-                item:ContinueOnItemLoad(function()
-                ItemInfo.name = item:GetItemName()
-                ItemInfo.icon = item:GetItemIcon()
-                return ItemInfo
-            end)
-            return ItemInfo
-        end
-    elseif itemType == HtItem.Type.SPELL then
-        local spellInfo = C_Spell.GetSpellInfo(itemID)
-        if spellInfo then
-            ItemInfo.name = spellInfo.name
-            ItemInfo.icon = spellInfo.iconID
-            return ItemInfo
-        else
-            local spell = Spell:CreateFromSpellID(itemID)
-            spell:ContinueOnSpellLoad(function()
-                ItemInfo.name = spell:GetSpellName()
-                ItemInfo.icon = spell:GetSpellTexture()
-                return ItemInfo
-            end)
-            return ItemInfo
-        end
-    elseif itemType == HtItem.Type.MOUNT then
-        local name, spellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID = C_MountJournal.GetMountInfoByID(itemID)
-        if name then
-            ItemInfo.name = name
-            ItemInfo.icon = icon
-            return ItemInfo
-        else
-            return ItemInfo
-        end
-    elseif itemType == HtItem.Type.PET then
-        -- local speciesID, customName, level, xp, maxXp, displayID, isFavorite, name, icon, petType, creatureID, sourceText, description, isWild, canBattle, isTradeable, isUnique, obtainable = C_PetJournal.GetPetInfoByPetID(itemID)
-        local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID = C_PetJournal.GetPetInfoBySpeciesID(itemID)
-        if speciesName then
-            ItemInfo.name = speciesName
-            ItemInfo.icon = speciesIcon
-            return ItemInfo
-        else
-            return ItemInfo
-        end
-    else
-        return ItemInfo
-    end
-end
-
 function HtItem.CallbackByItem(item)
     return {
         closeGUIAfterClick = nil,
@@ -255,3 +218,5 @@ function HtItem.CallbackByItem(item)
         leftClickCallback = nil
     }
 end
+
+

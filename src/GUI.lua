@@ -1,9 +1,11 @@
 local _, HT = ...
 
 local AceGUI = LibStub("AceGUI-3.0")
-local U = HT.Utils
+
+---@type HtItem
 local HtItem = HT.HtItem
 
+---@class ToolkitGUI 
 local ToolkitGUI = {
     CategoryList = {},
     Window = nil,
@@ -11,7 +13,7 @@ local ToolkitGUI = {
     IsOpen = false,
     UISize = {
         IconSize = 32,
-        Width = 204, -- 每个图标32，一共7个。32*7=224。减去20的边框。224-20=204
+        Width = (32 * 6) + (32 + 5),
     },
     tabs = {}, -- 分类切换按钮
     currentTabIndex = 1,
@@ -28,6 +30,7 @@ function ToolkitGUI.CollectConfig()
             pool.title = category.title
             pool.sourceList = {}
             for _, thing in ipairs(category.sourceList) do
+                ---@type IconSource
                 local source
                 for _, _source in ipairs(iconSourceList) do
                     if _source.title == thing.title then
@@ -44,17 +47,34 @@ function ToolkitGUI.CollectConfig()
                             table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfRandomMode, parameters=source.attrs.itemList})
                         end
                         if source.attrs.mode == HtItem.ItemGroupMode.SEQ then
-                            table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfSeqMod, parameters=source.attrs.itemList})
+                            table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfSeqMode, parameters=source.attrs.itemList})
                         end
                         if source.attrs.mode == HtItem.ItemGroupMode.MULTIPLE then
                             for _, item in ipairs(source.attrs.itemList) do
-                                table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfMultipleMode, parameters=item})
+                                ---@type boolean
+                                local needDisplay = true
+                                if source.attrs.displayUnUseable == false then
+                                    if HtItem.IsLearnedAndUsable(item) == false then
+                                        needDisplay = false
+                                    end
+                                else
+                                    if source.attrs.displayUnLearned == false then
+                                        if HtItem.IsLearned(item) == false then
+                                            needDisplay = false
+                                        end
+                                    end
+                                end
+                                if needDisplay == true then
+                                    table.insert(pool.sourceList, {type="ITEM_GROUP", callback=HtItem.CallbackOfMultipleMode, parameters=item})
+                                end
                             end
                         end
                     end
                 end
             end
-            table.insert(ToolkitGUI.CategoryList, pool)
+            if #pool.sourceList > 0 then
+                table.insert(ToolkitGUI.CategoryList, pool)
+            end
         end
     end
 end
@@ -67,12 +87,16 @@ function ToolkitGUI.CreateFrame()
     -- 滚动高度 = categoryNum * ToolkitGUI.UISize.IconSize
     -- 整体高度 = 滚动高度 + （类切换按钮高度 + 标题/padding这些高度）
     local windowHeight = categoryNum * ToolkitGUI.UISize.IconSize + 44
-    local windowWidth = ToolkitGUI.UISize.Width + ToolkitGUI.UISize.IconSize
+    local windowWidth = ToolkitGUI.UISize.Width
+    local tabGroupWidth = ToolkitGUI.UISize.IconSize + 5 -- 5为边距
+    local tabGroupHeight = ToolkitGUI.UISize.IconSize * categoryNum
+    local scrollWidth = windowWidth - tabGroupWidth - 4.5  -- 4.5为滚动条宽度
+    local scrollHeight = tabGroupHeight
+
     local window = AceGUI:Create("Window")
     window:EnableResize(false)
     window:SetTitle("HappyToolkit")
-    window:SetLayout("List")
-    window.frame:Hide()
+    window:SetLayout("Flow")
     window:SetHeight(windowHeight)
     window:SetWidth(windowWidth + 20)
 
@@ -81,11 +105,11 @@ function ToolkitGUI.CreateFrame()
     local x = HT.AceAddon.db.profile.windowPositionX or 0
     local y = - (HT.AceAddon.db.profile.windowPositionY or 0)
     window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
-   
-    -- 确保窗口可以拖动
+
     window.frame:SetMovable(true)
     window.frame:EnableMouse(true)
     window.frame:RegisterForDrag("LeftButton")
+    window.frame:SetClampedToScreen(true)
 
     -- 监听拖动事件并更新位置
     window.frame:SetScript("OnDragStart", function(frame)
@@ -101,13 +125,12 @@ function ToolkitGUI.CreateFrame()
         HT.AceAddon.db.profile.windowPositionY = - math.floor(newY)
     end)
 
-    -- 创建TabGroup
+    -- 创建内容容器滚动区域
     local tabGroup = AceGUI:Create("SimpleGroup")
-    tabGroup:SetWidth(ToolkitGUI.UISize.IconSize * #ToolkitGUI.CategoryList)
-    tabGroup:SetHeight(ToolkitGUI.UISize.IconSize)
+    tabGroup:SetWidth(tabGroupWidth)
+    tabGroup:SetHeight(tabGroupHeight)
     tabGroup:SetLayout("List")
-    tabGroup.frame:SetParent(window.frame)
-    tabGroup.frame:SetPoint("TOPLEFT", window.frame, "TOPRIGHT", 0, 0)
+
     local buttonCount = 0 -- 计算图标总数量，用来计算滚动距离
     for _, category in ipairs(ToolkitGUI.CategoryList) do
         buttonCount = buttonCount + #category.sourceList + 1  -- 分类图标个数 + 分类标题
@@ -128,33 +151,38 @@ function ToolkitGUI.CreateFrame()
         tabContainer:SetWidth(ToolkitGUI.UISize.IconSize)
         tabContainer:SetHeight(ToolkitGUI.UISize.IconSize)
         tabContainer:SetLayout("Fill")
-        local tabIcon = AceGUI:Create("Icon")
-        tabIcon:SetWidth(ToolkitGUI.UISize.IconSize)
-        tabIcon:SetHeight(ToolkitGUI.UISize.IconSize)
-        tabIcon:SetImage(tab.icon)
-        tabIcon:SetImageSize(ToolkitGUI.UISize.IconSize, ToolkitGUI.UISize.IconSize)
-        tabIcon:SetCallback("OnClick", function()
-            ToolkitGUI.selectTab(index)
+        local tabIcon = CreateFrame("Button", ("tab-%s"):format(index), tabContainer.frame, "UIPanelButtonTemplate")
+        if tonumber(tab.icon) then
+            tabIcon:SetNormalTexture(tonumber(tab.icon))
+        else
+            tabIcon:SetNormalTexture(tab.icon)
+        end
+        tabIcon:SetSize(ToolkitGUI.UISize.IconSize, ToolkitGUI.UISize.IconSize)
+        tabIcon:SetPoint("CENTER", tabContainer.frame, "CENTER")
+        tabIcon:SetScript("OnLeave", function(_)
+            GameTooltip:Hide()
         end)
-        tabIcon:SetCallback("OnEnter", function(self)
-            GameTooltip:SetOwner(self.frame, "ANCHOR_RIGHT")
+        tabIcon:SetScript("OnEnter", function (self)
+            local highlightTexture = tabIcon:CreateTexture()
+            highlightTexture:SetColorTexture(255, 255, 255, 0.2)
+            tabIcon:SetHighlightTexture(highlightTexture)
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
             GameTooltip:SetText(tab.title, 1, 1, 1)
             GameTooltip:Show()
         end)
-        tabIcon:SetCallback("OnLeave", function()
-            GameTooltip:Hide()
+        tabIcon:SetScript("OnClick", function(_, _)
+            ToolkitGUI.selectTab(index)
         end)
-        tabContainer:AddChild(tabIcon)
         tabGroup:AddChild(tabContainer)
         tab.button = tabIcon
     end
-  
+
 
     -- 创建内容容器，用于包裹scrollFrame容器
     local container = AceGUI:Create("SimpleGroup")
     container = AceGUI:Create("SimpleGroup")
-    container:SetWidth(windowWidth)
-    container:SetHeight(ToolkitGUI.UISize.IconSize * categoryNum)
+    container:SetWidth(scrollWidth)
+    container:SetHeight(scrollHeight)
     container:SetLayout("Fill")
     -- 创建内容容器滚动区域
     local scrollFrame = AceGUI:Create("ScrollFrame")
@@ -187,9 +215,9 @@ function ToolkitGUI.CreateFrame()
             pool.button:RegisterForClicks("AnyDown", "AnyUp")
             pool.button:SetAttribute("macrotext", "")
             pool.text = buttonContainer.frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            pool.text:SetWidth(ToolkitGUI.UISize.Width - ToolkitGUI.UISize.IconSize - 5)  -- 5是距离图标的边距
-            pool.text:SetPoint("LEFT", buttonContainer.frame, "LEFT", 5 + ToolkitGUI.UISize.IconSize, 0)  -- 将文本靠左对齐，并设置一些间距
-            pool.text:SetJustifyH("LEFT")  -- 确保文本左对齐
+            pool.text:SetPoint("LEFT", buttonContainer.frame, "LEFT", 5 + ToolkitGUI.UISize.IconSize, 0)
+            pool.text:SetWidth(scrollWidth - (5 + ToolkitGUI.UISize.IconSize) - 16)
+            pool.text:SetJustifyH("LEFT")
             if callbackResult ~= nil then
                 -- 如果回调函数返回的是item模式
                 if not (callbackResult.item == nil) then
@@ -211,13 +239,17 @@ function ToolkitGUI.CreateFrame()
         end
     end
     container:AddChild(scrollFrame)
+
+
+    window.frame:Hide()
+    window:AddChild(tabGroup)
     window:AddChild(container)
     ToolkitGUI.Window = window
     ToolkitGUI.ScrollFrame = scrollFrame
-    -- ToolkitGUI.Window.closebutton:SetScript("OnClick", function()
-    --     ToolkitGUI.Window:Hide()
-    --     ToolkitGUI.IsOpen = false
-    -- end)
+    ToolkitGUI.Window.closebutton:SetScript("OnClick", function()
+        ToolkitGUI.Window:Hide()
+        ToolkitGUI.IsOpen = false
+    end)
 end
 
 function ToolkitGUI.selectTab(index)
@@ -230,7 +262,6 @@ function ToolkitGUI.selectTab(index)
         end
     end
 end
-
 
 function ToolkitGUI.Update()
     for _, category in ipairs(ToolkitGUI.CategoryList) do
@@ -267,7 +298,6 @@ function ToolkitGUI.ShowWindow()
         ToolkitGUI.IsOpen = true
     end
 end
-
 
 -- 更新pool的宏文案
 function ToolkitGUI.SetPoolMacro(pool)
@@ -306,7 +336,6 @@ function ToolkitGUI.SetPoolMacro(pool)
         pool.text:SetText(callbackResult.text)
     end
 end
-
 
 -- 设置pool的冷却
 function ToolkitGUI.SetPoolCooldown(pool)
@@ -359,7 +388,6 @@ function ToolkitGUI.SetPoolCooldown(pool)
         end
     end
 end
-
 
 -- 当pool上的技能没有学习的时候，置为灰色
 function ToolkitGUI.SetPoolLearnable(pool)
@@ -418,7 +446,6 @@ function ToolkitGUI.SetPoolLearnable(pool)
         end
     end
 end
-
 
 -- 设置button鼠标移入事件
 function ToolkitGUI.SetShowGameTooltip(pool)
@@ -479,5 +506,3 @@ function ToolkitGUI.Initial()
 end
 
 HT.ToolkitGUI = ToolkitGUI
-
-return ToolkitGUI

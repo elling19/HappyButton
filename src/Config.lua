@@ -1,6 +1,9 @@
 local _, HT = ...
+---@type HtItem
 local HtItem = HT.HtItem
+---@type Utils
 local U = HT.Utils
+
 HT.AceAddonName = "HappyToolkit"
 HT.AceAddonConfigDB = "HappyToolkitDB"
 HT.AceAddon = LibStub("AceAddon-3.0"):NewAddon(HT.AceAddonName, "AceConsole-3.0", "AceEvent-3.0")
@@ -12,17 +15,41 @@ local AceSerializer = LibStub("AceSerializer-3.0")
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
 local AceGUI = LibStub("AceGUI-3.0")
 
+---@class ProfileConfig.ConfigTable
+---@field name string
+---@field profile table
 
+
+---@class IconSourceAttrs
+---@field mode integer
+---@field displayUnUseable boolean
+---@field displayUnLearned boolean
+---@field itemList table | nil
+---@field script string | nil
+local IconSourceAttrs = {}
+
+
+---@class IconSource
+---@field title string
+---@field type string
+---@field attrs IconSourceAttrs
+local IconSource = {}
+
+
+---@class ProfileConfig
+---@field tmpConfigString string
+---@field GenerateNewProfileName fun(title: string): string
+---@field ShowLoadConfirmation fun(title: string): nil
 local ProfileConfig = {}
 
 ProfileConfig.tmpConfigString = nil  -- 全局配置编辑字符串
 
-function ProfileConfig.GenerateNewProfileName(baseName)
+function ProfileConfig.GenerateNewProfileName(title)
     local index = 1
-    while HT.AceAddon.db.profiles[baseName .. "[" .. index .. "]"] do
+    while HT.AceAddon.db.profiles[title .. "[" .. index .. "]"] do
         index = index + 1
     end
-    return baseName .. "[" .. index .. "]"
+    return title .. "[" .. index .. "]"
 end
 
 function ProfileConfig.ShowLoadConfirmation(profileName)
@@ -41,14 +68,22 @@ function ProfileConfig.ShowLoadConfirmation(profileName)
     StaticPopup_Show("LOAD_NEW_PROFILE")
 end
 
+---@class Config
+---@field tmpCoverConfig boolean 
+---@field tmpImportSourceString string | nil
+---@field tmpNewItemType integer | nil
+---@field tmpNewItemVal string | nil
+---@field tmpNewItem ItemOfHtItem
+---@field ShowExportDialog function
+---@field IsTitleDuplicated function
+---@field CreateDuplicateTitle function
 local Config = {}
 
 -- 临时变量
-
 Config.tmpCoverConfig = false  -- 默认选择不覆盖配置，默认创建副本
 Config.tmpImportSourceString = nil  -- 导入itemGroup配置字符串
 Config.tmpNewItemType = nil
-Config.tmpNewItemVal = {}
+Config.tmpNewItemVal = nil
 Config.tmpNewItem = {type=nil, id = nil, icon = nil, name = nil}
 
 -- 展示导出配置框
@@ -94,6 +129,11 @@ function Config.CreateDuplicateTitle(title, titleList)
 end
 
 
+---@class ConfigOptions
+---@field CategoryOptions function
+---@field IconSourceOptions function
+---@field ConfigOptions function
+---@field Options function
 local ConfigOptions = {}
 
 function ConfigOptions.CategoryOptions()
@@ -179,7 +219,7 @@ function ConfigOptions.CategoryOptions()
                     values = function()
                         local values = {}
                         for _, source in ipairs(HT.AceAddon.db.profile.iconSourceList) do
-                            values[source.title] = "[" .. source.type .. "]" .. source.title
+                            values[source.title] = L[source.type] .. ": " .. source.title
                         end
                         return values
                     end,
@@ -252,7 +292,9 @@ function ConfigOptions.IconSourceOptions()
                     if Config.IsTitleDuplicated(newItemGroupTitle, titleList) then
                         newItemGroupTitle = Config.CreateDuplicateTitle(newItemGroupTitle, titleList)
                     end
-                    table.insert(HT.AceAddon.db.profile.iconSourceList, {title=newItemGroupTitle, type="ITEM_GROUP", attrs={ mode=HtItem.ItemGroupMode.MULTIPLE, displayUnUseable=false, displayUnLearned=false, itemList={} }})
+                    ---@type IconSource
+                    local iconSource = {title=newItemGroupTitle, type="ITEM_GROUP", attrs={ mode=HtItem.ItemGroupMode.MULTIPLE, displayUnUseable=false, displayUnLearned=false, itemList={} }}
+                    table.insert(HT.AceAddon.db.profile.iconSourceList, iconSource)
                     HT.AceAddon:UpdateOptions()
                     AceConfigDialog:SelectGroup(HT.AceAddonName, "iconSource", "SourceMenu" .. #HT.AceAddon.db.profile.iconSourceList)
                 end,
@@ -365,14 +407,14 @@ function ConfigOptions.IconSourceOptions()
                     end
                     if Config.IsTitleDuplicated(configTable.title, titleList) then
                         if Config.tmpCoverConfig == true then
-                            -- for i, itemGroup in ipairs(HT.AceAddon.db.profile.iconSourceList) do
-                            --     if itemGroup.title == configTable.title then
-                            --         HT.AceAddon.db.profile.iconSourceList[i] = configTable
-                            --         HT.AceAddon:UpdateOptions()
-                            --         AceConfigDialog:SelectGroup(HT.AceAddonName, "iconSource", "SourceMenu" .. i)
-                            --         return true
-                            --     end
-                            -- end
+                            for i, itemGroup in ipairs(HT.AceAddon.db.profile.iconSourceList) do
+                                if itemGroup.title == configTable.title then
+                                    HT.AceAddon.db.profile.iconSourceList[i] = configTable
+                                    HT.AceAddon:UpdateOptions()
+                                    AceConfigDialog:SelectGroup(HT.AceAddonName, "iconSource", "SourceMenu" .. i)
+                                    return true
+                                end
+                            end
                         else
                             configTable.title = Config.CreateDuplicateTitle(configTable.title, titleList)
                         end
@@ -672,7 +714,7 @@ function ConfigOptions.IconSourceOptions()
                         end,
                         set = function(_, _)
                             Config.tmpNewItemVal = nil
-                            table.insert(source.attrs.itemList, U.DeepCopy(Config.tmpNewItem))
+                            table.insert(source.attrs.itemList, U.Table.DeepCopy(Config.tmpNewItem))
                             Config.tmpNewItem = {}
                             HT.AceAddon:UpdateOptions()
                             AceConfigDialog:SelectGroup(HT.AceAddonName, "iconSource", "SourceMenu" .. i, "item" .. #source.attrs.itemList)
