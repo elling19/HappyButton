@@ -6,6 +6,7 @@
 ## Author: CN Cryy
 ## Version: 1.0.0
 ## IconTexture: 1418621
+## IconTexture: Interface\AddOns\HappyToolkit\Media\Logo64.blp
 ## SavedVariables: HappyToolkitDB
 
 # 引入Libs中的模块
