@@ -11,9 +11,7 @@ local ToolkitGUI = {
     IsOpen = false,
     UISize = {
         IconSize = 32,
-        IconNum = 15, -- 最多展示15个图标
         Width = 204, -- 每个图标32，一共7个。32*7=224。减去20的边框。224-20=204
-        Num = 1
     },
     tabs = {}, -- 分类切换按钮
     currentTabIndex = 1,
@@ -62,13 +60,14 @@ function ToolkitGUI.CollectConfig()
 end
 
 function ToolkitGUI.CreateFrame()
+    local categoryNum = #ToolkitGUI.CategoryList
     -- UI高度计算
     -- 分类切换按钮高度：ToolkitGUI.UISize.IconSize = 32
     -- 输入框高度：ToolkitGUI.UISize.IconSize = 32
-    -- 滚动高度 = ToolkitGUI.UISize.IconNum * ToolkitGUI.UISize.IconSize
+    -- 滚动高度 = categoryNum * ToolkitGUI.UISize.IconSize
     -- 整体高度 = 滚动高度 + （类切换按钮高度 + 标题/padding这些高度）
-    local windowHeight = ToolkitGUI.UISize.IconNum * ToolkitGUI.UISize.IconSize + 44
-    local windowWidth = ToolkitGUI.UISize.Num * (ToolkitGUI.UISize.Width + ToolkitGUI.UISize.IconSize)
+    local windowHeight = categoryNum * ToolkitGUI.UISize.IconSize + 44
+    local windowWidth = ToolkitGUI.UISize.Width + ToolkitGUI.UISize.IconSize
     local window = AceGUI:Create("Window")
     window:EnableResize(false)
     window:SetTitle("HappyToolkit")
@@ -114,10 +113,10 @@ function ToolkitGUI.CreateFrame()
         buttonCount = buttonCount + #category.sourceList + 1  -- 分类图标个数 + 分类标题
     end
     local scrollRatio  -- 滚动系数
-    if buttonCount <= ToolkitGUI.UISize.IconNum then
+    if buttonCount <= categoryNum then
         scrollRatio = 1
     else
-        scrollRatio = 1000 / (buttonCount - ToolkitGUI.UISize.IconNum)
+        scrollRatio = 1000 / (buttonCount - categoryNum)
     end
     local topCount = 0
     for _, category in ipairs(ToolkitGUI.CategoryList) do
@@ -155,7 +154,7 @@ function ToolkitGUI.CreateFrame()
     local container = AceGUI:Create("SimpleGroup")
     container = AceGUI:Create("SimpleGroup")
     container:SetWidth(windowWidth)
-    container:SetHeight(ToolkitGUI.UISize.IconSize * ToolkitGUI.UISize.IconNum)
+    container:SetHeight(ToolkitGUI.UISize.IconSize * categoryNum)
     container:SetLayout("Fill")
     -- 创建内容容器滚动区域
     local scrollFrame = AceGUI:Create("ScrollFrame")
