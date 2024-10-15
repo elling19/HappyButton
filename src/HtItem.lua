@@ -6,6 +6,7 @@ local L = LibStub("AceLocale-3.0"):GetLocale("HappyToolkit", false)
 ---@field id integer | nil
 ---@field icon integer | string | nil
 ---@field name string | nil
+---@field alias string | nil
 local ItemOfHtItem = {}
 
 
@@ -245,7 +246,7 @@ function HtItem.CallbackByItem(item)
     return {
         closeGUIAfterClick = nil,
         icon = item.icon,
-        text = item.name,
+        text = item.alias or item.name,
         item = item,
         leftClickCallback = nil
     }

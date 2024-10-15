@@ -85,7 +85,7 @@ Config.tmpCoverConfig = false  -- 默认选择不覆盖配置，默认创建副�
 Config.tmpImportSourceString = nil  -- 导入itemGroup配置字符串
 Config.tmpNewItemType = nil
 Config.tmpNewItemVal = nil
-Config.tmpNewItem = {type=nil, id = nil, icon = nil, name = nil}
+Config.tmpNewItem = {type=nil, id = nil, icon = nil, name = nil, alias = nil}
 
 -- 展示导出配置框
 function Config.ShowExportDialog(exportData)
@@ -774,10 +774,27 @@ function ConfigOptions.IconSourceOptions()
                             type = 'input',
                             name = L["Name"],
                             disabled = true,
-                            get = function() return tostring(item.name) end,
+                            get = function() return item.name end,
+                        },
+                        alias ={
+                            order = 3,
+                            width=2,
+                            type = 'input',
+                            name = L["Alias"],
+                            get = function() return item.alias end,
+                            validate = function (_, val) 
+                                if val == nil or val == "" or val == " " then
+                                    return L["Illegal value."]
+                                end
+                                return true
+                            end,
+                            set = function (_, val)
+                                item.alias = val
+                                HT.AceAddon:UpdateOptions()
+                            end
                         },
                         icon = {
-                            order = 2,
+                            order = 4,
                             width=2,
                             type = 'input',
                             name = L["Icon"],
@@ -785,7 +802,7 @@ function ConfigOptions.IconSourceOptions()
                             get = function() return tostring(item.icon) end,
                         },
                         type = {
-                            order = 3,
+                            order = 5,
                             width=2,
                             type = 'select',
                             name = L["Type"],
@@ -794,12 +811,12 @@ function ConfigOptions.IconSourceOptions()
                             get = function() return item.type end,
                         },
                         space = {
-                            order = 4,
+                            order = 6,
                             type = 'description',
                             name = "\n"
                         },
                         delete = {
-                            order = 5,
+                            order = 7,
                             width=2,
                             type = 'execute',
                             name = L["Delete"],
@@ -892,8 +909,17 @@ function ConfigOptions.Options()
                 type = 'group',
                 name = L["General"],
                 args = {
+                    showGuiDefault = {
+                        order = 1,
+                        width=2,
+                        type = 'toggle',
+                        name = L["Show the gui by default when login in."],
+                        set = function(_, val) HT.AceAddon.db.profile.showGuiDefault = val end,
+                        get = function(_) return HT.AceAddon.db.profile.showGuiDefault end,
+                    },
                     -- 设置窗口位置：x 和 y 值
                     windowPositionX = {
+                        order = 2,
                         type = 'range',
                         name = L["Window Position X"],
                         min = 0,
@@ -903,6 +929,7 @@ function ConfigOptions.Options()
                         get = function(_) return HT.AceAddon.db.profile.windowPositionX end,
                     },
                     windowPositionY = {
+                        order = 3,
                         type = 'range',
                         name = L["Window Position Y"],
                         min = 0,

@@ -16,12 +16,18 @@ local UtilsTable = {}
 ---@field PrintTable fun(table: table, indent: number | nil): nil
 local UtilsPrint = {}
 
+---@class UtilsString
+---@field ToVertical fun(text: string | nil): string 将字符串转为竖形结构
+local UtilsString = {}
+
 ---@class Utils
 ---@field Table UtilsTable
 ---@field Print UtilsPrint
+---@field String UtilsString
 local Utils = {
     Table = UtilsTable,
-    Print = UtilsPrint
+    Print = UtilsPrint,
+    String = UtilsString
 }
 
 HT.Utils = Utils
@@ -115,4 +121,46 @@ function UtilsPrint.PrintTable(tbl, indent)
             UtilsPrint.Print(formatting .. tostring(value))
         end
     end
+end
+
+
+-- 函数：将 UTF-8 字符串拆分为单个字符表
+local function Utf8ToTable(str)
+    local charTable = {}
+    local i = 1
+    local length = #str
+
+    while i <= length do
+        local byte = string.byte(str, i)
+        local charLength
+
+        if byte >= 240 then       -- 4字节字符 (例如 emoji)
+            charLength = 4
+        elseif byte >= 224 then   -- 3字节字符 (中文、韩文等)
+            charLength = 3
+        elseif byte >= 192 then   -- 2字节字符 (部分拉丁字母等)
+            charLength = 2
+        else                      -- 1字节字符 (ASCII)
+            charLength = 1
+        end
+
+        local char = str:sub(i, i + charLength - 1)
+        table.insert(charTable, char)
+        i = i + charLength
+    end
+
+    return charTable
+end
+
+
+function UtilsString.ToVertical(str)
+    if str == nil then
+        return ""
+    end
+    local chars = Utf8ToTable(str)
+    local verticalStr = ""
+    for _, char in ipairs(chars) do
+        verticalStr = verticalStr .. char .. "\n"
+    end
+    return verticalStr
 end
