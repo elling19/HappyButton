@@ -7,7 +7,7 @@ local ToolkitCore = HT.ToolkitCore
 
 
 -- 注册命令：关闭gui
-SlashCmdList["CLOSEHAPPYTOOLKITGUI"] = ToolkitGUI.HideWindow
+SlashCmdList["CLOSEHAPPYTOOLKITGUI"] = ToolkitGUI.HideAllIconFrame
 SLASH_CLOSEHAPPYTOOLKITGUI1 = "/closehappytoolkitgui"
 
 
