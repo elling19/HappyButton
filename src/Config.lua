@@ -165,9 +165,10 @@ function ConfigOptions.CategoryOptions()
     }
 
     for i, category in ipairs(HT.AceAddon.db.profile.categoryList) do
+        local iconPath = "|T" .. (category.icon or 134400) .. ":16|t"
         options.args["categoryMenu" .. i] = {
             type = 'group',
-            name = "|cff00ff00" .. category.title .. "|r",
+            name = "|cff00ff00" .. iconPath .. category.title .. "|r",
             args = {
                 title = {
                     order = 1,
@@ -190,7 +191,7 @@ function ConfigOptions.CategoryOptions()
                 },
                 icon = {
                     order=2,
-                    width=2,
+                    width=1,
                     type = 'input',
                     name = L["Icon"],
                     get = function() return category.icon end,
@@ -199,8 +200,15 @@ function ConfigOptions.CategoryOptions()
                         HT.AceAddon:UpdateOptions()
                     end,
                 },
-                displayToogle = {
+                iconDisplay = {
                     order = 3,
+                    width=1,
+                    type = "description",
+                    name = iconPath,
+                    fontSize = "medium",
+                },
+                displayToogle = {
+                    order = 4,
                     width=2,
                     type = 'toggle',
                     name = L["Display"] ,
@@ -208,7 +216,7 @@ function ConfigOptions.CategoryOptions()
                     get = function(_) return category.isDisplay == true end,
                 },
                 displayNameToggle = {
-                    order = 4,
+                    order = 5,
                     width=2,
                     type = 'toggle',
                     name = L["Whether to display item name."],
@@ -216,12 +224,12 @@ function ConfigOptions.CategoryOptions()
                     get = function(_) return category.isDisplayName == true end,
                 },
                 space1 = {
-                    order = 5,
+                    order = 6,
                     type = 'description',
                     name = "\n"
                 },
                 iconSourceList = {
-                    order = 6,
+                    order = 7,
                     width=2,
                     type = 'multiselect',
                     name = L["Select items to display"],
@@ -260,12 +268,12 @@ function ConfigOptions.CategoryOptions()
                     end,
                 },
                 space2 = {
-                    order = 7,
+                    order = 8,
                     type = 'description',
                     name = "\n"
                 },
                 delete = {
-                    order = 8,
+                    order = 9,
                     width=2,
                     type = 'execute',
                     name = L["Delete"],
@@ -764,29 +772,37 @@ function ConfigOptions.IconSourceOptions()
             }
             -- 动态生成 itemList，每个 item 作为左侧菜单栏中的独立组
             for j, item in ipairs(source.attrs.itemList) do
+                local iconPath = "|T" .. (item.icon or 134400) .. ":16|t"
                 options.args["SourceMenu" .. i].args["item" .. j] = {
                     type = 'group',
-                    name = item.name,
+                    name = iconPath .. item.name,
                     args = {
                         id = {
-                            order = 2,
-                            width=2,
+                            order = 1,
+                            width=1,
                             type = 'input',
                             name = L["ID"],
                             disabled = true,
                             get = function() return tostring(item.id) end,
                         },
-                        name = {
+                        iconDisplay = {
                             order = 2,
-                            width=2,
+                            width=1,
+                            type = "description",
+                            name = iconPath,
+                            fontSize = "medium",
+                        },
+                        name = {
+                            order = 3,
+                            width=1,
                             type = 'input',
                             name = L["Name"],
                             disabled = true,
                             get = function() return item.name end,
                         },
                         alias ={
-                            order = 3,
-                            width=2,
+                            order = 4,
+                            width=1,
                             type = 'input',
                             name = L["Alias"],
                             get = function() return item.alias end,
@@ -800,14 +816,6 @@ function ConfigOptions.IconSourceOptions()
                                 item.alias = val
                                 HT.AceAddon:UpdateOptions()
                             end
-                        },
-                        icon = {
-                            order = 4,
-                            width=2,
-                            type = 'input',
-                            name = L["Icon"],
-                            disabled = true,
-                            get = function() return tostring(item.icon) end,
                         },
                         type = {
                             order = 5,
@@ -917,21 +925,21 @@ function ConfigOptions.Options()
                 type = 'group',
                 name = L["General"],
                 args = {
-                    showGuiDefault = {
+                    showCategoryMenuDefault = {
                         order = 1,
                         width=2,
                         type = 'toggle',
-                        name = L["Whether to show the gui by default when login in."],
-                        set = function(_, val) HT.AceAddon.db.profile.showGuiDefault = val end,
-                        get = function(_) return HT.AceAddon.db.profile.showGuiDefault end,
+                        name = L["Whether to show the category menu when login in."],
+                        set = function(_, val) HT.AceAddon.db.profile.showCategoryMenuDefault = val end,
+                        get = function(_) return HT.AceAddon.db.profile.showCategoryMenuDefault end,
                     },
-                    showGuiOnMouseOver = {
+                    showCategoryMenuOnMouseEnter = {
                         order = 1,
                         width=2,
                         type = 'toggle',
-                        name = L["Whether to show the gui when the mouse enter."],
-                        set = function(_, val) HT.AceAddon.db.profile.showGuiOnMouseEnter = val end,
-                        get = function(_) return HT.AceAddon.db.profile.showGuiOnMouseEnter end,
+                        name = L["Whether to show the category menu when the mouse enter."],
+                        set = function(_, val) HT.AceAddon.db.profile.showCategoryMenuOnMouseEnter = val end,
+                        get = function(_) return HT.AceAddon.db.profile.showCategoryMenuOnMouseEnter end,
                     },
                     -- 设置窗口位置：x 和 y 值
                     windowPositionX = {
@@ -970,8 +978,8 @@ function HT.AceAddon:OnInitialize()
     -- 注册数据库，添加分类设置
     self.db = LibStub("AceDB-3.0"):New(HT.AceAddonConfigDB, {
         profile = {
-            showGuiDefault = false,
-            showGuiOnMouseEnter = true,
+            showCategoryMenuDefault = true,
+            showCategoryMenuOnMouseEnter = false,
             windowPositionX = 0, -- 默认X位置
             windowPositionY = 0, -- 默认Y位置
             categoryList = {},

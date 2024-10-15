@@ -10,10 +10,10 @@ local HtItem = HT.HtItem
 
 ---@class ToolkitGUI 
 local ToolkitGUI = {
-    CategoryList = {},
-    TabGroupFrame = nil,
+    Window = AceGUI:Create("SimpleGroup"),
+    CateMenuFrame = AceGUI:Create("SimpleGroup"),
     IconFrameList = {},  -- 存储图标容器列表
-    Window = nil,
+    CategoryList = {},
     IsOpen = false,
     IsMouseInside = false,  -- 鼠标是否处在框体内
     IconSize = 32,
@@ -98,45 +98,45 @@ function ToolkitGUI.CreateFrame()
         end
     end
 
-    local window = AceGUI:Create("SimpleGroup")
-    window.frame:SetFrameStrata("BACKGROUND")
-    window:SetLayout("Flow")
-    window:SetHeight(windowHeight)
-    window:SetWidth((maxPoolNum + 1)* iconSize)
+    ToolkitGUI.Window.frame:SetFrameStrata("BACKGROUND")
+    ToolkitGUI.Window:SetLayout("Flow")
+    ToolkitGUI.Window:SetHeight(windowHeight)
+    ToolkitGUI.SetWindowsWidth()
 
     -- 将窗口定位到初始位置
     local x = HT.AceAddon.db.profile.windowPositionX or 0
     local y = - (HT.AceAddon.db.profile.windowPositionY or 0)
-    window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
 
-    window.frame:SetMovable(true)
-    window.frame:EnableMouse(true)
-    window.frame:RegisterForDrag("LeftButton")
-    window.frame:SetClampedToScreen(true)
+    ToolkitGUI.Window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
+
+    ToolkitGUI.Window.frame:SetMovable(true)
+    ToolkitGUI.Window.frame:EnableMouse(true)
+    ToolkitGUI.Window.frame:RegisterForDrag("LeftButton")
+    ToolkitGUI.Window.frame:SetClampedToScreen(true)
 
     -- 监听拖动事件并更新位置
-    window.frame:SetScript("OnDragStart", function(frame)
+    ToolkitGUI.Window.frame:SetScript("OnDragStart", function(frame)
         frame:StartMoving()
     end)
 
     -- 监听窗口的拖拽事件
-    window.frame:SetScript("OnDragStop", function(frame)
+    ToolkitGUI.Window.frame:SetScript("OnDragStop", function(frame)
         frame:StopMovingOrSizing()
         local newX, newY = frame:GetLeft(), frame:GetTop() - UIParent:GetHeight()
         HT.AceAddon.db.profile.windowPositionX = math.floor(newX)
         HT.AceAddon.db.profile.windowPositionY = - math.floor(newY)
     end)
 
-    window.frame:SetScript("OnUpdate", function(self)
+    ToolkitGUI.Window.frame:SetScript("OnUpdate", function(self)
         local mouseOver = self:IsMouseOver()
         if mouseOver and not ToolkitGUI.IsMouseInside then
-            if HT.AceAddon.db.profile.showGuiOnMouseEnter == true then
-                ToolkitGUI.ShowTabGroupFrame()
+            if HT.AceAddon.db.profile.showCategoryMenuOnMouseEnter == true then
+                ToolkitGUI.ShowCateMenuFrame()
             end
             ToolkitGUI.IsMouseInside = true
         elseif not mouseOver and ToolkitGUI.IsMouseInside then
-            if HT.AceAddon.db.profile.showGuiOnMouseEnter == true then
-                ToolkitGUI.HideTabGroupFrame()
+            if HT.AceAddon.db.profile.showCategoryMenuOnMouseEnter == true then
+                ToolkitGUI.HideCateMenuFrame()
             end
             ToolkitGUI.HideAllIconFrame()
             ToolkitGUI.IsMouseInside = false
@@ -144,12 +144,10 @@ function ToolkitGUI.CreateFrame()
     end)
 
     -- 创建内容容器滚动区域
-    local tabGroup = AceGUI:Create("SimpleGroup")
-    tabGroup:SetWidth(iconSize)
-    tabGroup:SetHeight(windowHeight)
-    tabGroup:SetLayout("List")
-    window:AddChild(tabGroup)
-    ToolkitGUI.TabGroupFrame = tabGroup
+    ToolkitGUI.CateMenuFrame:SetWidth(iconSize)
+    ToolkitGUI.CateMenuFrame:SetHeight(windowHeight)
+    ToolkitGUI.CateMenuFrame:SetLayout("List")
+    ToolkitGUI.Window:AddChild(ToolkitGUI.CateMenuFrame)
 
     local buttonCount = 0 -- 计算图标总数量，用来计算滚动距离
     for _, category in ipairs(ToolkitGUI.CategoryList) do
@@ -191,7 +189,7 @@ function ToolkitGUI.CreateFrame()
         tabIcon:SetScript("OnClick", function(_, _)
             ToolkitGUI.ToggleIconFrame(index)
         end)
-        tabGroup:AddChild(tabContainer)
+        ToolkitGUI.CateMenuFrame:AddChild(tabContainer)
         tab.button = tabIcon
     end
 
@@ -241,13 +239,12 @@ function ToolkitGUI.CreateFrame()
                 end
             end
             iconsFrame:AddChild(buttonContainer)
-            iconsFrame.frame:SetPoint("TOPLEFT", window.frame, "TOPLEFT", iconSize, - iconSize * (cateIndex - 1))
+            iconsFrame.frame:SetPoint("TOPLEFT", ToolkitGUI.Window.frame, "TOPLEFT", iconSize, - iconSize * (cateIndex - 1))
         end
         table.insert(ToolkitGUI.IconFrameList, iconsFrame)
     end
-    ToolkitGUI.Window = window
 
-    if HT.AceAddon.db.profile.showGuiDefault == true then
+    if HT.AceAddon.db.profile.showCategoryMenuDefault == true then
         ToolkitGUI.ShowWindow()
     else
         ToolkitGUI.HideWindow()
@@ -261,6 +258,7 @@ function ToolkitGUI.ToggleIconFrame(index)
     else
         ToolkitGUI.currentTabIndex = index
         ToolkitGUI.IconFrameList[index].frame:Show()
+        ToolkitGUI.SetWindowsWidth()
     end
 end
 
@@ -272,6 +270,7 @@ function ToolkitGUI.ShowIconFrame(index)
         end
     end
     ToolkitGUI.IconFrameList[index].frame:Show()
+    ToolkitGUI.SetWindowsWidth()
 end
 
 function ToolkitGUI.HideAllIconFrame()
@@ -281,13 +280,18 @@ function ToolkitGUI.HideAllIconFrame()
     ToolkitGUI.currentTabIndex = nil
 end
 
-function ToolkitGUI.HideTabGroupFrame()
-    ToolkitGUI.TabGroupFrame.frame:Hide()
+function ToolkitGUI.HideCateMenuFrame()
+    -- 当设置了鼠标移入显示菜单的时候，不能隐藏window
+    if HT.AceAddon.db.profile.showCategoryMenuOnMouseEnter == false then
+        ToolkitGUI.Window.frame:Hide()
+    end
+    ToolkitGUI.CateMenuFrame.frame:Hide()
     ToolkitGUI.IsOpen = false
 end
 
-function ToolkitGUI.ShowTabGroupFrame()
-    ToolkitGUI.TabGroupFrame.frame:Show()
+function ToolkitGUI.ShowCateMenuFrame()
+    ToolkitGUI.Window.frame:Show()
+    ToolkitGUI.CateMenuFrame.frame:Show()
     ToolkitGUI.IsOpen = true
 end
 
@@ -305,10 +309,20 @@ function ToolkitGUI.Update()
     end
 end
 
+
+-- 设置窗口宽度：窗口会遮挡视图，会减少鼠标可点击范围，因此窗口宽度尽可能小
+function ToolkitGUI.SetWindowsWidth()
+    if ToolkitGUI.currentTabIndex == nil then
+        ToolkitGUI.Window:SetWidth(ToolkitGUI.IconSize * (1 + 0 + 1))
+    else
+        ToolkitGUI.Window:SetWidth(ToolkitGUI.IconSize * (1 + #ToolkitGUI.CategoryList[ToolkitGUI.currentTabIndex].sourceList + 1))
+    end
+end
+
 -- 隐藏窗口
 function ToolkitGUI.HideWindow()
     if ToolkitGUI.IsOpen == true then
-        ToolkitGUI.HideTabGroupFrame()
+        ToolkitGUI.HideCateMenuFrame()
         ToolkitGUI.HideAllIconFrame()
     end
 end
@@ -316,7 +330,7 @@ end
 -- 显示窗口
 function ToolkitGUI.ShowWindow()
     if ToolkitGUI.IsOpen == false then
-        ToolkitGUI.ShowTabGroupFrame()
+        ToolkitGUI.ShowCateMenuFrame()
         ToolkitGUI.Update()
     end
 end
