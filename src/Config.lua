@@ -207,13 +207,21 @@ function ConfigOptions.CategoryOptions()
                     set = function(_, _) category.isDisplay = not category.isDisplay end,
                     get = function(_) return category.isDisplay == true end,
                 },
-                space1 = {
+                displayNameToggle = {
                     order = 4,
+                    width=2,
+                    type = 'toggle',
+                    name = L["Whether to display item name."],
+                    set = function(_, val) category.isDisplayName = val end,
+                    get = function(_) return category.isDisplayName == true end,
+                },
+                space1 = {
+                    order = 5,
                     type = 'description',
                     name = "\n"
                 },
                 iconSourceList = {
-                    order = 5,
+                    order = 6,
                     width=2,
                     type = 'multiselect',
                     name = L["Select items to display"],
@@ -252,12 +260,12 @@ function ConfigOptions.CategoryOptions()
                     end,
                 },
                 space2 = {
-                    order = 6,
+                    order = 7,
                     type = 'description',
                     name = "\n"
                 },
                 delete = {
-                    order = 7,
+                    order = 8,
                     width=2,
                     type = 'execute',
                     name = L["Delete"],
@@ -333,7 +341,7 @@ function ConfigOptions.IconSourceOptions()
                 order = 4,
                 width=2,
                 type = 'toggle',
-                name = L["Overwrite the existing configuration."] ,
+                name = L["Whether to overwrite the existing configuration."] ,
                 set = function(_, _) Config.tmpCoverConfig = not Config.tmpCoverConfig end,
                 get = function(_) return Config.tmpCoverConfig end,
             },
@@ -578,15 +586,15 @@ function ConfigOptions.IconSourceOptions()
                         order = 4,
                         width=2,
                         type = 'toggle',
-                        name = L["Only display learned or owned items."],
+                        name = L["Whether to display only learned or owned items."],
                         set = function(_, val) source.attrs.displayUnLearned = not val end,
                         get = function(_) return not source.attrs.displayUnLearned end,
                     },
                     replaceNameToggle = {
-                        order = 4,
+                        order = 5,
                         width=2,
                         type = 'toggle',
-                        name = L["Use icon source title to replace item name."],
+                        name = L["Wheter to use icon source title to replace item name."],
                         set = function(_, val) source.attrs.replaceName = val end,
                         get = function(_) return source.attrs.replaceName == true end,
                     },
@@ -913,9 +921,17 @@ function ConfigOptions.Options()
                         order = 1,
                         width=2,
                         type = 'toggle',
-                        name = L["Show the gui by default when login in."],
+                        name = L["Whether to show the gui by default when login in."],
                         set = function(_, val) HT.AceAddon.db.profile.showGuiDefault = val end,
                         get = function(_) return HT.AceAddon.db.profile.showGuiDefault end,
+                    },
+                    showGuiOnMouseOver = {
+                        order = 1,
+                        width=2,
+                        type = 'toggle',
+                        name = L["Whether to show the gui when the mouse enter."],
+                        set = function(_, val) HT.AceAddon.db.profile.showGuiOnMouseEnter = val end,
+                        get = function(_) return HT.AceAddon.db.profile.showGuiOnMouseEnter end,
                     },
                     -- 设置窗口位置：x 和 y 值
                     windowPositionX = {
@@ -954,7 +970,8 @@ function HT.AceAddon:OnInitialize()
     -- 注册数据库，添加分类设置
     self.db = LibStub("AceDB-3.0"):New(HT.AceAddonConfigDB, {
         profile = {
-            enable = true,
+            showGuiDefault = false,
+            showGuiOnMouseEnter = true,
             windowPositionX = 0, -- 默认X位置
             windowPositionY = 0, -- 默认Y位置
             categoryList = {},

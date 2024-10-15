@@ -2,13 +2,6 @@ local _, HT = ...
 
 local AceGUI = LibStub("AceGUI-3.0")
 
--- 获取鼠标的 UI 坐标
-local function GetMousePosition()
-    local x, y = GetCursorPosition()  -- 获取原始鼠标坐标
-    local scale = UIParent:GetEffectiveScale()  -- 获取UI缩放
-    return x / scale, y / scale  -- 返回缩放后的坐标
-end
-
 ---@type Utils
 local U = HT.Utils
 
@@ -18,14 +11,12 @@ local HtItem = HT.HtItem
 ---@class ToolkitGUI 
 local ToolkitGUI = {
     CategoryList = {},
+    TabGroupFrame = nil,
     IconFrameList = {},  -- 存储图标容器列表
     Window = nil,
     IsOpen = false,
     IsMouseInside = false,  -- 鼠标是否处在框体内
-    UISize = {
-        IconSize = 32,
-        Width = (32 * 50) + (32 + 5),
-    },
+    IconSize = 32,
     tabs = {}, -- 分类切换按钮
     currentTabIndex = nil,
 }
@@ -39,6 +30,7 @@ function ToolkitGUI.CollectConfig()
             local pool = {}
             pool.icon = category.icon
             pool.title = category.title
+            pool.isDisplayName = category.isDisplayName
             pool.sourceList = {}
             for _, thing in ipairs(category.sourceList) do
                 ---@type IconSource
@@ -96,23 +88,26 @@ function ToolkitGUI.CollectConfig()
 end
 
 function ToolkitGUI.CreateFrame()
-    local iconSize = ToolkitGUI.UISize.IconSize
+    local iconSize = ToolkitGUI.IconSize
     local categoryNum = #ToolkitGUI.CategoryList
     local windowHeight = iconSize * categoryNum
+    local maxPoolNum = 0
+    for _, category in ipairs(ToolkitGUI.CategoryList) do
+        if maxPoolNum < #category.sourceList then
+            maxPoolNum = #category.sourceList
+        end
+    end
 
     local window = AceGUI:Create("SimpleGroup")
     window.frame:SetFrameStrata("BACKGROUND")
     window:SetLayout("Flow")
-    window:SetHeight(windowHeight + 2 * iconSize)
-    window:SetWidth(600)
-    window.frame:Hide()
+    window:SetHeight(windowHeight)
+    window:SetWidth((maxPoolNum + 1)* iconSize)
 
     -- 将窗口定位到初始位置
-    window.frame:ClearAllPoints()
     local x = HT.AceAddon.db.profile.windowPositionX or 0
     local y = - (HT.AceAddon.db.profile.windowPositionY or 0)
-    window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, 0)
-
+    window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
 
     window.frame:SetMovable(true)
     window.frame:EnableMouse(true)
@@ -128,9 +123,24 @@ function ToolkitGUI.CreateFrame()
     window.frame:SetScript("OnDragStop", function(frame)
         frame:StopMovingOrSizing()
         local newX, newY = frame:GetLeft(), frame:GetTop() - UIParent:GetHeight()
-        -- 更新数据库中的位置
         HT.AceAddon.db.profile.windowPositionX = math.floor(newX)
         HT.AceAddon.db.profile.windowPositionY = - math.floor(newY)
+    end)
+
+    window.frame:SetScript("OnUpdate", function(self)
+        local mouseOver = self:IsMouseOver()
+        if mouseOver and not ToolkitGUI.IsMouseInside then
+            if HT.AceAddon.db.profile.showGuiOnMouseEnter == true then
+                ToolkitGUI.ShowTabGroupFrame()
+            end
+            ToolkitGUI.IsMouseInside = true
+        elseif not mouseOver and ToolkitGUI.IsMouseInside then
+            if HT.AceAddon.db.profile.showGuiOnMouseEnter == true then
+                ToolkitGUI.HideTabGroupFrame()
+            end
+            ToolkitGUI.HideAllIconFrame()
+            ToolkitGUI.IsMouseInside = false
+        end
     end)
 
     -- 创建内容容器滚动区域
@@ -139,15 +149,7 @@ function ToolkitGUI.CreateFrame()
     tabGroup:SetHeight(windowHeight)
     tabGroup:SetLayout("List")
     window:AddChild(tabGroup)
-    window.frame:SetScript("OnUpdate", function(self)
-        local mouseOver = self:IsMouseOver()
-        if mouseOver and not ToolkitGUI.IsMouseInside then
-            ToolkitGUI.IsMouseInside = true
-        elseif not mouseOver and ToolkitGUI.IsMouseInside then
-            ToolkitGUI.HideAllTabs()
-            ToolkitGUI.IsMouseInside = false
-        end
-    end)
+    ToolkitGUI.TabGroupFrame = tabGroup
 
     local buttonCount = 0 -- 计算图标总数量，用来计算滚动距离
     for _, category in ipairs(ToolkitGUI.CategoryList) do
@@ -184,10 +186,10 @@ function ToolkitGUI.CreateFrame()
             local highlightTexture = tabIcon:CreateTexture()
             highlightTexture:SetColorTexture(255, 255, 255, 0.2)
             tabIcon:SetHighlightTexture(highlightTexture)
-            ToolkitGUI.ShowTab(index)
+            ToolkitGUI.ShowIconFrame(index)
         end)
         tabIcon:SetScript("OnClick", function(_, _)
-            ToolkitGUI.ToggleTab(index)
+            ToolkitGUI.ToggleIconFrame(index)
         end)
         tabGroup:AddChild(tabContainer)
         tab.button = tabIcon
@@ -196,8 +198,8 @@ function ToolkitGUI.CreateFrame()
 
     for cateIndex, category in ipairs(ToolkitGUI.CategoryList) do
         local iconsFrame = AceGUI:Create("SimpleGroup")
-        iconsFrame:SetWidth(#category.sourceList * 32)
-        iconsFrame:SetHeight(32)
+        iconsFrame:SetWidth(#category.sourceList * iconSize)
+        iconsFrame:SetHeight(iconSize)
         iconsFrame:SetLayout("Flow")
         iconsFrame.frame:Hide()
         for poolIndex, pool in ipairs(category.sourceList) do
@@ -216,9 +218,11 @@ function ToolkitGUI.CreateFrame()
             pool.button:SetPoint("CENTER", buttonContainer.frame, "CENTER")
             pool.button:RegisterForClicks("AnyDown", "AnyUp")
             pool.button:SetAttribute("macrotext", "")
-            pool.text = buttonContainer.frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            pool.text:SetPoint("TOP", buttonContainer.frame, "BOTTOM", 0, -5)
-            pool.text:SetWidth(32)
+            if category.isDisplayName == true then
+                pool.text = buttonContainer.frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+                pool.text:SetWidth(iconSize)
+                pool.text:SetPoint("TOP", buttonContainer.frame, "BOTTOM", 0, -5)
+            end
             if callbackResult ~= nil then
                 -- 如果回调函数返回的是item模式
                 if not (callbackResult.item == nil) then
@@ -232,12 +236,12 @@ function ToolkitGUI.CreateFrame()
                 elseif not (callbackResult.leftClickCallback == nil) then
                     callbackResult.leftClickCallback()
                 end
-                if callbackResult.text then
+                if callbackResult.text and pool.text then
                     pool.text:SetText(U.String.ToVertical(callbackResult.text))
                 end
             end
             iconsFrame:AddChild(buttonContainer)
-            iconsFrame.frame:SetPoint("TOPLEFT", window.frame, "TOPLEFT", 32, - 32 * (cateIndex - 1))
+            iconsFrame.frame:SetPoint("TOPLEFT", window.frame, "TOPLEFT", iconSize, - iconSize * (cateIndex - 1))
         end
         table.insert(ToolkitGUI.IconFrameList, iconsFrame)
     end
@@ -250,7 +254,7 @@ function ToolkitGUI.CreateFrame()
     end
 end
 
-function ToolkitGUI.ToggleTab(index)
+function ToolkitGUI.ToggleIconFrame(index)
     if ToolkitGUI.currentTabIndex == index then
         ToolkitGUI.currentTabIndex = nil
         ToolkitGUI.IconFrameList[index].frame:Hide()
@@ -260,7 +264,7 @@ function ToolkitGUI.ToggleTab(index)
     end
 end
 
-function ToolkitGUI.ShowTab(index)
+function ToolkitGUI.ShowIconFrame(index)
     ToolkitGUI.currentTabIndex = index
     for tabIndex, tab in ipairs(ToolkitGUI.tabs) do
         if tab.button ~= nil then
@@ -270,11 +274,21 @@ function ToolkitGUI.ShowTab(index)
     ToolkitGUI.IconFrameList[index].frame:Show()
 end
 
-function ToolkitGUI.HideAllTabs()
+function ToolkitGUI.HideAllIconFrame()
     for _, frame in ipairs(ToolkitGUI.IconFrameList) do
         frame.frame:Hide()
     end
     ToolkitGUI.currentTabIndex = nil
+end
+
+function ToolkitGUI.HideTabGroupFrame()
+    ToolkitGUI.TabGroupFrame.frame:Hide()
+    ToolkitGUI.IsOpen = false
+end
+
+function ToolkitGUI.ShowTabGroupFrame()
+    ToolkitGUI.TabGroupFrame.frame:Show()
+    ToolkitGUI.IsOpen = true
 end
 
 function ToolkitGUI.Update()
@@ -294,18 +308,16 @@ end
 -- 隐藏窗口
 function ToolkitGUI.HideWindow()
     if ToolkitGUI.IsOpen == true then
-        ToolkitGUI.Window.frame:Hide()
-        ToolkitGUI.IsOpen = false
-        ToolkitGUI.HideAllTabs()
+        ToolkitGUI.HideTabGroupFrame()
+        ToolkitGUI.HideAllIconFrame()
     end
 end
 
 -- 显示窗口
 function ToolkitGUI.ShowWindow()
     if ToolkitGUI.IsOpen == false then
-        ToolkitGUI.Window.frame:Show()
+        ToolkitGUI.ShowTabGroupFrame()
         ToolkitGUI.Update()
-        ToolkitGUI.IsOpen = true
     end
 end
 
@@ -342,7 +354,7 @@ function ToolkitGUI.SetPoolMacro(pool)
         macroText = macroText .. "\r" .. "/closehappytoolkitgui"
     end
     pool.button:SetAttribute("macrotext", macroText)
-    if callbackResult.text then
+    if callbackResult.text and pool.text then
         pool.text:SetText(U.String.ToVertical(callbackResult.text))
     end
 end
