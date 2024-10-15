@@ -1,6 +1,7 @@
 local _, HT = ...
 
 local AceGUI = LibStub("AceGUI-3.0")
+local L = LibStub("AceLocale-3.0"):GetLocale("HappyToolkit", false)
 
 ---@type Utils
 local U = HT.Utils
@@ -43,7 +44,40 @@ function ToolkitGUI.CollectConfig()
                 end
                 if source then
                     if source.type == "SCRIPT" then
-                        table.insert(pool.sourceList, {type="SCRIPT", callback=HtItem.CallbackOfScriptMode, source=source})
+                        if source.attrs and source.attrs.script then
+                            local func, err = loadstring("return " .. source.attrs.script)
+                            if func then
+                                local status, result = pcall(func())
+                                if status then
+                                    if type(result) == "function" then
+                                        local cbStatus, cbResult = pcall(result)
+                                        if cbStatus then
+                                            if U.Table.IsArray(cbResult) then
+                                                for _, cb in ipairs(cbResult) do
+                                                    if cb then
+                                                        table.insert(pool.sourceList, {type="SCRIPT", callback=HtItem.CallbackOfScriptMode, source=cb})
+                                                    end
+                                                end
+                                            else
+                                                local errMsg = L["Illegal script."] .. " " .. tostring(cbResult)
+                                                U.Print.PrintErrorText(errMsg)
+                                            end
+                                        else
+                                            local errMsg = L["Illegal script."] .. " " .. tostring(cbResult)
+                                            U.Print.PrintErrorText(errMsg)
+                                        end
+                                    else
+                                        local errMsg = L["Illegal script."] .. " " .. "the script should return a callback function."
+                                        U.Print.PrintErrorText(errMsg)
+                                    end
+                                else
+                                    local errMsg = L["Illegal script."] .. " " .. tostring(result)
+                                    U.Print.PrintErrorText(errMsg)
+                                end
+                            else
+                                U.Print.PrintErrorText(L["Illegal script."] .. " " .. err)
+                            end
+                        end
                     end
                     if source.type == "ITEM_GROUP" then
                         if source.attrs.mode == HtItem.ItemGroupMode.RANDOM then
@@ -143,7 +177,6 @@ function ToolkitGUI.CreateFrame()
         end
     end)
 
-    -- 创建内容容器滚动区域
     ToolkitGUI.CateMenuFrame:SetWidth(iconSize)
     ToolkitGUI.CateMenuFrame:SetHeight(windowHeight)
     ToolkitGUI.CateMenuFrame:SetLayout("List")
@@ -170,11 +203,16 @@ function ToolkitGUI.CreateFrame()
         tabContainer:SetHeight(iconSize)
         tabContainer:SetLayout("Fill")
         local tabIcon = CreateFrame("Button", ("tab-%s"):format(index), tabContainer.frame, "UIPanelButtonTemplate")
-        if tonumber(tab.icon) then
-            tabIcon:SetNormalTexture(tonumber(tab.icon))
+        if tab.icon then
+            if tonumber(tab.icon) then
+                tabIcon:SetNormalTexture(tonumber(tab.icon))
+            else
+                tabIcon:SetNormalTexture(tab.icon)
+            end
         else
-            tabIcon:SetNormalTexture(tab.icon)
+            tabIcon:SetNormalTexture(134400)
         end
+
         tabIcon:SetSize(iconSize, iconSize)
         tabIcon:SetPoint("CENTER", tabContainer.frame, "CENTER")
         tabIcon:SetScript("OnLeave", function(_)
@@ -223,7 +261,7 @@ function ToolkitGUI.CreateFrame()
             end
             if callbackResult ~= nil then
                 -- 如果回调函数返回的是item模式
-                if not (callbackResult.item == nil) then
+                if callbackResult.item ~= nil then
                     -- 更新图标宏
                     ToolkitGUI.SetPoolMacro(pool)
                     -- 更新冷却计时
@@ -231,8 +269,8 @@ function ToolkitGUI.CreateFrame()
                     -- 更新鼠标移入移出事件
                     ToolkitGUI.SetButtonMouseEvent(pool)
                     ToolkitGUI.SetPoolLearnable(pool)
-                elseif not (callbackResult.leftClickCallback == nil) then
-                    callbackResult.leftClickCallback()
+                else
+                    ToolkitGUI.SetScriptEvent(pool)
                 end
                 if callbackResult.text and pool.text then
                     pool.text:SetText(U.String.ToVertical(callbackResult.text))
@@ -422,6 +460,36 @@ function ToolkitGUI.SetPoolCooldown(pool)
                 pool.button.cooldown:Clear()
             end
         end
+    end
+end
+
+-- 设置脚本模式的点击事件
+function ToolkitGUI.SetScriptEvent(pool)
+    if pool == nil or pool.button == nil then
+        return
+    end
+    local cbResult = pool._callbackResult
+    if cbResult == nil then
+        return
+    end
+    if cbResult.leftClickCallback then
+        pool.button:SetScript("OnClick", function()
+            cbResult.leftClickCallback()
+        end)
+    elseif cbResult.macro then
+        pool.button:SetAttribute("type", "macro")
+        local macroText = ""
+        macroText = macroText .. cbResult.macro
+        if cbResult.closeGUIAfterClick == nil or cbResult.closeGUIAfterClick == true then
+            macroText = macroText .. "\r" .. "/closehappytoolkitgui"
+        end
+        pool.button:SetAttribute("macrotext", macroText)
+    end
+    if cbResult.icon then
+        pool.button:SetNormalTexture(cbResult.icon)
+    end
+    if cbResult.text and pool.text then
+        pool.text:SetText(U.String.ToVertical(cbResult.text))
     end
 end
 

@@ -1,6 +1,7 @@
 local _, HT = ...
 
 ---@class UtilsTable
+---@field IsArray fun(table: table): boolean
 ---@field Contains fun(table: table, element: any): boolean
 ---@field IsInArray fun(array: table, element: any): boolean
 ---@field DeepCopy fun(original: table): table
@@ -31,6 +32,20 @@ local Utils = {
 }
 
 HT.Utils = Utils
+
+-- 判断table是否是数组
+function UtilsTable.IsArray(t)
+    if type(t) ~= "table" then return false end
+
+    local i = 1
+    for _ in pairs(t) do
+        if t[i] == nil then
+            return false
+        end
+        i = i + 1
+    end
+    return true
+end
 
 -- 检查表中是否包含某个元素
 function UtilsTable.Contains(table, element)
@@ -164,3 +179,4 @@ function UtilsString.ToVertical(str)
     end
     return verticalStr
 end
+

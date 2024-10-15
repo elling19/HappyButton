@@ -67,3 +67,4 @@ L["Whether to show the category menu when login in."] = "登录后显示界面�
 L["Illegal value."] = "输入内容错误。"
 L["Whether to display item name."] = "展示物品名称。"
 L["Whether to show the category menu when the mouse enter."] = "鼠标移入后显示界面。"
+L["Illegal script."] = "脚本错误。"

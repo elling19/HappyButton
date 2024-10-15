@@ -10,28 +10,29 @@ local L = LibStub("AceLocale-3.0"):GetLocale("HappyToolkit", false)
 local ItemOfHtItem = {}
 
 
----@class CallbackOfHtItem
+---@class CbResult
 ---@field closeGUIAfterClick boolean | nil
 ---@field icon string | number
 ---@field text string
 ---@field item ItemOfHtItem
+---@field macro string | nil
 ---@field leftClickCallback function | nil
-local CallbackOfHtItem = {}
+local CbResult = {}
 
 ---@class HtItem
 ---@field Type {ITEM: 1, EQUIPMENT: 2, TOY: 3, SPELL: 4, MOUNT: 5, PET: 6}
 ---@field TypeOptions table
 ---@field ItemGroupMode { RANDOM: 1, SEQ: 2, MULTIPLE: 3, SINGLE: 4 }
 ---@field ItemGroupModeOptions table
----@field CallbackOfRandomMode fun(source: IconSource): CallbackOfHtItem
----@field CallbackOfSeqMode fun(source: IconSource): CallbackOfHtItem
----@field CallbackOfSingleMode fun(source: IconSource): CallbackOfHtItem
----@field CallbackOfMultipleMode fun(source: IconSource): CallbackOfHtItem
----@field CallbackOfScriptMode fun(source: IconSource): CallbackOfHtItem
+---@field CallbackOfRandomMode fun(source: IconSource): CbResult
+---@field CallbackOfSeqMode fun(source: IconSource): CbResult
+---@field CallbackOfSingleMode fun(source: IconSource): CbResult
+---@field CallbackOfMultipleMode fun(source: IconSource): CbResult
+---@field CallbackOfScriptMode fun(source: CbResult): CbResult
 ---@field IsLearned fun(item: ItemOfHtItem): boolean
 ---@field IsLearnedAndUsable fun(item: ItemOfHtItem): boolean
 ---@field IsUseableAndCooldown fun(item: ItemOfHtItem): boolean
----@field CallbackByItem fun(item: ItemOfHtItem): CallbackOfHtItem
+---@field CallbackByItem fun(item: ItemOfHtItem): CbResult
 local HtItem = {
 }
 
@@ -86,7 +87,7 @@ function HtItem.CallbackOfRandomMode(source)
             table.insert(cooldownItemList, item)
         end
     end
-    ---@type CallbackOfHtItem
+    ---@type CbResult
     local cb
     -- 如果有冷却可用的item，随机选择一个
     if #cooldownItemList > 0 then
@@ -108,7 +109,7 @@ end
 
 -- 顺序选择callback
 function HtItem.CallbackOfSeqMode(source)
-    ---@type CallbackOfHtItem
+    ---@type CbResult
     local cb
     for _, item in ipairs(source.attrs.itemList) do
         local isUsable = HtItem.IsLearnedAndUsable(item)
@@ -132,7 +133,7 @@ end
 
 -- 全展示模式
 function HtItem.CallbackOfMultipleMode(source)
-    ---@type CallbackOfHtItem
+    ---@type CbResult
     local cb = HtItem.CallbackByItem(source.attrs.itemList)
     if source.attrs.replaceName then
         cb.text = source.title
@@ -142,7 +143,7 @@ end
 
 -- 单个展示模式
 function HtItem.CallbackOfSingleMode(source)
-    ---@type CallbackOfHtItem
+    ---@type CbResult
     local cb = HtItem.CallbackByItem(source.attrs.item)
     if source.attrs.replaceName then
         cb.text = source.title
@@ -151,8 +152,8 @@ function HtItem.CallbackOfSingleMode(source)
 end
 
 -- 脚本模式
-function HtItem.CallbackOfScriptMode(source)
-    return source.attrs.script
+function HtItem.CallbackOfScriptMode(cb)
+    return cb
 end
 
 
@@ -248,8 +249,7 @@ function HtItem.CallbackByItem(item)
         icon = item.icon,
         text = item.alias or item.name,
         item = item,
+        macro = nil,
         leftClickCallback = nil
     }
 end
-
-

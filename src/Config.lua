@@ -498,6 +498,21 @@ function ConfigOptions.IconSourceOptions()
                         name = L["Script"],
                         multiline = 20,
                         width = "full",
+                        validate = function (_, val)
+                            local func, err = loadstring("return " .. val)  -- 加载脚本，并确保返回函数
+                            if not func then
+                                local errMsg = L["Illegal script."] .. " " .. err
+                                U.Print.PrintErrorText(errMsg)
+                                return errMsg
+                            end
+                            local status, err = pcall(func())
+                            if not status then
+                                local errMsg = L["Illegal script."] .. " " .. tostring(err)
+                                U.Print.PrintErrorText(errMsg)
+                                return errMsg
+                            end
+                            return true
+                        end,
                         set = function(_, val)
                             source.attrs.script = val
                             HT.AceAddon:UpdateOptions()

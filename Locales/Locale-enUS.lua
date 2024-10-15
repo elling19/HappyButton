@@ -66,3 +66,4 @@ L["Whether to show the category menu when login in."] = true
 L["Illegal value."] = true
 L["Whether to display item name."] = true
 L["Whether to show the category menu when the mouse enter."] = true
+L["Illegal script."] = true
