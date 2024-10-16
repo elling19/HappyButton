@@ -1,13 +1,16 @@
-local _, HT = ...
----@type HtItem
-local HtItem = HT.HtItem
----@type Utils
-local U = HT.Utils
+local addonName, _ = ... ---@type string, table
 
-HT.AceAddonName = "HappyToolkit"
-HT.AceAddonConfigDB = "HappyToolkitDB"
-HT.AceAddon = LibStub("AceAddon-3.0"):NewAddon(HT.AceAddonName, "AceConsole-3.0", "AceEvent-3.0")
-local L = LibStub("AceLocale-3.0"):GetLocale("HappyToolkit", false)
+---@class HappyToolkit: AceAddon
+local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
+
+---@class CONST: AceModule
+local const = addon:GetModule('CONST')
+
+local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
+
+---@class Utils: AceModule
+local U = addon:GetModule('Utils')
+
 local AceConfig = LibStub("AceConfig-3.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 local AceDBOptions = LibStub("AceDBOptions-3.0")
@@ -20,21 +23,21 @@ local AceGUI = LibStub("AceGUI-3.0")
 ---@field profile table
 
 
----@class IconSourceAttrs
+---@class SourceAttrs
 ---@field mode integer
 ---@field replaceName boolean | nil
 ---@field displayUnLearned boolean | nil
 ---@field item ItemOfHtItem | nil
 ---@field itemList ItemOfHtItem[] | nil
 ---@field script string | nil
-local IconSourceAttrs = {}
+local SourceAttrs = {}
 
 
----@class IconSource
+---@class Source
 ---@field title string
 ---@field type string
----@field attrs IconSourceAttrs
-local IconSource = {}
+---@field attrs SourceAttrs
+local Source = {}
 
 
 ---@class ProfileConfig
@@ -47,7 +50,7 @@ ProfileConfig.tmpConfigString = nil  -- 全局配置编辑字符串
 
 function ProfileConfig.GenerateNewProfileName(title)
     local index = 1
-    while HT.AceAddon.db.profiles[title .. "[" .. index .. "]"] do
+    while addon.db.profiles[title .. "[" .. index .. "]"] do
         index = index + 1
     end
     return title .. "[" .. index .. "]"
@@ -59,7 +62,7 @@ function ProfileConfig.ShowLoadConfirmation(profileName)
         button1 = L["Yes"],
         button2 = L["No"],
         OnAccept = function()
-            HT.AceAddon.db:SetProfile(profileName)
+            addon.db:SetProfile(profileName)
             ReloadUI()
         end,
         timeout = 0,
@@ -131,44 +134,45 @@ end
 
 
 ---@class ConfigOptions
----@field CategoryOptions function
----@field IconSourceOptions function
+---@field BarOptions function
+---@field SourceOptions function
 ---@field ConfigOptions function
 ---@field Options function
 local ConfigOptions = {}
 
-function ConfigOptions.CategoryOptions()
+function ConfigOptions.BarOptions()
     local options = {
         type = 'group',
-        name = L["Category"],
+        name = L["Items Bar"],
+        order=2,
         args = {
             add = {
                 order = 1,
                 type = 'execute',
-                name = L["New Category"],
+                name = L["New bar"],
                 width = 2,
                 func = function()
-                    local newCategoryTitle = L["Default"]
+                    local newBarTitle = L["Default"]
                     local titleList = {}
-                    for _, category in ipairs(HT.AceAddon.db.profile.categoryList) do
-                        table.insert(titleList, category.title)
+                    for _, bar in ipairs(addon.db.profile.barList) do
+                        table.insert(titleList, bar.title)
                     end
-                    if Config.IsTitleDuplicated(newCategoryTitle, titleList) then
-                        newCategoryTitle = Config.CreateDuplicateTitle(newCategoryTitle, titleList)
+                    if Config.IsTitleDuplicated(newBarTitle, titleList) then
+                        newBarTitle = Config.CreateDuplicateTitle(newBarTitle, titleList)
                     end
-                    table.insert(HT.AceAddon.db.profile.categoryList, { title = newCategoryTitle, icon = nil, sourceList = {} })
-                    HT.AceAddon:UpdateOptions()
-                    AceConfigDialog:SelectGroup(HT.AceAddonName, "category", "categoryMenu" .. #HT.AceAddon.db.profile.categoryList)
+                    table.insert(addon.db.profile.barList, { title = newBarTitle, icon = nil, sourceList = {} })
+                    addon:UpdateOptions()
+                    AceConfigDialog:SelectGroup(addonName, "bar", "barMenu" .. #addon.db.profile.barList)
                 end,
             },
         },
     }
 
-    for i, category in ipairs(HT.AceAddon.db.profile.categoryList) do
-        local iconPath = "|T" .. (category.icon or 134400) .. ":16|t"
-        options.args["categoryMenu" .. i] = {
+    for i, bar in ipairs(addon.db.profile.barList) do
+        local iconPath = "|T" .. (bar.icon or 134400) .. ":16|t"
+        options.args["barMenu" .. i] = {
             type = 'group',
-            name = "|cff00ff00" .. iconPath .. category.title .. "|r",
+            name = "|cff00ff00" .. iconPath .. bar.title .. "|r",
             args = {
                 title = {
                     order = 1,
@@ -176,17 +180,17 @@ function ConfigOptions.CategoryOptions()
                     type = 'input',
                     name = L["Title"],
                     validate = function (_, val)
-                        for _i, _category in ipairs(HT.AceAddon.db.profile.categoryList) do
-                            if _category.title == val and i ~= _i then
+                        for _i, _bar in ipairs(addon.db.profile.barList) do
+                            if _bar.title == val and i ~= _i then
                                 return "repeat title, please input another one."
                             end
                         end
                         return true
                     end,
-                    get = function() return category.title end,
+                    get = function() return bar.title end,
                     set = function(_, val)
-                        category.title = val
-                        HT.AceAddon:UpdateOptions()
+                        bar.title = val
+                        addon:UpdateOptions()
                     end,
                 },
                 icon = {
@@ -194,10 +198,10 @@ function ConfigOptions.CategoryOptions()
                     width=1,
                     type = 'input',
                     name = L["Icon"],
-                    get = function() return category.icon end,
+                    get = function() return bar.icon end,
                     set = function(_, val)
-                        category.icon = val
-                        HT.AceAddon:UpdateOptions()
+                        bar.icon = val
+                        addon:UpdateOptions()
                     end,
                 },
                 iconDisplay = {
@@ -207,41 +211,42 @@ function ConfigOptions.CategoryOptions()
                     name = iconPath,
                     fontSize = "medium",
                 },
-                displayToogle = {
+                displayMode = {
                     order = 4,
                     width=2,
-                    type = 'toggle',
-                    name = L["Display"] ,
-                    set = function(_, _) category.isDisplay = not category.isDisplay end,
-                    get = function(_) return category.isDisplay == true end,
+                    type = 'select',
+                    name = L["Display"],
+                    values = const.BarDisplayModeOptions,
+                    get = function(_) return bar.displayMode end,
+                    set = function(_, val) bar.displayMode = val end,
                 },
                 displayNameToggle = {
                     order = 5,
                     width=2,
                     type = 'toggle',
                     name = L["Whether to display item name."],
-                    set = function(_, val) category.isDisplayName = val end,
-                    get = function(_) return category.isDisplayName == true end,
+                    set = function(_, val) bar.isDisplayName = val end,
+                    get = function(_) return bar.isDisplayName == true end,
                 },
                 space1 = {
                     order = 6,
                     type = 'description',
                     name = "\n"
                 },
-                iconSourceList = {
+                sourceList = {
                     order = 7,
                     width=2,
                     type = 'multiselect',
                     name = L["Select items to display"],
                     values = function()
                         local values = {}
-                        for _, source in ipairs(HT.AceAddon.db.profile.iconSourceList) do
+                        for _, source in ipairs(addon.db.profile.sourceList) do
                             values[source.title] = L[source.type] .. ": " .. source.title
                         end
                         return values
                     end,
                     get = function(_, key)
-                        for _, thing in ipairs(category.sourceList) do
+                        for _, thing in ipairs(bar.sourceList) do
                             if thing.title == key then
                                 return true
                             end
@@ -250,17 +255,17 @@ function ConfigOptions.CategoryOptions()
                     end,
                     set = function(_, key, value)
                         if value == true then
-                            for _, thing in ipairs(category.sourceList) do
+                            for _, thing in ipairs(bar.sourceList) do
                                 if thing.title == key then
                                     return
                                 end
                             end
-                            table.insert(category.sourceList, {title=key})
+                            table.insert(bar.sourceList, {title=key})
                         end
                         if value == false then
-                            for index, thing in ipairs(category.sourceList) do
+                            for index, thing in ipairs(bar.sourceList) do
                                 if thing.title == key then
-                                    table.remove(category.sourceList, index)
+                                    table.remove(bar.sourceList, index)
                                     return
                                 end
                             end
@@ -279,8 +284,8 @@ function ConfigOptions.CategoryOptions()
                     name = L["Delete"],
                     confirm=true,
                     func = function()
-                        table.remove(HT.AceAddon.db.profile.categoryList, i)
-                        HT.AceAddon:UpdateOptions()
+                        table.remove(addon.db.profile.barList, i)
+                        addon:UpdateOptions()
                     end,
                 },
             },
@@ -290,30 +295,31 @@ function ConfigOptions.CategoryOptions()
     return options
 end
 
-function ConfigOptions.IconSourceOptions()
+function ConfigOptions.SourceOptions()
     local options = {
         type = 'group',
-        name = L["IconSource"],
+        name = L["Items Source"],
+        order=3,
         args = {
-            addItemGroup = {
+            addItemsGroup = {
                 order = 1,
                 type = 'execute',
-                name = L["New ItemGroup"],
+                name = L["New Items Group"],
                 width = 1,
                 func = function()
-                    local newItemGroupTitle = L["Default"]
+                    local newItemsGroupTitle = L["Default"]
                     local titleList = {}
-                    for _, source in ipairs(HT.AceAddon.db.profile.iconSourceList) do
+                    for _, source in ipairs(addon.db.profile.sourceList) do
                         table.insert(titleList, source.title)
                     end
-                    if Config.IsTitleDuplicated(newItemGroupTitle, titleList) then
-                        newItemGroupTitle = Config.CreateDuplicateTitle(newItemGroupTitle, titleList)
+                    if Config.IsTitleDuplicated(newItemsGroupTitle, titleList) then
+                        newItemsGroupTitle = Config.CreateDuplicateTitle(newItemsGroupTitle, titleList)
                     end
-                    ---@type IconSource
-                    local iconSource = {title=newItemGroupTitle, type="ITEM_GROUP", attrs={ mode=HtItem.ItemGroupMode.MULTIPLE, replaceName=false, displayUnLearned=false, itemList={} }}
-                    table.insert(HT.AceAddon.db.profile.iconSourceList, iconSource)
-                    HT.AceAddon:UpdateOptions()
-                    AceConfigDialog:SelectGroup(HT.AceAddonName, "iconSource", "SourceMenu" .. #HT.AceAddon.db.profile.iconSourceList)
+                    ---@type Source
+                    local source = {title=newItemsGroupTitle, type="ITEM_GROUP", attrs={ mode=const.ITEMS_GROUP_MODE.MULTIPLE, replaceName=false, displayUnLearned=false, itemList={} }}
+                    table.insert(addon.db.profile.sourceList, source)
+                    addon:UpdateOptions()
+                    AceConfigDialog:SelectGroup(addonName, "source", "SourceMenu" .. #addon.db.profile.sourceList)
                 end,
             },
             addScript = {
@@ -324,15 +330,15 @@ function ConfigOptions.IconSourceOptions()
                 func = function()
                     local newScriptTitle = L["Default"]
                     local titleList = {}
-                    for _, source in ipairs(HT.AceAddon.db.profile.iconSourceList) do
+                    for _, source in ipairs(addon.db.profile.sourceList) do
                         table.insert(titleList, source.title)
                     end
                     if Config.IsTitleDuplicated(newScriptTitle, titleList) then
                         newScriptTitle = Config.CreateDuplicateTitle(newScriptTitle, titleList)
                     end
-                    table.insert(HT.AceAddon.db.profile.iconSourceList, {title=newScriptTitle, type="SCRIPT", attrs={ script=nil }})
-                    HT.AceAddon:UpdateOptions()
-                    AceConfigDialog:SelectGroup(HT.AceAddonName, "iconSource", "SourceMenu" .. #HT.AceAddon.db.profile.iconSourceList)
+                    table.insert(addon.db.profile.sourceList, {title=newScriptTitle, type="SCRIPT", attrs={ script=nil }})
+                    addon:UpdateOptions()
+                    AceConfigDialog:SelectGroup(addonName, "source", "SourceMenu" .. #addon.db.profile.sourceList)
                 end,
             },
             sapce1 = {
@@ -383,7 +389,7 @@ function ConfigOptions.IconSourceOptions()
                     end
                     -- 校验反序列是否正确
                     -- table需要包含:
-                    -- {title=val, type="ITEM_GROUP", attrs={ mode=HtItem.ItemGroupMode.MULTIPLE, replaceName=false, displayUnLearned=false, itemList={} }}
+                    -- {title=val, type="ITEM_GROUP", attrs={ mode=const.ITEMS_GROUP_MODE.MULTIPLE, replaceName=false, displayUnLearned=false, itemList={} }}
                     -- {title=val, type="SCRIPT", attrs={script=nil}}
                     if type(configTable) ~= "table" then
                         print(errorMsg)
@@ -419,16 +425,16 @@ function ConfigOptions.IconSourceOptions()
                     end
                     -- 判断标题是否重复
                     local titleList = {}
-                    for _, iconSource in ipairs(HT.AceAddon.db.profile.iconSourceList) do
-                        table.insert(titleList, iconSource.title)
+                    for _, source in ipairs(addon.db.profile.sourceList) do
+                        table.insert(titleList, source.title)
                     end
                     if Config.IsTitleDuplicated(configTable.title, titleList) then
                         if Config.tmpCoverConfig == true then
-                            for i, itemGroup in ipairs(HT.AceAddon.db.profile.iconSourceList) do
+                            for i, itemGroup in ipairs(addon.db.profile.sourceList) do
                                 if itemGroup.title == configTable.title then
-                                    HT.AceAddon.db.profile.iconSourceList[i] = configTable
-                                    HT.AceAddon:UpdateOptions()
-                                    AceConfigDialog:SelectGroup(HT.AceAddonName, "iconSource", "SourceMenu" .. i)
+                                    addon.db.profile.sourceList[i] = configTable
+                                    addon:UpdateOptions()
+                                    AceConfigDialog:SelectGroup(addonName, "source", "SourceMenu" .. i)
                                     return true
                                 end
                             end
@@ -436,15 +442,15 @@ function ConfigOptions.IconSourceOptions()
                             configTable.title = Config.CreateDuplicateTitle(configTable.title, titleList)
                         end
                     end
-                    table.insert(HT.AceAddon.db.profile.iconSourceList, configTable)
-                    HT.AceAddon:UpdateOptions()
-                    AceConfigDialog:SelectGroup(HT.AceAddonName, "iconSource", "SourceMenu" .. #HT.AceAddon.db.profile.iconSourceList)
+                    table.insert(addon.db.profile.sourceList, configTable)
+                    addon:UpdateOptions()
+                    AceConfigDialog:SelectGroup(addonName, "source", "SourceMenu" .. #addon.db.profile.sourceList)
                 end,
                 get = function (_) return Config.tmpImportSourceString end
             },
         },
     }
-    for i, source in ipairs(HT.AceAddon.db.profile.iconSourceList) do
+    for i, source in ipairs(addon.db.profile.sourceList) do
         if source.type == "SCRIPT" then
             options.args["SourceMenu" .. i] = {
                 type = 'group',
@@ -456,7 +462,7 @@ function ConfigOptions.IconSourceOptions()
                         type = 'input',
                         name = L['Title'],
                         validate = function (_, val)
-                            for _i, _source in ipairs(HT.AceAddon.db.profile.iconSourceList) do
+                            for _i, _source in ipairs(addon.db.profile.sourceList) do
                                 if _source.title == val and i ~= _i then
                                     return "repeat title, please input another one."
                                 end
@@ -465,19 +471,19 @@ function ConfigOptions.IconSourceOptions()
                         end,
                         get = function() return source.title end,
                         set = function(_, val)
-                            -- 在category中修改对应的script
-                            for _, category in ipairs(HT.AceAddon.db.profile.categoryList) do
-                                if category.sourceList ~= nil then
-                                    for index, thing in ipairs(category.sourceList) do
+                            -- 在bar中修改对应的script
+                            for _, bar in ipairs(addon.db.profile.barList) do
+                                if bar.sourceList ~= nil then
+                                    for index, thing in ipairs(bar.sourceList) do
                                         if thing.title == source.title then
-                                            category.sourceList[index].title = val
+                                            bar.sourceList[index].title = val
                                             break
                                         end
                                     end
                                 end
                             end
                             source.title = val
-                            HT.AceAddon:UpdateOptions()
+                            addon:UpdateOptions()
                         end,
                     },
                     export = {
@@ -515,7 +521,7 @@ function ConfigOptions.IconSourceOptions()
                         end,
                         set = function(_, val)
                             source.attrs.script = val
-                            HT.AceAddon:UpdateOptions()
+                            addon:UpdateOptions()
                         end,
                         get = function()
                             return source.attrs.script
@@ -528,19 +534,19 @@ function ConfigOptions.IconSourceOptions()
                         name = L["Delete"],
                         confirm=true,
                         func = function()
-                            table.remove(HT.AceAddon.db.profile.iconSourceList, i)
-                            -- 从category中删除对应的script
-                            for _, category in ipairs(HT.AceAddon.db.profile.categoryList) do
-                                if category.sourceList ~= nil then
-                                    for index, thing in ipairs(category.sourceList) do
+                            table.remove(addon.db.profile.sourceList, i)
+                            -- 从bar中删除对应的script
+                            for _, bar in ipairs(addon.db.profile.barList) do
+                                if bar.sourceList ~= nil then
+                                    for index, thing in ipairs(bar.sourceList) do
                                         if thing.title == source.title then
-                                            table.remove(category.sourceList, index)
+                                            table.remove(bar.sourceList, index)
                                             break
                                         end
                                     end
                                 end
                             end
-                            HT.AceAddon:UpdateOptions()
+                            addon:UpdateOptions()
                         end,
                     }
                 },
@@ -558,7 +564,7 @@ function ConfigOptions.IconSourceOptions()
                         type = 'input',
                         name = L['Title'],
                         validate = function (_, val)
-                            for _i, _source in ipairs(HT.AceAddon.db.profile.iconSourceList) do
+                            for _i, _source in ipairs(addon.db.profile.sourceList) do
                                 if _source.title == val and i ~= _i then
                                     return "repeat title, please input another one."
                                 end
@@ -567,19 +573,19 @@ function ConfigOptions.IconSourceOptions()
                         end,
                         get = function() return source.title end,
                         set = function(_, val)
-                            -- 在category中修改对应的itemGroup
-                            for _, category in ipairs(HT.AceAddon.db.profile.iconSourceList) do
-                                if category.sourceList ~= nil then
-                                    for index, thing in ipairs(category.sourceList) do
+                            -- 在bar中修改对应的itemGroup
+                            for _, bar in ipairs(addon.db.profile.sourceList) do
+                                if bar.sourceList ~= nil then
+                                    for index, thing in ipairs(bar.sourceList) do
                                         if thing.title == source.title then
-                                            category.sourceList[index].title = val
+                                            bar.sourceList[index].title = val
                                             break
                                         end
                                     end
                                 end
                             end
                             source.title = val
-                            HT.AceAddon:UpdateOptions()
+                            addon:UpdateOptions()
                         end,
                     },
                     export = {
@@ -599,7 +605,7 @@ function ConfigOptions.IconSourceOptions()
                         width=2,
                         type = 'select',
                         name = L["Mode"],
-                        values = HtItem.ItemGroupModeOptions,
+                        values = const.ItemsGroupModeOptions,
                         set = function(_, val)
                             source.attrs.mode = val
                         end,
@@ -635,7 +641,7 @@ function ConfigOptions.IconSourceOptions()
                         order = 8,
                         type = 'select',
                         name = L["Item Type"],
-                        values = HtItem.TypeOptions,
+                        values = const.ItemTypeOptions,
                         set = function(_, val)
                             Config.tmpNewItemType = val
                         end,
@@ -657,7 +663,7 @@ function ConfigOptions.IconSourceOptions()
                                 return L["Please select item type."]
                             end
                             -- 添加物品逻辑
-                            if Config.tmpNewItem.type == HtItem.Type.ITEM or Config.tmpNewItem.type == HtItem.Type.EQUIPMENT or Config.tmpNewItem.type == HtItem.Type.TOY then
+                            if Config.tmpNewItem.type == const.ITEM_TYPE.ITEM or Config.tmpNewItem.type == const.ITEM_TYPE.EQUIPMENT or Config.tmpNewItem.type == const.ITEM_TYPE.TOY then
                                 local itemID = C_Item.GetItemIDForItemInfo(val)
                                 if itemID then
                                     Config.tmpNewItem.id = itemID
@@ -676,7 +682,7 @@ function ConfigOptions.IconSourceOptions()
                                 else
                                     return "Can not get the icon, please check your input."
                                 end
-                            elseif Config.tmpNewItem.type == HtItem.Type.SPELL then
+                            elseif Config.tmpNewItem.type == const.ITEM_TYPE.SPELL then
                                 local spellID = C_Spell.GetSpellIDForSpellIdentifier(val)
                                 if spellID then
                                     Config.tmpNewItem.id = spellID
@@ -695,7 +701,7 @@ function ConfigOptions.IconSourceOptions()
                                 else
                                     return L["Unable to get the icon, please check the input."]
                                 end
-                            elseif Config.tmpNewItem.type == HtItem.Type.MOUNT then
+                            elseif Config.tmpNewItem.type == const.ITEM_TYPE.MOUNT then
                                 Config.tmpNewItem.id = tonumber(val)
                                 if Config.tmpNewItem.id == nil then
                                     for mountDisplayIndex = 1, C_MountJournal.GetNumDisplayedMounts() do
@@ -721,7 +727,7 @@ function ConfigOptions.IconSourceOptions()
                                         return "Can not get the name, please check your input."
                                     end
                                 end
-                            elseif Config.tmpNewItem.type == HtItem.Type.PET then
+                            elseif Config.tmpNewItem.type == const.ITEM_TYPE.PET then
                                 Config.tmpNewItem.id = tonumber(val)
                                 if Config.tmpNewItem.id == nil then
                                     local speciesId, petGUID = C_PetJournal.FindPetIDByName(val)
@@ -748,8 +754,8 @@ function ConfigOptions.IconSourceOptions()
                             Config.tmpNewItemVal = nil
                             table.insert(source.attrs.itemList, U.Table.DeepCopy(Config.tmpNewItem))
                             Config.tmpNewItem = {}
-                            HT.AceAddon:UpdateOptions()
-                            AceConfigDialog:SelectGroup(HT.AceAddonName, "iconSource", "SourceMenu" .. i, "item" .. #source.attrs.itemList)
+                            addon:UpdateOptions()
+                            AceConfigDialog:SelectGroup(addonName, "source", "SourceMenu" .. i, "item" .. #source.attrs.itemList)
                         end,
                         get = function ()
                             return Config.tmpNewItemVal
@@ -767,19 +773,19 @@ function ConfigOptions.IconSourceOptions()
                         name = L['Delete'],
                         confirm=true,
                         func = function()
-                            table.remove(HT.AceAddon.db.profile.iconSourceList, i)
-                            -- 从category中删除对应的itemGroup
-                            for _, category in ipairs(HT.AceAddon.db.profile.categoryList) do
-                                if category.sourceList ~= nil then
-                                    for index, thing in ipairs(category.sourceList) do
+                            table.remove(addon.db.profile.sourceList, i)
+                            -- 从bar中删除对应的itemGroup
+                            for _, bar in ipairs(addon.db.profile.barList) do
+                                if bar.sourceList ~= nil then
+                                    for index, thing in ipairs(bar.sourceList) do
                                         if thing.title == source.title then
-                                            table.remove(category.sourceList, index)
+                                            table.remove(bar.sourceList, index)
                                             break
                                         end
                                     end
                                 end
                             end
-                            HT.AceAddon:UpdateOptions()
+                            addon:UpdateOptions()
                         end,
                     },
                 },
@@ -829,7 +835,7 @@ function ConfigOptions.IconSourceOptions()
                             end,
                             set = function (_, val)
                                 item.alias = val
-                                HT.AceAddon:UpdateOptions()
+                                addon:UpdateOptions()
                             end
                         },
                         type = {
@@ -837,7 +843,7 @@ function ConfigOptions.IconSourceOptions()
                             width=2,
                             type = 'select',
                             name = L["Type"],
-                            values = HtItem.TypeOptions,
+                            values = const.ItemTypeOptions,
                             disabled = true,
                             get = function() return item.type end,
                         },
@@ -854,8 +860,8 @@ function ConfigOptions.IconSourceOptions()
                             confirm=true,
                             func = function()
                                 table.remove(source.attrs.itemList, j)
-                                HT.AceAddon:UpdateOptions()
-                                AceConfigDialog:SelectGroup(HT.AceAddonName, "iconSource", "SourceMenu" .. i)
+                                addon:UpdateOptions()
+                                AceConfigDialog:SelectGroup(addonName, "source", "SourceMenu" .. i)
                             end,
                         },
                     },
@@ -868,12 +874,12 @@ function ConfigOptions.IconSourceOptions()
 end
 
 function ConfigOptions.ConfigOptions()
-    local profiles = AceDBOptions:GetOptionsTable(HT.AceAddon.db)
+    local profiles = AceDBOptions:GetOptionsTable(addon.db)
     profiles.args.importExport = {
         type = "group",
+        order = -1,
         name = L["Import/Export Configuration"] ,
         inline = true,
-        order = 100,
         args = {
             export = {
                 type = "execute",
@@ -881,8 +887,8 @@ function ConfigOptions.ConfigOptions()
                 func = function()
                     ---@type ProfileConfig.ConfigTable
                     local configTable = {
-                        name=HT.AceAddon.db:GetCurrentProfile() or L["Default"],
-                        profile=HT.AceAddon.db.profile
+                        name=addon.db:GetCurrentProfile() or L["Default"],
+                        profile=addon.db.profile
                     }
                     local serializedData = AceSerializer:Serialize(configTable)
                     local compressedData = LibDeflate:CompressDeflate(serializedData)
@@ -919,7 +925,7 @@ function ConfigOptions.ConfigOptions()
                         return
                     end
                     local newProfileName = ProfileConfig.GenerateNewProfileName(configTable.name or L["Default"])
-                    HT.AceAddon.db.profiles[newProfileName] = configTable.profile
+                    addon.db.profiles[newProfileName] = configTable.profile
                     Config.tmpImportSourceString = nil
                     ProfileConfig.ShowLoadConfirmation(newProfileName)
                 end,
@@ -932,7 +938,7 @@ end
 function ConfigOptions.Options()
     local options = {
         name = "",
-        handler = HT.AceAddon,
+        handler = addon,
         type = 'group',
         args = {
             general = {
@@ -940,21 +946,21 @@ function ConfigOptions.Options()
                 type = 'group',
                 name = L["General"],
                 args = {
-                    showCategoryMenuDefault = {
+                    showbarMenuDefault = {
                         order = 1,
                         width=2,
                         type = 'toggle',
-                        name = L["Whether to show the category menu when login in."],
-                        set = function(_, val) HT.AceAddon.db.profile.showCategoryMenuDefault = val end,
-                        get = function(_) return HT.AceAddon.db.profile.showCategoryMenuDefault end,
+                        name = L["Whether to show the bar menu when login in."],
+                        set = function(_, val) addon.db.profile.showbarMenuDefault = val end,
+                        get = function(_) return addon.db.profile.showbarMenuDefault end,
                     },
-                    showCategoryMenuOnMouseEnter = {
+                    showbarMenuOnMouseEnter = {
                         order = 1,
                         width=2,
                         type = 'toggle',
-                        name = L["Whether to show the category menu when the mouse enter."],
-                        set = function(_, val) HT.AceAddon.db.profile.showCategoryMenuOnMouseEnter = val end,
-                        get = function(_) return HT.AceAddon.db.profile.showCategoryMenuOnMouseEnter end,
+                        name = L["Whether to show the bar menu when the mouse enter."],
+                        set = function(_, val) addon.db.profile.showbarMenuOnMouseEnter = val end,
+                        get = function(_) return addon.db.profile.showbarMenuOnMouseEnter end,
                     },
                     -- 设置窗口位置：x 和 y 值
                     windowPositionX = {
@@ -964,8 +970,8 @@ function ConfigOptions.Options()
                         min = 0,
                         max = math.floor(GetScreenWidth()),
                         step = 1,
-                        set = function(_, val) HT.AceAddon.db.profile.windowPositionX = val end,
-                        get = function(_) return HT.AceAddon.db.profile.windowPositionX end,
+                        set = function(_, val) addon.db.profile.windowPositionX = val end,
+                        get = function(_) return addon.db.profile.windowPositionX end,
                     },
                     windowPositionY = {
                         order = 3,
@@ -974,13 +980,13 @@ function ConfigOptions.Options()
                         min = 0,
                         max = math.floor(GetScreenHeight()),
                         step = 1,
-                        set = function(_, val) HT.AceAddon.db.profile.windowPositionY = val end,
-                        get = function(_) return HT.AceAddon.db.profile.windowPositionY end,
+                        set = function(_, val) addon.db.profile.windowPositionY = val end,
+                        get = function(_) return addon.db.profile.windowPositionY end,
                     },
                 },
             },
-            category=ConfigOptions.CategoryOptions(),
-            iconSource=ConfigOptions.IconSourceOptions(),
+            bar=ConfigOptions.BarOptions(),
+            source=ConfigOptions.SourceOptions(),
             profiles = ConfigOptions.ConfigOptions()
         },
     }
@@ -989,31 +995,31 @@ end
 
 
 
-function HT.AceAddon:OnInitialize()
+function addon:OnInitialize()
     -- 注册数据库，添加分类设置
-    self.db = LibStub("AceDB-3.0"):New(HT.AceAddonConfigDB, {
+    self.db = LibStub("AceDB-3.0"):New("HappyToolkitDB", {
         profile = {
-            showCategoryMenuDefault = true,
-            showCategoryMenuOnMouseEnter = false,
+            showbarMenuDefault = true,
+            showbarMenuOnMouseEnter = false,
             windowPositionX = 0, -- 默认X位置
             windowPositionY = 0, -- 默认Y位置
-            categoryList = {},
-            iconSourceList={},
+            barList = {},
+            sourceList={},
         }
     }, true)
     -- 注册选项表
-    AceConfig:RegisterOptionsTable(HT.AceAddonName, ConfigOptions.Options)
+    AceConfig:RegisterOptionsTable(addonName, ConfigOptions.Options)
     -- 在Blizzard界面选项中添加一个子选项
-    self.optionsFrame = AceConfigDialog:AddToBlizOptions(HT.AceAddonName, HT.AceAddonName)
+    self.optionsFrame = AceConfigDialog:AddToBlizOptions(addonName, addonName)
     -- 输入 /HappyToolkit 打开配置
-    self:RegisterChatCommand(HT.AceAddonName, "OpenConfig")
+    self:RegisterChatCommand(addonName, "OpenConfig")
 end
 
-function HT.AceAddon:OpenConfig()
-    AceConfigDialog:Open(HT.AceAddonName)
+function addon:OpenConfig()
+    AceConfigDialog:Open(addonName)
 end
 
-function HT.AceAddon:UpdateOptions()
+function addon:UpdateOptions()
     -- 重新注册配置表来更新菜单栏
-    LibStub("AceConfigRegistry-3.0"):NotifyChange(self.AceAddonName)
+    LibStub("AceConfigRegistry-3.0"):NotifyChange(addonName)
 end

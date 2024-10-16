@@ -1,14 +1,17 @@
-local _, HT = ...
+local addonName, _ = ...  ---@type string, table
 
----@type ToolkitCore
-local ToolkitCore = HT.ToolkitCore
+---@class HappyToolkit: AceAddon
+local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
-ToolkitCore.Start()
+---@class ToolkitCore: AceModule
+local ToolkitCore = addon:GetModule("ToolkitCore")
+
+ToolkitCore:Start()
 
 -- 全局变量、提供给按键绑定使用
 G_HAPPY_TOOLKIT = {}
 
 -- 按键绑定
 function G_HAPPY_TOOLKIT.RunWishByKeyBinding()
-    ToolkitCore.ToggleToolkitGUI()
+    ToolkitCore:ToggleMainFrame()
 end

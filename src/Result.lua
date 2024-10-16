@@ -1,9 +1,11 @@
-local _, HT = ...
+local addonName, _ = ...  ---@type string, table
+---@class HappyToolkit: AceAddon
+local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
----@class Result
----@field __index Result
-local Result = {_value = nil, _error = nil}
-Result.__index = Result
+---@class Result: AceModule
+---@field _value any | nil
+---@field _error string | nil
+local Result = addon:NewModule("Result")
 
 -- 定义 Result 的 Ok 构造函数
 function Result:Ok(value)
@@ -56,5 +58,3 @@ function Result:unwrap_err()
         error("Called unwrap_err on an Ok: " .. tostring(self._value))
     end
 end
-
-HT.Result = Result

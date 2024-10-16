@@ -5,7 +5,7 @@
 This is a World of Warcraft addon that collect your toys and items, use them anytime without searching it.
 
 ### Usage
-- You can use the command `/click ToggleHappyToolkitGUIButton` to toggle the window state.
+- You can use the command `/click ToggleHtMainFrame` to toggle the window state.
 - You can also set a keybinding in the keybinding settings to toggle the window state.
 
 ### Known Bugs:

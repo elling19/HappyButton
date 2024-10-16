@@ -1,4 +1,11 @@
-local _, HT = ...
+local addonName, _ = ...  ---@type string, table
+
+---@class HappyToolkit: AceAddon
+local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
+
+---@class CONST: AceModule
+local const = addon:GetModule('CONST')
+
 
 ---@class UtilsTable
 ---@field IsArray fun(table: table): boolean
@@ -21,17 +28,12 @@ local UtilsPrint = {}
 ---@field ToVertical fun(text: string | nil): string 将字符串转为竖形结构
 local UtilsString = {}
 
----@class Utils
----@field Table UtilsTable
----@field Print UtilsPrint
----@field String UtilsString
-local Utils = {
-    Table = UtilsTable,
-    Print = UtilsPrint,
-    String = UtilsString
-}
+---@class Utils: AceModule
+local Utils = addon:NewModule("Utils")
 
-HT.Utils = Utils
+Utils.Table = UtilsTable
+Utils.Print = UtilsPrint
+Utils.String = UtilsString
 
 -- 判断table是否是数组
 function UtilsTable.IsArray(t)

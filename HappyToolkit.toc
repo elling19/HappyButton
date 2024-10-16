@@ -16,11 +16,17 @@ Libs\embeds.xml
 Locales\Locale-enUS.lua
 Locales\Locale-zhCN.lua
 
+Main.lua
+Src\Const.lua
 Src\Result.lua
 Src\Utils.lua
 Src\HtItem.lua
+Src\Callback.lua
 Src\Config.lua
-Src\GUI.lua
+Src\LoadConfig.lua
+Src\Frame\BaseFrame.lua
+Src\Frame\MainFrame.lua
+Src\Frame\AloneBarsFrame.lua
 Src\Core.lua
 Src\Command.lua
 HappyToolkit.lua
