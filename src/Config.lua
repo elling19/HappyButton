@@ -6,6 +6,12 @@ local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 ---@class CONST: AceModule
 local const = addon:GetModule('CONST')
 
+---@class MainFrame: AceModule
+local MainFrame = addon:GetModule("MainFrame")
+
+---@class AloneBarsFrame: AceModule
+local AloneBarsFrame = addon:GetModule("AloneBarsFrame")
+
 local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 
 ---@class Utils: AceModule
@@ -17,6 +23,16 @@ local AceDBOptions = LibStub("AceDBOptions-3.0")
 local AceSerializer = LibStub("AceSerializer-3.0")
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
 local AceGUI = LibStub("AceGUI-3.0")
+
+---@class DefaultProfile
+local DefaultProfile = {
+    showbarMenuDefault = true,
+    showbarMenuOnMouseEnter = false,
+    posX = 0,
+    posY = 0,
+    barList = {},
+    sourceList={},
+}
 
 ---@class ProfileConfig.ConfigTable
 ---@field name string
@@ -73,6 +89,7 @@ function ProfileConfig.ShowLoadConfirmation(profileName)
 end
 
 ---@class Config
+---@field tmpIsOpenEditMode boolean
 ---@field tmpCoverConfig boolean 
 ---@field tmpImportSourceString string | nil
 ---@field tmpNewItemType integer | nil
@@ -84,6 +101,7 @@ end
 local Config = {}
 
 -- 临时变量
+Config.tmpIsOpenEditMode = false -- 是否开启编辑模式
 Config.tmpCoverConfig = false  -- 默认选择不覆盖配置，默认创建副本
 Config.tmpImportSourceString = nil  -- 导入itemGroup配置字符串
 Config.tmpNewItemType = nil
@@ -144,7 +162,7 @@ function ConfigOptions.BarOptions()
     local options = {
         type = 'group',
         name = L["Items Bar"],
-        order=2,
+        order=3,
         args = {
             add = {
                 order = 1,
@@ -160,7 +178,15 @@ function ConfigOptions.BarOptions()
                     if Config.IsTitleDuplicated(newBarTitle, titleList) then
                         newBarTitle = Config.CreateDuplicateTitle(newBarTitle, titleList)
                     end
-                    table.insert(addon.db.profile.barList, { title = newBarTitle, icon = nil, sourceList = {} })
+                    table.insert(addon.db.profile.barList, {
+                        title = newBarTitle,
+                        icon = nil,
+                        posX = 0,
+                        posY = 0,
+                        displayMode=const.BAR_DISPLAY_MODE.Mount,
+                        displayNameToggle=false,
+                        sourceList = {} 
+                    })
                     addon:UpdateOptions()
                     AceConfigDialog:SelectGroup(addonName, "bar", "barMenu" .. #addon.db.profile.barList)
                 end,
@@ -299,7 +325,7 @@ function ConfigOptions.SourceOptions()
     local options = {
         type = 'group',
         name = L["Items Source"],
-        order=3,
+        order=4,
         args = {
             addItemsGroup = {
                 order = 1,
@@ -946,6 +972,25 @@ function ConfigOptions.Options()
                 type = 'group',
                 name = L["General"],
                 args = {
+                    isLockFrame = {
+                        order = 1,
+                        width=2,
+                        type = 'toggle',
+                        name = L["Whether to open edit mode."],
+                        set = function(_, val)
+                            Config.tmpIsOpenEditMode = val
+                            MainFrame:ToggleEditMode(val)
+                            AloneBarsFrame:ToggleEditMode(val)
+                            end,
+                        get = function(_) return Config.tmpIsOpenEditMode end,
+                    }
+                },
+            },
+            mainFrame = {
+                order=2,
+                type = 'group',
+                name = L["Main frame"],
+                args = {
                     showbarMenuDefault = {
                         order = 1,
                         width=2,
@@ -955,34 +1000,13 @@ function ConfigOptions.Options()
                         get = function(_) return addon.db.profile.showbarMenuDefault end,
                     },
                     showbarMenuOnMouseEnter = {
-                        order = 1,
+                        order = 2,
                         width=2,
                         type = 'toggle',
                         name = L["Whether to show the bar menu when the mouse enter."],
                         set = function(_, val) addon.db.profile.showbarMenuOnMouseEnter = val end,
                         get = function(_) return addon.db.profile.showbarMenuOnMouseEnter end,
-                    },
-                    -- 设置窗口位置：x 和 y 值
-                    windowPositionX = {
-                        order = 2,
-                        type = 'range',
-                        name = L["Window Position X"],
-                        min = 0,
-                        max = math.floor(GetScreenWidth()),
-                        step = 1,
-                        set = function(_, val) addon.db.profile.windowPositionX = val end,
-                        get = function(_) return addon.db.profile.windowPositionX end,
-                    },
-                    windowPositionY = {
-                        order = 3,
-                        type = 'range',
-                        name = L["Window Position Y"],
-                        min = 0,
-                        max = math.floor(GetScreenHeight()),
-                        step = 1,
-                        set = function(_, val) addon.db.profile.windowPositionY = val end,
-                        get = function(_) return addon.db.profile.windowPositionY end,
-                    },
+                    }
                 },
             },
             bar=ConfigOptions.BarOptions(),
@@ -998,14 +1022,7 @@ end
 function addon:OnInitialize()
     -- 注册数据库，添加分类设置
     self.db = LibStub("AceDB-3.0"):New("HappyToolkitDB", {
-        profile = {
-            showbarMenuDefault = true,
-            showbarMenuOnMouseEnter = false,
-            windowPositionX = 0, -- 默认X位置
-            windowPositionY = 0, -- 默认Y位置
-            barList = {},
-            sourceList={},
-        }
+        profile = DefaultProfile
     }, true)
     -- 注册选项表
     AceConfig:RegisterOptionsTable(addonName, ConfigOptions.Options)

@@ -22,17 +22,26 @@ local MainFrame = addon:NewModule("MainFrame")
 
 MainFrame.Window = AceGUI:Create("SimpleGroup")
 MainFrame.CateMenuFrame = AceGUI:Create("SimpleGroup")
-MainFrame.IconFrameList = {}  -- 存储图标容器列表
 MainFrame.Bars = {}
 MainFrame.IsOpen = false
 MainFrame.IsMouseInside = false  -- 鼠标是否处在框体内
 MainFrame.IconSize = 32
 MainFrame.tabs = {} -- 分类切换按钮
 MainFrame.currentTabIndex = nil
+MainFrame.IsOpenEditMode = false
+
+-- 创建编辑模式背景
+MainFrame.EditModeBg = MainFrame.Window.frame:CreateTexture(nil, "BACKGROUND")
+MainFrame.EditModeBg:SetPoint("TOPLEFT", MainFrame.Window.frame, "TOPLEFT", 0, 0)
+MainFrame.EditModeBg:SetPoint("BOTTOMRIGHT", MainFrame.Window.frame, "BOTTOMRIGHT", 0, 0)
+MainFrame.EditModeBg:SetColorTexture(0, 0, 1, 0.5)  -- 蓝色半透明背景
+MainFrame.EditModeBg:Hide()
+
 
 function MainFrame:CollectBars()
     LoadConfig:LoadBars()
-    local bars = {}
+    local bars = {} ---@type Bar[]
+    ---@type number, Bar
     for _, bar in ipairs(LoadConfig.Bars) do
         if bar.displayMode == const.BAR_DISPLAY_MODE.Mount then
             table.insert(bars, bar)
@@ -58,8 +67,8 @@ function MainFrame:CreateFrame()
     MainFrame:SetWindowsWidth()
 
     -- 将窗口定位到初始位置
-    local x = addon.db.profile.windowPositionX or 0
-    local y = - (addon.db.profile.windowPositionY or 0)
+    local x = addon.db.profile.posX or 0
+    local y = - (addon.db.profile.posY or 0)
 
     MainFrame.Window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
 
@@ -77,8 +86,8 @@ function MainFrame:CreateFrame()
     MainFrame.Window.frame:SetScript("OnDragStop", function(frame)
         frame:StopMovingOrSizing()
         local newX, newY = frame:GetLeft(), frame:GetTop() - UIParent:GetHeight()
-        addon.db.profile.windowPositionX = math.floor(newX)
-        addon.db.profile.windowPositionY = - math.floor(newY)
+        addon.db.profile.posX = math.floor(newX)
+        addon.db.profile.posY = - math.floor(newY)
     end)
 
     MainFrame.Window.frame:SetScript("OnUpdate", function(self)
@@ -187,8 +196,8 @@ function MainFrame:CreateFrame()
             end
             iconsFrame:AddChild(buttonContainer)
             iconsFrame.frame:SetPoint("TOPLEFT", MainFrame.Window.frame, "TOPLEFT", iconSize, - iconSize * (cateIndex - 1))
+            bar.Frame = iconsFrame
         end
-        table.insert(MainFrame.IconFrameList, iconsFrame)
     end
 
     if addon.db.profile.showbarMenuDefault == true then
@@ -201,10 +210,10 @@ end
 function MainFrame:ToggleIconFrame(index)
     if MainFrame.currentTabIndex == index then
         MainFrame.currentTabIndex = nil
-        MainFrame.IconFrameList[index].frame:Hide()
+        MainFrame.Bars[index].Frame.frame:Hide()
     else
         MainFrame.currentTabIndex = index
-        MainFrame.IconFrameList[index].frame:Show()
+        MainFrame.Bars[index].Frame.frame:Show()
         MainFrame:SetWindowsWidth()
     end
 end
@@ -213,16 +222,16 @@ function MainFrame:ShowIconFrame(index)
     MainFrame.currentTabIndex = index
     for tabIndex, tab in ipairs(MainFrame.tabs) do
         if tab.button ~= nil then
-            MainFrame.IconFrameList[tabIndex].frame:Hide()
+            MainFrame.Bars[tabIndex].Frame.frame:Hide()
         end
     end
-    MainFrame.IconFrameList[index].frame:Show()
+    MainFrame.Bars[index].Frame.frame:Show()
     MainFrame:SetWindowsWidth()
 end
 
 function MainFrame:HideAllIconFrame()
-    for _, frame in ipairs(MainFrame.IconFrameList) do
-        frame.frame:Hide()
+    for _, bar in ipairs(MainFrame.Bars) do
+        bar.Frame.frame:Hide()
     end
     MainFrame.currentTabIndex = nil
 end
@@ -259,11 +268,11 @@ end
 
 -- 设置窗口宽度：窗口会遮挡视图，会减少鼠标可点击范围，因此窗口宽度尽可能小
 function MainFrame:SetWindowsWidth()
-    if MainFrame.currentTabIndex == nil then
-        MainFrame.Window:SetWidth(MainFrame.IconSize * (1 + 0 + 1))
-    else
-        MainFrame.Window:SetWidth(MainFrame.IconSize * (1 + #MainFrame.Bars[MainFrame.currentTabIndex].buttons + 1))
+    local buttonNum = 0
+    if MainFrame.currentTabIndex ~= nil then
+        buttonNum = #MainFrame.Bars[MainFrame.currentTabIndex].buttons
     end
+    MainFrame.Window:SetWidth(MainFrame.IconSize * (1 + buttonNum))
 end
 
 -- 隐藏窗口
@@ -290,6 +299,24 @@ function MainFrame:GetButtonByIndex(barIndex, buttonIndex)
     end
     local button = bar.buttons[buttonIndex]
     return button
+end
+
+-- 开启编辑模式
+function MainFrame:ToggleEditMode(IsOpenEditMode)
+    if IsOpenEditMode == true and MainFrame.IsOpenEditMode == false then
+        -- 设置了鼠标移入需要临时关闭
+        MainFrame.EditModeBg:Show()
+        MainFrame:HideCateMenuFrame()
+        MainFrame.CateMenuFrame.frame:Hide()
+        MainFrame.Window.frame:Show()
+        MainFrame.IsOpen = false
+        MainFrame.IsOpenEditMode = IsOpenEditMode
+    end
+    if IsOpenEditMode == false and MainFrame.IsOpenEditMode == true then
+        MainFrame.EditModeBg:Hide()
+        MainFrame:ShowCateMenuFrame()
+        MainFrame.IsOpenEditMode = IsOpenEditMode
+    end
 end
 
 -- 初始化UI模块

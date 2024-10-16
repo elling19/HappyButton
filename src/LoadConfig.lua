@@ -28,10 +28,14 @@ LoadConfig.Bars = nil ---@type Bar[] | nil -- nil表示没有开始读取，用�
 local BarButton = {}
 
 ---@class Bar
+---@field configIndex number  -- 在配置文件中的下标
 ---@field icon string | number | nil
 ---@field title string
+---@field posX number
+---@field posY number
 ---@field isDisplayName string
 ---@field displayMode BarDisplayMode
+---@field Frame AceGUIWidget | nil
 ---@field buttons BarButton[]
 local Bar = {}
 
@@ -42,15 +46,19 @@ function LoadConfig:ReLoadBars()
     local Bars = {}
     local barList = addon.db.profile.barList
     local sourceList = addon.db.profile.sourceList
-    for _, _bar in ipairs(barList) do
+    for _index, _bar in ipairs(barList) do
         if _bar.displayMode and _bar.displayMode ~= const.BAR_DISPLAY_MODE.Hidden then
             ---@type Bar
             local bar = {
+                configIndex = _index,
                 icon = _bar.icon,
                 title = _bar.title,
+                posX = _bar.posX or 0,
+                posY = _bar.posY or 0,
                 displayMode = _bar.displayMode,
                 isDisplayName = _bar.isDisplayName,
-                buttons = {}
+                buttons = {},
+                Frame = nil,
             }
             for _, thing in ipairs(_bar.sourceList) do
                 ---@type Source

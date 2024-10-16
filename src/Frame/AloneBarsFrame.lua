@@ -17,7 +17,9 @@ local BaseFrame = addon:GetModule('BaseFrame')
 
 ---@class AloneBarsFrame: AceModule
 ---@field Bars Bar[]
+---@field IsOpenEditMode boolean
 local AloneBarsFrame = addon:NewModule("AloneBarsFrame")
+AloneBarsFrame.IsOpenEditMode = false
 
 function AloneBarsFrame.CollectBars()
     LoadConfig:LoadBars()
@@ -37,7 +39,35 @@ function AloneBarsFrame:CreateFrame()
         local barFrame = AceGUI:Create("SimpleGroup")
         barFrame:SetWidth(#bar.buttons * iconSize)
         barFrame:SetHeight(iconSize)
+        barFrame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", bar.posX or 0, - (bar.posY or 0))
         barFrame:SetLayout("Flow")
+
+        -- 创建编辑模式背景
+        barFrame.EditModeBg = barFrame.frame:CreateTexture(nil, "BACKGROUND")
+        barFrame.EditModeBg:SetPoint("TOPLEFT", barFrame.frame, "TOPLEFT", 0, 0)
+        barFrame.EditModeBg:SetPoint("BOTTOMRIGHT", barFrame.frame, "BOTTOMRIGHT", 0, 0)
+        barFrame.EditModeBg:SetColorTexture(0, 0, 1, 0.5)  -- 蓝色半透明背景
+        barFrame.EditModeBg:Hide()
+
+        barFrame.frame:SetMovable(true)
+        barFrame.frame:EnableMouse(true)
+        barFrame.frame:RegisterForDrag("LeftButton")
+        barFrame.frame:SetClampedToScreen(true)
+
+        barFrame.frame:SetScript("OnDragStart", function(frame)
+            frame:StartMoving()
+        end)
+
+        barFrame.frame:SetScript("OnDragStop", function(frame)
+            frame:StopMovingOrSizing()
+            local newX, newY = frame:GetLeft(), frame:GetTop() - UIParent:GetHeight()
+            bar.posX = math.floor(newX)
+            bar.posY = - math.floor(newY)
+            -- 更新配置文件中的坐标
+            addon.db.profile.barList[bar.configIndex].posX = bar.posX
+            addon.db.profile.barList[bar.configIndex].posY = bar.posY
+        end)
+
         for buttonIndex, button in ipairs(bar.buttons) do
             local callbackResult = button.callback(button.source)
             button._cateIndex = barIndex
@@ -68,10 +98,14 @@ function AloneBarsFrame:CreateFrame()
                 end
             end
             barFrame:AddChild(buttonContainer)
-            barFrame.frame:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 500, - 500 - iconSize * (barIndex - 1))
         end
         bar.Frame = barFrame
     end
+end
+
+function AloneBarsFrame:HideButtons()
+
+    
 end
 
 -- 根据索引获取pool
@@ -82,6 +116,33 @@ function AloneBarsFrame:GetButtonByIndex(barIndex, buttonIndex)
     end
     local button = bar.buttons[buttonIndex]
     return button
+end
+
+-- 开启编辑模式
+function AloneBarsFrame:ToggleEditMode(IsOpenEditMode)
+    if IsOpenEditMode == true and AloneBarsFrame.IsOpenEditMode == false then
+        -- 设置了鼠标移入需要临时关闭
+        for _, bar in ipairs(AloneBarsFrame.Bars) do
+            bar.Frame.EditModeBg:Show()
+            for _, button in ipairs(bar.buttons) do
+                if button.button then
+                    button.button:Hide()
+                end
+            end
+        end
+        AloneBarsFrame.IsOpenEditMode = IsOpenEditMode
+    end
+    if IsOpenEditMode == false and AloneBarsFrame.IsOpenEditMode == true then
+        for _, bar in ipairs(AloneBarsFrame.Bars) do
+            bar.Frame.EditModeBg:Hide()
+            for _, button in ipairs(bar.buttons) do
+                if button.button then
+                    button.button:Show()
+                end
+            end
+        end
+        AloneBarsFrame.IsOpenEditMode = IsOpenEditMode
+    end
 end
 
 -- 初始化UI模块

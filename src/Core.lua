@@ -9,9 +9,6 @@ local U = addon:GetModule('Utils')
 ---@class MainFrame: AceModule
 local MainFrame = addon:GetModule("MainFrame")
 
----@class MainFrame: AceModule
-local MainFrame = addon:GetModule("MainFrame")
-
 ---@class AloneBarsFrame: AceModule
 local AloneBarsFrame = addon:GetModule("AloneBarsFrame")
 

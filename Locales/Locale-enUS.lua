@@ -70,3 +70,5 @@ L["Illegal script."] = true
 L["Hidden"] = true
 L["Display as alone items bar"] = true
 L["Append to the main frame"] = true
+L["Whether to open edit mode."] = true
+L["Main frame"] = true
