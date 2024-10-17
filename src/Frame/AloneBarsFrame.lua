@@ -19,7 +19,6 @@ local BaseFrame = addon:GetModule('BaseFrame')
 ---@field Bars Bar[]
 ---@field IsOpenEditMode boolean
 local AloneBarsFrame = addon:NewModule("AloneBarsFrame")
-AloneBarsFrame.IsOpenEditMode = false
 
 function AloneBarsFrame.CollectBars()
     LoadConfig:LoadBars()
@@ -35,6 +34,7 @@ end
 
 function AloneBarsFrame:CreateFrame()
     local iconSize = 32
+
     for barIndex, bar in ipairs(AloneBarsFrame.Bars) do
         local barFrame = AceGUI:Create("SimpleGroup")
         barFrame:SetWidth(#bar.buttons * iconSize)
@@ -54,9 +54,19 @@ function AloneBarsFrame:CreateFrame()
         barFrame.frame:RegisterForDrag("LeftButton")
         barFrame.frame:SetClampedToScreen(true)
 
+        -- 监听鼠标点击事件：右键关闭编辑模式
+        barFrame.frame:SetScript("OnMouseDown", function(_, button)
+            if button == "RightButton" then
+                if addon.G.IsEditMode == true then
+                    addon:SendMessage(const.EVENT.EXIT_EDIT_MODE)
+                end
+            end
+        end)
+
         barFrame.frame:SetScript("OnDragStart", function(frame)
             frame:StartMoving()
         end)
+
 
         barFrame.frame:SetScript("OnDragStop", function(frame)
             frame:StopMovingOrSizing()
@@ -119,10 +129,10 @@ function AloneBarsFrame:GetButtonByIndex(barIndex, buttonIndex)
 end
 
 -- 开启编辑模式
-function AloneBarsFrame:ToggleEditMode(IsOpenEditMode)
-    if IsOpenEditMode == true and AloneBarsFrame.IsOpenEditMode == false then
-        -- 设置了鼠标移入需要临时关闭
-        for _, bar in ipairs(AloneBarsFrame.Bars) do
+function AloneBarsFrame:OpenEditMode()
+    if addon.G.IsEditMode == true then
+         -- 设置了鼠标移入需要临时关闭
+         for _, bar in ipairs(AloneBarsFrame.Bars) do
             bar.Frame.EditModeBg:Show()
             for _, button in ipairs(bar.buttons) do
                 if button.button then
@@ -130,9 +140,12 @@ function AloneBarsFrame:ToggleEditMode(IsOpenEditMode)
                 end
             end
         end
-        AloneBarsFrame.IsOpenEditMode = IsOpenEditMode
     end
-    if IsOpenEditMode == false and AloneBarsFrame.IsOpenEditMode == true then
+end
+
+-- 关闭编辑模式
+function AloneBarsFrame:CloseEditMode()
+    if addon.G.IsEditMode == false then
         for _, bar in ipairs(AloneBarsFrame.Bars) do
             bar.Frame.EditModeBg:Hide()
             for _, button in ipairs(bar.buttons) do
@@ -141,9 +154,9 @@ function AloneBarsFrame:ToggleEditMode(IsOpenEditMode)
                 end
             end
         end
-        AloneBarsFrame.IsOpenEditMode = IsOpenEditMode
     end
 end
+
 
 -- 初始化UI模块
 function AloneBarsFrame:Initial()

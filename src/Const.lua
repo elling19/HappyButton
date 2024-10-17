@@ -61,3 +61,10 @@ const.ItemsGroupModeOptions = {
     [const.ITEMS_GROUP_MODE.SEQ] = L["Display only one item, selected sequentially."],
     [const.ITEMS_GROUP_MODE.MULTIPLE] = L["Display multiple items."]
 }
+
+--[[
+-- 事件常量
+]]
+const.EVENT = {
+    EXIT_EDIT_MODE = "EXIT_EDIT_MODE",  -- 退出编辑模式
+}

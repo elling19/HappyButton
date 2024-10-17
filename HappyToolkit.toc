@@ -30,3 +30,4 @@ Src\Core.lua
 Src\Command.lua
 HappyToolkit.lua
 Src\Config.lua
+Src\Event.lua

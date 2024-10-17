@@ -89,7 +89,6 @@ function ProfileConfig.ShowLoadConfirmation(profileName)
 end
 
 ---@class Config
----@field tmpIsOpenEditMode boolean
 ---@field tmpCoverConfig boolean 
 ---@field tmpImportSourceString string | nil
 ---@field tmpNewItemType integer | nil
@@ -101,7 +100,6 @@ end
 local Config = {}
 
 -- 临时变量
-Config.tmpIsOpenEditMode = false -- 是否开启编辑模式
 Config.tmpCoverConfig = false  -- 默认选择不覆盖配置，默认创建副本
 Config.tmpImportSourceString = nil  -- 导入itemGroup配置字符串
 Config.tmpNewItemType = nil
@@ -972,18 +970,25 @@ function ConfigOptions.Options()
                 type = 'group',
                 name = L["General"],
                 args = {
-                    isLockFrame = {
+                    editFrame = {
                         order = 1,
                         width=2,
-                        type = 'toggle',
-                        name = L["Whether to open edit mode."],
-                        set = function(_, val)
-                            Config.tmpIsOpenEditMode = val
-                            MainFrame:ToggleEditMode(val)
-                            AloneBarsFrame:ToggleEditMode(val)
-                            end,
-                        get = function(_) return Config.tmpIsOpenEditMode end,
-                    }
+                        type = "execute",
+                        name = L["Edit Mode"],
+                        func = function()
+                            if addon.G.IsEditMode == false then
+                                addon.G.IsEditMode = true
+                                MainFrame:OpenEditMode()
+                                AloneBarsFrame:OpenEditMode()
+                            end
+                        end,
+                    },
+                    editFrameDesc = {
+                        order = 2,
+                        width = 2,
+                        type = "description",
+                        name = L["Left-click to drag and move, right-click to exit edit mode."]
+                    },
                 },
             },
             mainFrame = {
@@ -1017,9 +1022,12 @@ function ConfigOptions.Options()
     return options
 end
 
-
-
 function addon:OnInitialize()
+    -- 全局变量
+    ---@class GlobalValue
+    self.G = {
+        IsEditMode = false
+    }
     -- 注册数据库，添加分类设置
     self.db = LibStub("AceDB-3.0"):New("HappyToolkitDB", {
         profile = DefaultProfile
@@ -1035,6 +1043,7 @@ end
 function addon:OpenConfig()
     AceConfigDialog:Open(addonName)
 end
+
 
 function addon:UpdateOptions()
     -- 重新注册配置表来更新菜单栏

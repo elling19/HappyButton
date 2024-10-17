@@ -28,7 +28,6 @@ MainFrame.IsMouseInside = false  -- 鼠标是否处在框体内
 MainFrame.IconSize = 32
 MainFrame.tabs = {} -- 分类切换按钮
 MainFrame.currentTabIndex = nil
-MainFrame.IsOpenEditMode = false
 
 -- 创建编辑模式背景
 MainFrame.EditModeBg = MainFrame.Window.frame:CreateTexture(nil, "BACKGROUND")
@@ -76,6 +75,16 @@ function MainFrame:CreateFrame()
     MainFrame.Window.frame:EnableMouse(true)
     MainFrame.Window.frame:RegisterForDrag("LeftButton")
     MainFrame.Window.frame:SetClampedToScreen(true)
+
+
+    -- 监听鼠标点击事件：右键关闭编辑模式
+    MainFrame.Window.frame:SetScript("OnMouseDown", function(_, button)
+        if button == "RightButton" then
+            if addon.G.IsEditMode == true then
+                addon:SendMessage(const.EVENT.EXIT_EDIT_MODE)
+            end
+        end
+    end)
 
     -- 监听拖动事件并更新位置
     MainFrame.Window.frame:SetScript("OnDragStart", function(frame)
@@ -302,20 +311,22 @@ function MainFrame:GetButtonByIndex(barIndex, buttonIndex)
 end
 
 -- 开启编辑模式
-function MainFrame:ToggleEditMode(IsOpenEditMode)
-    if IsOpenEditMode == true and MainFrame.IsOpenEditMode == false then
+function MainFrame:OpenEditMode()
+    if addon.G.IsEditMode == true then
         -- 设置了鼠标移入需要临时关闭
         MainFrame.EditModeBg:Show()
         MainFrame:HideCateMenuFrame()
         MainFrame.CateMenuFrame.frame:Hide()
         MainFrame.Window.frame:Show()
         MainFrame.IsOpen = false
-        MainFrame.IsOpenEditMode = IsOpenEditMode
     end
-    if IsOpenEditMode == false and MainFrame.IsOpenEditMode == true then
+end
+
+-- 关闭编辑模式
+function MainFrame:CloseEditMode()
+    if addon.G.IsEditMode == false then
         MainFrame.EditModeBg:Hide()
         MainFrame:ShowCateMenuFrame()
-        MainFrame.IsOpenEditMode = IsOpenEditMode
     end
 end
 
