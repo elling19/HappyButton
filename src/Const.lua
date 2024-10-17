@@ -5,6 +5,26 @@ local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 ---@class CONST: AceModule
 local const = addon:NewModule("CONST")
 
+---@enum ElementType
+const.ELEMENT_TYPE = {
+    ITEM = 1,
+    ITEM_GROUP = 2,
+    SCRIPT = 3,
+    BAR = 4,
+    BAR_GROUP = 5
+}
+
+-- 元素分类选项
+---@class ElementTypeOptions
+---@type table<number, string>
+const.ElementTypeOptions = {
+    [const.ELEMENT_TYPE.ITEM] = L["Item"],
+    [const.ELEMENT_TYPE.ITEM_GROUP] = L["Script"],
+    [const.ELEMENT_TYPE.SCRIPT] = L["ItemGroup"],
+    [const.ELEMENT_TYPE.BAR] = L["Bar"],
+    [const.ELEMENT_TYPE.BAR_GROUP] = L["BarGroup"],
+}
+
 ---@enum BarDisplayMode
 const.BAR_DISPLAY_MODE = {
     Hidden = 0,  -- 隐藏
@@ -62,6 +82,14 @@ const.ItemsGroupModeOptions = {
     [const.ITEMS_GROUP_MODE.MULTIPLE] = L["Display multiple items."]
 }
 
+--[[
+-- 排列方向
+]]
+---@enum Arrange
+const.ARRANGE = {
+    HORIZONTAL = 1,  -- 水平
+    Vertical = 2,  -- 垂直
+}
 --[[
 -- 事件常量
 ]]

@@ -14,6 +14,9 @@ local AloneBarsFrame = addon:GetModule("AloneBarsFrame")
 
 local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 
+---@class Element: AceModule
+local Element = addon:GetModule("Element")
+
 ---@class Utils: AceModule
 local U = addon:GetModule('Utils')
 
@@ -24,15 +27,7 @@ local AceSerializer = LibStub("AceSerializer-3.0")
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
 local AceGUI = LibStub("AceGUI-3.0")
 
----@class DefaultProfile
-local DefaultProfile = {
-    showbarMenuDefault = true,
-    showbarMenuOnMouseEnter = false,
-    posX = 0,
-    posY = 0,
-    barList = {},
-    sourceList={},
-}
+
 
 ---@class ProfileConfig.ConfigTable
 ---@field name string
@@ -148,13 +143,243 @@ function Config.CreateDuplicateTitle(title, titleList)
     return newTitle
 end
 
+local function getNewElementTitle()
+    local newTitle = L["Default"]
+    local titleList = {}
+    for _, bar in ipairs(addon.db.profile.elements) do
+        table.insert(titleList, bar.title)
+    end
+    if Config.IsTitleDuplicated(newTitle, titleList) then
+        newTitle = Config.CreateDuplicateTitle(newTitle, titleList)
+    end
+    return newTitle
+end
 
 ---@class ConfigOptions
+---@field ElementsOptions function
 ---@field BarOptions function
 ---@field SourceOptions function
 ---@field ConfigOptions function
 ---@field Options function
 local ConfigOptions = {}
+
+---@param elements any
+---@param selectGroupList table
+local function GetElementOptions(elements, selectGroupList)
+    local eleArgs = {}
+    for i, ele in ipairs(elements) do
+        local copySelectGroupList = U.Table.DeepCopyList(selectGroupList)  -- 复制一份目标菜单路径
+        table.insert(copySelectGroupList, "elementMenu" .. i)
+        local selectGroupListAfterAddItem = U.Table.DeepCopyList(copySelectGroupList)  -- 创建元素后的目标菜单路径
+        table.insert(selectGroupListAfterAddItem, "elementMenu" .. (#ele.elements + 1))
+        local iconPath = "|T" .. (ele.icon or 134400) .. ":16|t"
+        local args = {}
+        local order = 1
+        args.title = {
+            order = order,
+            width=1,
+            type = 'input',
+            name = L["Title"],
+            validate = function (_, val)
+                for _i, _ele in ipairs(elements) do
+                    if _ele.title == val and i ~= _i then
+                        return "repeat title, please input another one."
+                    end
+                end
+                return true
+            end,
+            get = function() return ele.title end,
+            set = function(_, val)
+                ele.title = val
+                addon:UpdateOptions()
+            end,
+        }
+        order = order + 1
+        args.icon = {
+            order=order,
+            width=1,
+            type = 'input',
+            name = L["Icon"],
+            get = function() return ele.icon end,
+            set = function(_, val)
+                ele.icon = val
+                addon:UpdateOptions()
+            end,
+        }
+        order = order + 1
+        if ele.type == const.ELEMENT_TYPE.BAR_GROUP then
+            args.addBar = {
+                order = order,
+                width = 1,
+                type = 'execute',
+                name = L["New Bar"],
+                func = function()
+                    ---@type Element
+                    local bar = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.BAR)
+                    table.insert(ele.elements, bar)
+                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupListAfterAddItem))
+                end,
+            }
+            order = order + 1
+        end
+        if ele.type == const.ELEMENT_TYPE.BAR then
+            args.addItemGroup = {
+                order = order,
+                width = 1,
+                type = 'execute',
+                name = L["New ItemGroup"],
+                func = function()
+                    ---@type Element
+                    local itemGroup = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.ITEM_GROUP)
+                    table.insert(ele.elements, itemGroup)
+                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupListAfterAddItem))
+                end,
+            }
+            order = order + 1
+            args.addScript = {
+                order = order,
+                width = 1,
+                type = 'execute',
+                name = L["New Script"],
+                func = function()
+                    ---@type Element
+                    local script = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.SCRIPT)
+                    table.insert(ele.elements, script)
+                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupListAfterAddItem))
+                end,
+            }
+            order = order + 1
+            args.addItem = {
+                order = order,
+                width = 1,
+                type = 'execute',
+                name = L["New Item"],
+                func = function()
+                    ---@type Element
+                    local item = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.ITEM)
+                    table.insert(ele.elements, item)
+                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupListAfterAddItem))
+                end,
+            }
+            order = order + 1
+        end
+        if ele.type == const.ELEMENT_TYPE.ITEM_GROUP then
+              args.addItem = {
+                order = order,
+                width = 1,
+                type = 'execute',
+                name = L["New Item"],
+                func = function()
+                    ---@type Element
+                    local item = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.ITEM)
+                    table.insert(ele.elements, item)
+                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupListAfterAddItem))
+                end,
+            }
+            order = order + 1
+        end
+        args.delete = {
+            order = order,
+            width = 2,
+            type = 'execute',
+            name = L["Delete"],
+            confirm=true,
+            func = function()
+                table.remove(addon.db.profile.elements, i)
+                addon:UpdateOptions()
+            end,
+        }
+        order = order + 1
+        if ele.elements and #ele.elements then
+            local tmpArgs = GetElementOptions(ele.elements, copySelectGroupList)
+            for k, v in pairs(tmpArgs) do
+                args[k] = v
+            end
+        end
+        eleArgs["elementMenu" .. i] = {
+            type = 'group',
+            name = "|cff00ff00" .. iconPath .. tostring(ele.type) .. ":" .. ele.title  .. "|r",
+            args = args,
+            order = i + 1,
+        }
+    end
+    return eleArgs
+end
+
+function ConfigOptions.ElementsOptions()
+    local options = {
+        type = 'group',
+        name = L["Element"] ,
+        order = 1,
+        args = {
+            addBarGroup = {
+                order = 1,
+                width = 1,
+                type = 'execute',
+                name = L["New BarGroup"],
+                func = function()
+                    ---@type Element
+                    local barGroup = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.BAR_GROUP)
+                    table.insert(addon.db.profile.elements, barGroup)
+                    AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
+                end,
+            },
+            addBar = {
+                order = 2,
+                width = 1,
+                type = 'execute',
+                name = L["New Bar"],
+                func = function()
+                    ---@type Element
+                    local bar = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.BAR)
+                    table.insert(addon.db.profile.elements, bar)
+                    AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
+                end,
+            },
+            addItemGroup = {
+                order = 3,
+                width = 1,
+                type = 'execute',
+                name = L["New ItemGroup"],
+                func = function()
+                    ---@type Element
+                    local itemGroup = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.ITEM_GROUP)
+                    table.insert(addon.db.profile.elements, itemGroup)
+                    AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
+                end,
+            },
+            addScript = {
+                order = 4,
+                width = 1,
+                type = 'execute',
+                name = L["New Script"],
+                func = function()
+                    ---@type Element
+                    local script = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.SCRIPT)
+                    table.insert(addon.db.profile.elements, script)
+                    AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
+                end,
+            },
+            addItem = {
+                order = 5,
+                width = 1,
+                type = 'execute',
+                name = L["New Item"],
+                func = function()
+                    ---@type Element
+                    local item = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.ITEM)
+                    table.insert(addon.db.profile.elements, item)
+                    AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
+                end,
+            },
+        },
+    }
+    local args = GetElementOptions(addon.db.profile.elements, {"element", })
+    for k, v in pairs(args) do
+        options.args[k] = v
+    end
+    return options
+end
 
 function ConfigOptions.BarOptions()
     local options = {
@@ -165,7 +390,7 @@ function ConfigOptions.BarOptions()
             add = {
                 order = 1,
                 type = 'execute',
-                name = L["New bar"],
+                name = L["New Bar"],
                 width = 2,
                 func = function()
                     local newBarTitle = L["Default"]
@@ -1016,6 +1241,7 @@ function ConfigOptions.Options()
             },
             bar=ConfigOptions.BarOptions(),
             source=ConfigOptions.SourceOptions(),
+            element=ConfigOptions.ElementsOptions(),
             profiles = ConfigOptions.ConfigOptions()
         },
     }
@@ -1030,7 +1256,16 @@ function addon:OnInitialize()
     }
     -- 注册数据库，添加分类设置
     self.db = LibStub("AceDB-3.0"):New("HappyToolkitDB", {
-        profile = DefaultProfile
+        profile = {
+            elements = {},  ---@type Element[]
+            --- todo:删除其他
+            showbarMenuDefault = true,
+            showbarMenuOnMouseEnter = false,
+            posX = 0,
+            posY = 0,
+            barList = {},
+            sourceList={},
+        }
     }, true)
     -- 注册选项表
     AceConfig:RegisterOptionsTable(addonName, ConfigOptions.Options)

@@ -69,12 +69,26 @@ function UtilsTable.IsInArray(array, target)
     return false
 end
 
--- 深度复制table
-function UtilsTable.DeepCopy(original)
+-- 深度复制字典
+function UtilsTable.DeepCopyDict(original)
     local copy = {}
     for k, v in pairs(original) do
         if type(v) == 'table' then
-            copy[k] = UtilsTable.DeepCopy(v)
+            copy[k] = UtilsTable.DeepCopyDict(v)
+        else
+            copy[k] = v
+        end
+    end
+    return copy
+end
+
+
+-- 深度复制列表
+function UtilsTable.DeepCopyList(original)
+    local copy = {}
+    for k, v in ipairs(original) do
+        if type(v) == 'table' then
+            copy[k] = UtilsTable.DeepCopyDict(v)
         else
             copy[k] = v
         end
@@ -121,7 +135,7 @@ function UtilsPrint.PrintTable(tbl, indent)
     indent = indent or 2
     -- 遍历表
     if tbl == nil then
-        UtilsPrint.Print(nil)
+        print(nil)
         return
     end
     for key, value in pairs(tbl) do
@@ -130,12 +144,12 @@ function UtilsPrint.PrintTable(tbl, indent)
 
         if type(value) == "table" then
             -- 如果值是一个表，则递归调用 printTable
-            UtilsPrint.Print(formatting .. "{")
+            print(formatting .. "{")
             UtilsPrint.PrintTable(value, indent + 1)
-            UtilsPrint.Print(string.rep("  ", indent) .. "}")
+            print(string.rep("  ", indent) .. "}")
         else
             -- 否则，打印键和值
-            UtilsPrint.Print(formatting .. tostring(value))
+            print(formatting .. tostring(value))
         end
     end
 end
