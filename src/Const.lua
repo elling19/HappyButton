@@ -32,6 +32,7 @@ const.BAR_DISPLAY_MODE = {
     Mount = 2,  -- 挂载
 }
 
+
 -- 物品条分类选项
 ---@class BarDisplayModeOptions
 ---@type table<number, string>
@@ -40,6 +41,25 @@ const.BarDisplayModeOptions = {
     [const.BAR_DISPLAY_MODE.Alone] = L["Display as alone items bar"],
     [const.BAR_DISPLAY_MODE.Mount] = L["Append to the main frame"],
 }
+
+
+---@enum ElementLayoutMode
+const.ELEMENT_LAYOUT_MODE = {
+    Hidden = 0,  -- 隐藏
+    GRID = 1,  -- 平铺式
+    DRAWER = 2,  -- 抽屉式
+}
+
+
+-- 物品条分类选项
+---@class ElementLayoutModeOptions
+---@type table<number, string>
+const.ElementLayoutOptions = {
+    [const.ELEMENT_LAYOUT_MODE.Hidden] = L["Hidden"],
+    [const.ELEMENT_LAYOUT_MODE.GRID] = L['Grid Layout'],
+    [const.ELEMENT_LAYOUT_MODE.DRAWER] = L['Drawer Layout'],
+}
+
 
 -- 物品分类
 ---@enum ItemType
@@ -79,7 +99,6 @@ const.ITEMS_GROUP_MODE = {
 const.ItemsGroupModeOptions = {
     [const.ITEMS_GROUP_MODE.RANDOM] = L["Display only one item, randomly selected."] ,
     [const.ITEMS_GROUP_MODE.SEQ] = L["Display only one item, selected sequentially."],
-    [const.ITEMS_GROUP_MODE.MULTIPLE] = L["Display multiple items."]
 }
 
 --[[

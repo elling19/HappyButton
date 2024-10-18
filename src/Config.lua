@@ -6,6 +6,9 @@ local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 ---@class CONST: AceModule
 local const = addon:GetModule('CONST')
 
+---@class Result: AceModule
+local R = addon:GetModule("Result")
+
 ---@class MainFrame: AceModule
 local MainFrame = addon:GetModule("MainFrame")
 
@@ -14,8 +17,8 @@ local AloneBarsFrame = addon:GetModule("AloneBarsFrame")
 
 local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 
----@class Element: AceModule
-local Element = addon:GetModule("Element")
+---@class E: AceModule
+local E = addon:GetModule("Element")
 
 ---@class Utils: AceModule
 local U = addon:GetModule('Utils')
@@ -28,6 +31,106 @@ local LibDeflate = LibStub:GetLibrary("LibDeflate")
 local AceGUI = LibStub("AceGUI-3.0")
 
 
+---@param val string | nil
+---@return Result
+local function VerifyItemAttr(val)
+    if val == nil or val == "" or val == " " then
+        return R:Err("Please input effect title.")
+    end
+    local G = addon.G
+    G.tmpNewItem = {}
+    G.tmpNewItem.type = G.tmpNewItemType
+    if G.tmpNewItem.type == nil then
+        return R:Err(L["Please select item type."])
+    end
+    -- 添加物品逻辑
+    if G.tmpNewItem.type == const.ITEM_TYPE.ITEM or G.tmpNewItem.type == const.ITEM_TYPE.EQUIPMENT or G.tmpNewItem.type == const.ITEM_TYPE.TOY then
+        local itemID = C_Item.GetItemIDForItemInfo(val)
+        if itemID then
+            G.tmpNewItem.id = itemID
+        else
+            return R:Err(L["Unable to get the id, please check the input."])
+        end
+        local itemName = C_Item.GetItemNameByID(G.tmpNewItem.id)
+        if itemName then
+            G.tmpNewItem.name = itemName
+        else
+            return R:Err(L["Unable to get the name, please check the input."])
+        end
+        local itemIcon = C_Item.GetItemIconByID(G.tmpNewItem.id)
+        if itemIcon then
+            G.tmpNewItem.icon = itemIcon
+        else
+            return R:Err("Can not get the icon, please check your input.")
+        end
+    elseif G.tmpNewItem.type == const.ITEM_TYPE.SPELL then
+        local spellID = C_Spell.GetSpellIDForSpellIdentifier(val)
+        if spellID then
+            G.tmpNewItem.id = spellID
+        else
+            return R:Err(L["Unable to get the id, please check the input."])
+        end
+        local spellName = C_Spell.GetSpellName(G.tmpNewItem.id)
+        if spellName then
+            G.tmpNewItem.name = spellName
+        else
+            return R:Err("Can not get the name, please check your input.")
+        end
+        local iconID, originalIconID = C_Spell.GetSpellTexture(G.tmpNewItem.id)
+        if iconID then
+            G.tmpNewItem.icon = iconID
+        else
+            return R:Err(L["Unable to get the icon, please check the input."])
+        end
+    elseif G.tmpNewItem.type == const.ITEM_TYPE.MOUNT then
+        G.tmpNewItem.id = tonumber(val)
+        if G.tmpNewItem.id == nil then
+            for mountDisplayIndex = 1, C_MountJournal.GetNumDisplayedMounts() do
+                local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight = C_MountJournal.GetDisplayedMountInfo(mountDisplayIndex)
+                if name == val then
+                    G.tmpNewItem.id = mountID
+                    G.tmpNewItem.name = name
+                    G.tmpNewItem.icon = icon
+                    break
+                end
+            end
+        end
+        if G.tmpNewItem.id == nil then
+            return R:Err(L["Unable to get the id, please check the input."])
+        end
+        if G.tmpNewItem.icon == nil then
+            local name, spellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID = C_MountJournal.GetMountInfoByID(G.tmpNewItem.id)
+            if name then
+                G.tmpNewItem.id = mountID
+                G.tmpNewItem.name = name
+                G.tmpNewItem.icon = icon
+            else
+                return R:Err("Can not get the name, please check your input.")
+            end
+        end
+    elseif G.tmpNewItem.type == const.ITEM_TYPE.PET then
+        G.tmpNewItem.id = tonumber(val)
+        if G.tmpNewItem.id == nil then
+            local speciesId, petGUID = C_PetJournal.FindPetIDByName(val)
+            if speciesId then
+                G.tmpNewItem.id = speciesId
+            end
+        end
+        if G.tmpNewItem.id == nil then
+            return R:Err(L["Unable to get the id, please check the input."])
+        end
+        local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID = C_PetJournal.GetPetInfoBySpeciesID(G.tmpNewItem.id)
+        if speciesName then
+            G.tmpNewItem.name = speciesName
+            G.tmpNewItem.icon = speciesIcon
+        else
+            return R:Err(L["Unable to get the name, please check the input."])
+        end
+    else
+        return R:Err("Wrong type, please check your input.")
+    end
+    return R:Ok()
+end
 
 ---@class ProfileConfig.ConfigTable
 ---@field name string
@@ -99,7 +202,7 @@ Config.tmpCoverConfig = false  -- 默认选择不覆盖配置，默认创建副�
 Config.tmpImportSourceString = nil  -- 导入itemGroup配置字符串
 Config.tmpNewItemType = nil
 Config.tmpNewItemVal = nil
-Config.tmpNewItem = {type=nil, id = nil, icon = nil, name = nil, alias = nil}
+Config.tmpNewItem = {type=nil, id = nil, icon = nil, name = nil}
 
 -- 展示导出配置框
 function Config.ShowExportDialog(exportData)
@@ -143,16 +246,15 @@ function Config.CreateDuplicateTitle(title, titleList)
     return newTitle
 end
 
-local function getNewElementTitle()
-    local newTitle = L["Default"]
+local function getNewElementTitle(title, elements)
     local titleList = {}
-    for _, bar in ipairs(addon.db.profile.elements) do
-        table.insert(titleList, bar.title)
+    for _, ele in ipairs(elements) do
+        table.insert(titleList, ele.title)
     end
-    if Config.IsTitleDuplicated(newTitle, titleList) then
-        newTitle = Config.CreateDuplicateTitle(newTitle, titleList)
+    if Config.IsTitleDuplicated(title, titleList) then
+        title = Config.CreateDuplicateTitle(title, titleList)
     end
-    return newTitle
+    return title
 end
 
 ---@class ConfigOptions
@@ -163,23 +265,34 @@ end
 ---@field Options function
 local ConfigOptions = {}
 
----@param elements any
----@param selectGroupList table
-local function GetElementOptions(elements, selectGroupList)
+---@param elements ElementConfig[]
+---@param selectGroups table  配置界面选项卡位置
+local function GetElementOptions(elements, selectGroups)
     local eleArgs = {}
     for i, ele in ipairs(elements) do
-        local copySelectGroupList = U.Table.DeepCopyList(selectGroupList)  -- 复制一份目标菜单路径
-        table.insert(copySelectGroupList, "elementMenu" .. i)
-        local selectGroupListAfterAddItem = U.Table.DeepCopyList(copySelectGroupList)  -- 创建元素后的目标菜单路径
-        table.insert(selectGroupListAfterAddItem, "elementMenu" .. (#ele.elements + 1))
-        local iconPath = "|T" .. (ele.icon or 134400) .. ":16|t"
+        local copySelectGroups = U.Table.DeepCopyList(selectGroups)
+        table.insert(copySelectGroups, "elementMenu" .. i)
+        local selectGroupsAfterAddItem = U.Table.DeepCopyList(copySelectGroups)
+        table.insert(selectGroupsAfterAddItem, "elementMenu" .. (#ele.elements + 1))
+        local showTitle = ele.title
+        local showIcon = ele.icon or 134400
+        if ele.type == const.ELEMENT_TYPE.ITEM then
+            local item = E:ToItem(ele)
+            if item.extraAttr.name then
+                showTitle = item.extraAttr.name
+            end
+            if item.extraAttr.icon then
+                showIcon = item.extraAttr.icon
+            end
+        end
+        local iconPath = "|T" .. showIcon .. ":16|t"
         local args = {}
         local order = 1
         args.title = {
             order = order,
             width=1,
             type = 'input',
-            name = L["Title"],
+            name = L['Element Title'],
             validate = function (_, val)
                 for _i, _ele in ipairs(elements) do
                     if _ele.title == val and i ~= _i then
@@ -199,7 +312,7 @@ local function GetElementOptions(elements, selectGroupList)
             order=order,
             width=1,
             type = 'input',
-            name = L["Icon"],
+            name = L["Element Icon"],
             get = function() return ele.icon end,
             set = function(_, val)
                 ele.icon = val
@@ -214,10 +327,9 @@ local function GetElementOptions(elements, selectGroupList)
                 type = 'execute',
                 name = L["New Bar"],
                 func = function()
-                    ---@type Element
-                    local bar = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.BAR)
+                    local bar = E:New(getNewElementTitle(L["Bar"], ele.elements), const.ELEMENT_TYPE.BAR)
                     table.insert(ele.elements, bar)
-                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupListAfterAddItem))
+                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupsAfterAddItem))
                 end,
             }
             order = order + 1
@@ -229,10 +341,9 @@ local function GetElementOptions(elements, selectGroupList)
                 type = 'execute',
                 name = L["New ItemGroup"],
                 func = function()
-                    ---@type Element
-                    local itemGroup = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.ITEM_GROUP)
+                    local itemGroup = E:NewItemGroup(getNewElementTitle(L["ItemGroup"], ele.elements))
                     table.insert(ele.elements, itemGroup)
-                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupListAfterAddItem))
+                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupsAfterAddItem))
                 end,
             }
             order = order + 1
@@ -242,10 +353,9 @@ local function GetElementOptions(elements, selectGroupList)
                 type = 'execute',
                 name = L["New Script"],
                 func = function()
-                    ---@type Element
-                    local script = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.SCRIPT)
+                    local script = E:New(getNewElementTitle(L["Script"], ele.elements), const.ELEMENT_TYPE.SCRIPT)
                     table.insert(ele.elements, script)
-                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupListAfterAddItem))
+                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupsAfterAddItem))
                 end,
             }
             order = order + 1
@@ -255,28 +365,212 @@ local function GetElementOptions(elements, selectGroupList)
                 type = 'execute',
                 name = L["New Item"],
                 func = function()
-                    ---@type Element
-                    local item = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.ITEM)
+                    local item = E:New(getNewElementTitle(L["Item"], ele.elements), const.ELEMENT_TYPE.ITEM)
                     table.insert(ele.elements, item)
-                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupListAfterAddItem))
+                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupsAfterAddItem))
                 end,
             }
             order = order + 1
         end
         if ele.type == const.ELEMENT_TYPE.ITEM_GROUP then
-              args.addItem = {
+            local itemGroup = E:ToItemGroup(ele)
+            args.mode = {
                 order = order,
-                width = 1,
-                type = 'execute',
-                name = L["New Item"],
-                func = function()
-                    ---@type Element
-                    local item = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.ITEM)
+                width=2,
+                type = 'select',
+                name = L["Mode"],
+                values = const.ItemsGroupModeOptions,
+                set = function(_, val)
+                    itemGroup.extraAttr.mode = val
+                end,
+                get = function () return itemGroup.extraAttr.mode end,
+            }
+            order = order + 1
+            args.displayLearnedToggle = {
+                order = order,
+                width=2,
+                type = 'toggle',
+                name = L["Whether to display only learned or owned items."],
+                set = function(_, val) itemGroup.extraAttr.displayUnLearned = not val end,
+                get = function(_) return not itemGroup.extraAttr.displayUnLearned end,
+            }
+            order = order + 1
+            args.replaceNameToggle = {
+                order = order,
+                width=2,
+                type = 'toggle',
+                name = L["Wheter to use element title to replace item name."],
+                set = function(_, val) itemGroup.extraAttr.replaceName = val end,
+                get = function(_) return itemGroup.extraAttr.replaceName == true end,
+            }
+            order = order + 1
+            args.sapce1 = {
+                order = order,
+                type = 'description',
+                name = "\n\n\n"
+            }
+            order = order + 1
+            args.itemHeading = {
+                order = order,
+                type = 'header',
+                name = L["Add Item"],
+            }
+            order = order + 1
+            args.itemType = {
+                order = order,
+                type = 'select',
+                name = L["Item Type"],
+                values = const.ItemTypeOptions,
+                set = function(_, val)
+                    addon.G.tmpNewItemType = val
+                end,
+                get = function ()
+                    return addon.G.tmpNewItemType
+                end
+            }
+            order = order + 1
+            args.itemVal = {
+                order = order,
+                type = 'input',
+                name = L["Item name or item id"],
+                validate = function (_, val)
+                    local r = VerifyItemAttr(val)
+                    if r:is_err() then
+                        return r:unwrap_err()
+                    end
+                    return true
+                end,
+                set = function(_, _)
+                    local newElement = E:New(getNewElementTitle(L["Item"], ele.elements), const.ELEMENT_TYPE.ITEM)
+                    local item = E:ToItem(newElement)
+                    item.extraAttr = U.Table.DeepCopyDict(addon.G.tmpNewItem)
                     table.insert(ele.elements, item)
-                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupListAfterAddItem))
+                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupsAfterAddItem))
+                    addon.G.tmpNewItemVal = nil
+                    addon.G.tmpNewItem = {}
+                end,
+                get = function ()
+                    return addon.G.tmpNewItemVal
+                end
+            }
+            order = order + 1
+        end
+        if ele.type == const.ELEMENT_TYPE.SCRIPT then
+            local script = E:ToScript(ele)
+            args.edit = {
+                order = order,
+                type = 'input',
+                name = L["Script"],
+                multiline = 20,
+                width = "full",
+                validate = function (_, val)
+                    local func, loadstringErr = loadstring("return " .. val)
+                    if not func then
+                        local errMsg = L["Illegal script."] .. " " .. loadstringErr
+                        U.Print.PrintErrorText(errMsg)
+                        return errMsg
+                    end
+                    local status, pcallErr = pcall(func())
+                    if not status then
+                        local errMsg = L["Illegal script."] .. " " .. tostring(pcallErr)
+                        U.Print.PrintErrorText(errMsg)
+                        return errMsg
+                    end
+                    return true
+                end,
+                set = function(_, val)
+                    script.extraAttr.script = val
+                    addon:UpdateOptions()
+                end,
+                get = function()
+                    return script.extraAttr.script
                 end,
             }
             order = order + 1
+        end
+        if ele.type == const.ELEMENT_TYPE.ITEM then
+            local item = E:ToItem(ele)
+            local extraAttr = item.extraAttr
+            if extraAttr.id == nil then
+                args.itemType = {
+                    order = order,
+                    type = 'select',
+                    name = L["Item Type"],
+                    values = const.ItemTypeOptions,
+                    set = function(_, val)
+                        addon.G.tmpNewItemType = val
+                    end,
+                    get = function ()
+                        return addon.G.tmpNewItemType
+                    end
+                }
+                order = order + 1
+                args.itemVal = {
+                    order = order,
+                    type = 'input',
+                    name = L["Item name or item id"],
+                    validate = function (_, val)
+                        local r = VerifyItemAttr(val)
+                        if r:is_err() then
+                            return r:unwrap_err()
+                        end
+                        return true
+                    end,
+                    set = function(_, _)
+                        item.extraAttr = U.Table.DeepCopyDict(addon.G.tmpNewItem)
+                        addon.G.tmpNewItemVal = nil
+                        addon.G.tmpNewItem = {}
+                    end,
+                    get = function ()
+                        return addon.G.tmpNewItemVal
+                    end
+                }
+                order = order + 1
+            else
+                args.replaceNameToggle = {
+                    order = order,
+                    width=2,
+                    type = 'toggle',
+                    name = L["Wheter to use element title to replace item name."],
+                    set = function(_, val) extraAttr.replaceName = val end,
+                    get = function(_) return extraAttr.replaceName == true end,
+                }
+                order = order + 1
+                args.id = {
+                    order = order,
+                    width=1,
+                    type = 'input',
+                    name = L["ID"],
+                    disabled = true,
+                    get = function() return tostring(extraAttr.id) end,
+                }
+                order = order + 1
+                args.name = {
+                    order = order,
+                    width=1,
+                    type = 'input',
+                    name = L["Name"],
+                    disabled = true,
+                    get = function() return extraAttr.name end,
+                }
+                order = order + 1
+                args.type = {
+                    order = order,
+                    width=2,
+                    type = 'select',
+                    name = L["Type"],
+                    values = const.ItemTypeOptions,
+                    disabled = true,
+                    get = function() return extraAttr.type end,
+                }
+                order = order + 1
+                args.space = {
+                    order = order,
+                    type = 'description',
+                    name = "\n"
+                }
+                order = order + 1
+            end
         end
         args.delete = {
             order = order,
@@ -285,20 +579,21 @@ local function GetElementOptions(elements, selectGroupList)
             name = L["Delete"],
             confirm=true,
             func = function()
-                table.remove(addon.db.profile.elements, i)
-                addon:UpdateOptions()
+                table.remove(elements, i)
+                AceConfigDialog:SelectGroup(addonName, unpack(selectGroups))
             end,
         }
         order = order + 1
         if ele.elements and #ele.elements then
-            local tmpArgs = GetElementOptions(ele.elements, copySelectGroupList)
+            local tmpArgs = GetElementOptions(ele.elements, copySelectGroups)
             for k, v in pairs(tmpArgs) do
                 args[k] = v
             end
         end
+
         eleArgs["elementMenu" .. i] = {
             type = 'group',
-            name = "|cff00ff00" .. iconPath .. tostring(ele.type) .. ":" .. ele.title  .. "|r",
+            name = "|cff00ff00" .. iconPath .. showTitle .. "|r",
             args = args,
             order = i + 1,
         }
@@ -310,7 +605,7 @@ function ConfigOptions.ElementsOptions()
     local options = {
         type = 'group',
         name = L["Element"] ,
-        order = 1,
+        order = 2,
         args = {
             addBarGroup = {
                 order = 1,
@@ -318,8 +613,7 @@ function ConfigOptions.ElementsOptions()
                 type = 'execute',
                 name = L["New BarGroup"],
                 func = function()
-                    ---@type Element
-                    local barGroup = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.BAR_GROUP)
+                    local barGroup = E:New(getNewElementTitle(L["BarGroup"], addon.db.profile.elements), const.ELEMENT_TYPE.BAR_GROUP)
                     table.insert(addon.db.profile.elements, barGroup)
                     AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
                 end,
@@ -330,8 +624,7 @@ function ConfigOptions.ElementsOptions()
                 type = 'execute',
                 name = L["New Bar"],
                 func = function()
-                    ---@type Element
-                    local bar = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.BAR)
+                    local bar = E:New(getNewElementTitle(L["Bar"], addon.db.profile.elements), const.ELEMENT_TYPE.BAR)
                     table.insert(addon.db.profile.elements, bar)
                     AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
                 end,
@@ -342,8 +635,7 @@ function ConfigOptions.ElementsOptions()
                 type = 'execute',
                 name = L["New ItemGroup"],
                 func = function()
-                    ---@type Element
-                    local itemGroup = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.ITEM_GROUP)
+                    local itemGroup = E:NewItemGroup(getNewElementTitle(L["ItemGroup"], addon.db.profile.elements))
                     table.insert(addon.db.profile.elements, itemGroup)
                     AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
                 end,
@@ -354,8 +646,7 @@ function ConfigOptions.ElementsOptions()
                 type = 'execute',
                 name = L["New Script"],
                 func = function()
-                    ---@type Element
-                    local script = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.SCRIPT)
+                    local script = E:New(getNewElementTitle(L["Script"], addon.db.profile.elements), const.ELEMENT_TYPE.SCRIPT)
                     table.insert(addon.db.profile.elements, script)
                     AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
                 end,
@@ -366,8 +657,7 @@ function ConfigOptions.ElementsOptions()
                 type = 'execute',
                 name = L["New Item"],
                 func = function()
-                    ---@type Element
-                    local item = Element:New(getNewElementTitle(), const.ELEMENT_TYPE.ITEM)
+                    local item = E:New(getNewElementTitle(L["Item"], addon.db.profile.elements), const.ELEMENT_TYPE.ITEM)
                     table.insert(addon.db.profile.elements, item)
                     AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
                 end,
@@ -408,7 +698,7 @@ function ConfigOptions.BarOptions()
                         posY = 0,
                         displayMode=const.BAR_DISPLAY_MODE.Mount,
                         displayNameToggle=false,
-                        sourceList = {} 
+                        sourceList = {}
                     })
                     addon:UpdateOptions()
                     AceConfigDialog:SelectGroup(addonName, "bar", "barMenu" .. #addon.db.profile.barList)
@@ -427,7 +717,7 @@ function ConfigOptions.BarOptions()
                     order = 1,
                     width=2,
                     type = 'input',
-                    name = L["Title"],
+                    name = L['Element Title'],
                     validate = function (_, val)
                         for _i, _bar in ipairs(addon.db.profile.barList) do
                             if _bar.title == val and i ~= _i then
@@ -446,7 +736,7 @@ function ConfigOptions.BarOptions()
                     order=2,
                     width=1,
                     type = 'input',
-                    name = L["Icon"],
+                    name = L["Element Icon"],
                     get = function() return bar.icon end,
                     set = function(_, val)
                         bar.icon = val
@@ -811,7 +1101,7 @@ function ConfigOptions.SourceOptions()
                         order = 1,
                         width=1,
                         type = 'input',
-                        name = L['Title'],
+                        name = L['Element Title'],
                         validate = function (_, val)
                             for _i, _source in ipairs(addon.db.profile.sourceList) do
                                 if _source.title == val and i ~= _i then
@@ -872,7 +1162,7 @@ function ConfigOptions.SourceOptions()
                         order = 5,
                         width=2,
                         type = 'toggle',
-                        name = L["Wheter to use icon source title to replace item name."],
+                        name = L["Wheter to use element title to replace item name."],
                         set = function(_, val) source.attrs.replaceName = val end,
                         get = function(_) return source.attrs.replaceName == true end,
                     },
@@ -903,105 +1193,15 @@ function ConfigOptions.SourceOptions()
                         type = 'input',
                         name = L["Item name or item id"],
                         validate = function (_, val)
-                            if val == nil or val == "" or val == " " then
-                                return "Please input effect title."
-                            end
-                            Config.tmpNewItem = {}
-                            Config.tmpNewItem.type = Config.tmpNewItemType
-                            if Config.tmpNewItem.type == nil then
-                                return L["Please select item type."]
-                            end
-                            -- 添加物品逻辑
-                            if Config.tmpNewItem.type == const.ITEM_TYPE.ITEM or Config.tmpNewItem.type == const.ITEM_TYPE.EQUIPMENT or Config.tmpNewItem.type == const.ITEM_TYPE.TOY then
-                                local itemID = C_Item.GetItemIDForItemInfo(val)
-                                if itemID then
-                                    Config.tmpNewItem.id = itemID
-                                else
-                                    return L["Unable to get the id, please check the input."]
-                                end
-                                local itemName = C_Item.GetItemNameByID(Config.tmpNewItem.id)
-                                if itemName then
-                                    Config.tmpNewItem.name = itemName
-                                else
-                                    return L["Unable to get the name, please check the input."]
-                                end
-                                local itemIcon = C_Item.GetItemIconByID(Config.tmpNewItem.id)
-                                if itemIcon then
-                                    Config.tmpNewItem.icon = itemIcon
-                                else
-                                    return "Can not get the icon, please check your input."
-                                end
-                            elseif Config.tmpNewItem.type == const.ITEM_TYPE.SPELL then
-                                local spellID = C_Spell.GetSpellIDForSpellIdentifier(val)
-                                if spellID then
-                                    Config.tmpNewItem.id = spellID
-                                else
-                                    return L["Unable to get the id, please check the input."]
-                                end
-                                local spellName = C_Spell.GetSpellName(Config.tmpNewItem.id)
-                                if spellName then
-                                    Config.tmpNewItem.name = spellName
-                                else
-                                    return "Can not get the name, please check your input."
-                                end
-                                local iconID, originalIconID = C_Spell.GetSpellTexture(Config.tmpNewItem.id)
-                                if iconID then
-                                    Config.tmpNewItem.icon = iconID
-                                else
-                                    return L["Unable to get the icon, please check the input."]
-                                end
-                            elseif Config.tmpNewItem.type == const.ITEM_TYPE.MOUNT then
-                                Config.tmpNewItem.id = tonumber(val)
-                                if Config.tmpNewItem.id == nil then
-                                    for mountDisplayIndex = 1, C_MountJournal.GetNumDisplayedMounts() do
-                                        local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight = C_MountJournal.GetDisplayedMountInfo(mountDisplayIndex)
-                                        if name == val then
-                                            Config.tmpNewItem.id = mountID
-                                            Config.tmpNewItem.name = name
-                                            Config.tmpNewItem.icon = icon
-                                            break
-                                        end
-                                    end
-                                end
-                                if Config.tmpNewItem.id == nil then
-                                    return L["Unable to get the id, please check the input."]
-                                end
-                                if Config.tmpNewItem.icon == nil then
-                                    local name, spellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID = C_MountJournal.GetMountInfoByID(Config.tmpNewItem.id)
-                                    if name then
-                                        Config.tmpNewItem.id = mountID
-                                        Config.tmpNewItem.name = name
-                                        Config.tmpNewItem.icon = icon
-                                    else
-                                        return "Can not get the name, please check your input."
-                                    end
-                                end
-                            elseif Config.tmpNewItem.type == const.ITEM_TYPE.PET then
-                                Config.tmpNewItem.id = tonumber(val)
-                                if Config.tmpNewItem.id == nil then
-                                    local speciesId, petGUID = C_PetJournal.FindPetIDByName(val)
-                                    if speciesId then
-                                        Config.tmpNewItem.id = speciesId
-                                    end
-                                end
-                                if Config.tmpNewItem.id == nil then
-                                    return L["Unable to get the id, please check the input."]
-                                end
-                                local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID = C_PetJournal.GetPetInfoBySpeciesID(Config.tmpNewItem.id)
-                                if speciesName then
-                                    Config.tmpNewItem.name = speciesName
-                                    Config.tmpNewItem.icon = speciesIcon
-                                else
-                                    return L["Unable to get the name, please check the input."]
-                                end
-                            else
-                                return "Wrong type, please check your input."
+                            local r = VerifyItemAttr(val)
+                            if r:is_err() then
+                                return r:unwrap_err()
                             end
                             return true
                         end,
                         set = function(_, _)
                             Config.tmpNewItemVal = nil
-                            table.insert(source.attrs.itemList, U.Table.DeepCopy(Config.tmpNewItem))
+                            table.insert(source.attrs.itemList, U.Table.DeepCopyDict(Config.tmpNewItem))
                             Config.tmpNewItem = {}
                             addon:UpdateOptions()
                             AceConfigDialog:SelectGroup(addonName, "source", "SourceMenu" .. i, "item" .. #source.attrs.itemList)
@@ -1249,15 +1449,19 @@ function ConfigOptions.Options()
 end
 
 function addon:OnInitialize()
+
     -- 全局变量
     ---@class GlobalValue
     self.G = {
-        IsEditMode = false
+        IsEditMode = false,
+        tmpNewItemType = nil,
+        tmpNewItemVal = nil,
+        tmpNewItem = {type=nil, id = nil, icon = nil, name = nil}  ---@type ItemAttr
     }
     -- 注册数据库，添加分类设置
     self.db = LibStub("AceDB-3.0"):New("HappyToolkitDB", {
         profile = {
-            elements = {},  ---@type Element[]
+            elements = {},  ---@type ElementConfig[]
             --- todo:删除其他
             showbarMenuDefault = true,
             showbarMenuOnMouseEnter = false,

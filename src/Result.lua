@@ -8,17 +8,21 @@ local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 local Result = addon:NewModule("Result")
 
 -- 定义 Result 的 Ok 构造函数
+---@param value any
+---@return Result
 function Result:Ok(value)
-    local obj = {}
-    setmetatable(obj, Result)
+    local obj = setmetatable({}, {__index = self})
     obj._value = value
+    obj._error = nil
     return obj
 end
 
+
 -- 定义 Result 的 Err 构造函数
+---@param err string
+---@return Result
 function Result:Err(err)
-    local obj = {}
-    setmetatable(obj, Result)
+    local obj = setmetatable({}, {__index = self})
     if err == nil then
         error("err must not be nil.")
     end
@@ -31,7 +35,7 @@ function Result:is_ok()
 end
 
 function Result:is_err()
-    return not self._error == nil
+    return self._error ~= nil
 end
 
 -- 定义方法来处理 Result
