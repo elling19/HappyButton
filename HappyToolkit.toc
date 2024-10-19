@@ -28,10 +28,9 @@ Src\Element\Script.lua
 Src\Element\Bar.lua
 Src\Element\BarGroup.lua
 Src\Callback.lua
-Src\LoadConfig.lua
-Src\Frame\BaseFrame.lua
-Src\Frame\MainFrame.lua
-Src\Frame\AloneBarsFrame.lua
+Src\Frame\ElementCallback.lua
+Src\Frame\ElementFrame.lua
+Src\Frame\HtFrame.lua
 Src\Core.lua
 Src\Command.lua
 HappyToolkit.lua

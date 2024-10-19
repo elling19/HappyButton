@@ -6,16 +6,12 @@ local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 ---@class CONST: AceModule
 local const = addon:GetModule('CONST')
 
----@class MainFrame: AceModule
-local MainFrame = addon:GetModule("MainFrame")
-
----@class AloneBarsFrame: AceModule
-local AloneBarsFrame = addon:GetModule("AloneBarsFrame")
+---@class HtFrame: AceModule
+local HtFrame = addon:GetModule("HtFrame")
 
 -- 主窗口右键事件
 addon:RegisterMessage(const.EVENT.EXIT_EDIT_MODE, function()
     addon.G.IsEditMode = false
-    MainFrame:CloseEditMode()
-    AloneBarsFrame:CloseEditMode()
+    HtFrame:CloseEditMode()
 end)
 

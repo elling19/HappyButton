@@ -45,7 +45,6 @@ const.BarDisplayModeOptions = {
 
 ---@enum ElementLayoutMode
 const.ELEMENT_LAYOUT_MODE = {
-    Hidden = 0,  -- 隐藏
     GRID = 1,  -- 平铺式
     DRAWER = 2,  -- 抽屉式
 }
@@ -55,7 +54,6 @@ const.ELEMENT_LAYOUT_MODE = {
 ---@class ElementLayoutModeOptions
 ---@type table<number, string>
 const.ElementLayoutOptions = {
-    [const.ELEMENT_LAYOUT_MODE.Hidden] = L["Hidden"],
     [const.ELEMENT_LAYOUT_MODE.GRID] = L['Grid Layout'],
     [const.ELEMENT_LAYOUT_MODE.DRAWER] = L['Drawer Layout'],
 }

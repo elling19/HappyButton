@@ -6,11 +6,8 @@ local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 ---@class Utils: AceModule
 local U = addon:GetModule('Utils')
 
----@class MainFrame: AceModule
-local MainFrame = addon:GetModule("MainFrame")
-
----@class AloneBarsFrame: AceModule
-local AloneBarsFrame = addon:GetModule("AloneBarsFrame")
+---@class HtFrame: AceModule
+local HtFrame = addon:GetModule("HtFrame")
 
 ---@class ToolkitCore: AceModule
 local ToolkitCore = addon:NewModule("ToolkitCore")
@@ -19,21 +16,7 @@ ToolkitCore.Frame = CreateFrame("Frame")
 
 -- 初始化配置
 function ToolkitCore:Initial()
-    MainFrame:Initial()
-    AloneBarsFrame:Initial()
-end
-
--- 切换GUI显示状态
-function ToolkitCore:ToggleMainFrame()
-    if MainFrame.IsOpen == false then
-        if not InCombatLockdown() then
-            MainFrame:ShowWindow()
-        else
-            U.Print.PrintInfoText(L["You cannot use this in combat."])
-        end
-    else
-        MainFrame:HideWindow()
-    end
+    HtFrame:Initial()
 end
 
 -- 注册事件
@@ -52,7 +35,6 @@ function ToolkitCore:Start()
         if event == "SPELL_UPDATE_COOLDOWN" then
         end
         if event == "PLAYER_REGEN_DISABLED" then
-            MainFrame:HideWindow()
         end
     end)
 end

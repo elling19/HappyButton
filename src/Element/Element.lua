@@ -34,7 +34,9 @@ function E:New(title, type)
     title = title,
     type = type,
     icon = icon,
-    elements = {}
+    elements = {},
+    isDisplayDefault = true,
+    isDisplayMouseEnter = false
   }
   config.title = title
   return config
@@ -79,3 +81,16 @@ function E:NewItemGroup(title)
     e.extraAttr.displayUnLearned = false
     return e
   end
+
+
+---@param config ElementConfig
+---@return BarConfig
+function E:ToBar(config)
+    return E:InitExtraAttr(config) ---@type BarConfig
+end
+
+---@param config ElementConfig
+---@return BarGroupConfig
+function E:ToBarGroup(config)
+    return E:InitExtraAttr(config) ---@type BarGroupConfig
+end

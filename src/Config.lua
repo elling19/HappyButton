@@ -9,11 +9,8 @@ local const = addon:GetModule('CONST')
 ---@class Result: AceModule
 local R = addon:GetModule("Result")
 
----@class MainFrame: AceModule
-local MainFrame = addon:GetModule("MainFrame")
-
----@class AloneBarsFrame: AceModule
-local AloneBarsFrame = addon:GetModule("AloneBarsFrame")
+---@class HtFrame: AceModule
+local HtFrame = addon:GetModule("HtFrame")
 
 local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 
@@ -318,6 +315,24 @@ local function GetElementOptions(elements, selectGroups)
                 ele.icon = val
                 addon:UpdateOptions()
             end,
+        }
+        order = order + 1
+        args.isDisplayDefaultToggle = {
+            order = order,
+            width=2,
+            type = 'toggle',
+            name = L["Whether to display by default."],
+            set = function(_, val) ele.isDisplayDefault = val end,
+            get = function(_) return ele.isDisplayDefault end,
+        }
+        order = order + 1
+        args.isDisplayMouseEnter = {
+            order = order,
+            width=2,
+            type = 'toggle',
+            name = L["Whether to show the bar menu when the mouse enter."],
+            set = function(_, val) ele.isDisplayMouseEnter = val end,
+            get = function(_) return ele.isDisplayMouseEnter end,
         }
         order = order + 1
         if ele.type == const.ELEMENT_TYPE.BAR_GROUP then
@@ -1403,8 +1418,7 @@ function ConfigOptions.Options()
                         func = function()
                             if addon.G.IsEditMode == false then
                                 addon.G.IsEditMode = true
-                                MainFrame:OpenEditMode()
-                                AloneBarsFrame:OpenEditMode()
+                                HtFrame:OpenEditMode()
                             end
                         end,
                     },
@@ -1416,31 +1430,6 @@ function ConfigOptions.Options()
                     },
                 },
             },
-            mainFrame = {
-                order=2,
-                type = 'group',
-                name = L["Main frame"],
-                args = {
-                    showbarMenuDefault = {
-                        order = 1,
-                        width=2,
-                        type = 'toggle',
-                        name = L["Whether to show the bar menu when login in."],
-                        set = function(_, val) addon.db.profile.showbarMenuDefault = val end,
-                        get = function(_) return addon.db.profile.showbarMenuDefault end,
-                    },
-                    showbarMenuOnMouseEnter = {
-                        order = 2,
-                        width=2,
-                        type = 'toggle',
-                        name = L["Whether to show the bar menu when the mouse enter."],
-                        set = function(_, val) addon.db.profile.showbarMenuOnMouseEnter = val end,
-                        get = function(_) return addon.db.profile.showbarMenuOnMouseEnter end,
-                    }
-                },
-            },
-            bar=ConfigOptions.BarOptions(),
-            source=ConfigOptions.SourceOptions(),
             element=ConfigOptions.ElementsOptions(),
             profiles = ConfigOptions.ConfigOptions()
         },
@@ -1462,13 +1451,6 @@ function addon:OnInitialize()
     self.db = LibStub("AceDB-3.0"):New("HappyToolkitDB", {
         profile = {
             elements = {},  ---@type ElementConfig[]
-            --- todo:删除其他
-            showbarMenuDefault = true,
-            showbarMenuOnMouseEnter = false,
-            posX = 0,
-            posY = 0,
-            barList = {},
-            sourceList={},
         }
     }, true)
     -- 注册选项表

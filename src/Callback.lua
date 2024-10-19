@@ -8,15 +8,6 @@ local HtItem = addon:GetModule('HtItem')
 ---@class Callback: AceModule
 local Callback = addon:NewModule("Callback")
 
----@class CbResult
----@field closeGUIAfterClick boolean | nil
----@field icon string | number
----@field text string
----@field item ItemOfHtItem
----@field macro string | nil
----@field leftClickCallback function | nil
-local CbResult = {}
-
 -- 随机选择callback
 function Callback.CallbackOfRandomMode(source)
     local usableItemList = {}
