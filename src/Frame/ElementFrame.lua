@@ -336,7 +336,7 @@ function ElementFrame:CreateEditModeFrame()
     self.EditModeBg:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
     self.EditModeBg:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
     self.EditModeBg:SetColorTexture(0, 0, 1, 0.5)  -- 蓝色半透明背景
-    -- self.EditModeBg:Hide()
+    self.EditModeBg:Hide()
 end
 
 function ElementFrame:ToggleIconFrame(index)
