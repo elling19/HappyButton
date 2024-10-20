@@ -27,7 +27,6 @@ Src\Element\Item.lua
 Src\Element\Script.lua
 Src\Element\Bar.lua
 Src\Element\BarGroup.lua
-Src\Callback.lua
 Src\Frame\ElementCallback.lua
 Src\Frame\ElementFrame.lua
 Src\Frame\HtFrame.lua

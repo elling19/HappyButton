@@ -154,6 +154,27 @@ function UtilsPrint.PrintTable(tbl, indent)
     end
 end
 
+-- 调试打印对象
+function UtilsPrint.PrintDictType(tbl, indent)
+    -- 如果没有提供缩进级别，则初始化为2
+    indent = indent or 2
+    -- 遍历表
+    if tbl == nil then
+        print(nil)
+        return
+    end
+    for key, value in pairs(tbl) do
+        local formatting = string.rep("  ", indent) .. tostring(key) .. ": "
+        if type(value) == "table" then
+            print(formatting .. "{")
+            UtilsPrint.PrintTable(value, indent + 1)
+            print(string.rep("  ", indent) .. "}")
+        else
+            print(formatting .. tostring(type(value)))
+        end
+    end
+end
+
 
 -- 函数：将 UTF-8 字符串拆分为单个字符表
 local function Utf8ToTable(str)

@@ -108,24 +108,27 @@ end
 function ECB.CallbackOfScriptMode(element)
     local script = E:ToScript(element)
     local cbResults = {} ---@type CbResult[]
-    if script.extraAttr.cb == nil then
+    local func, loadstringErr = loadstring("return " .. script.extraAttr.script)
+    if not func then
+        local errMsg = L["Illegal script."] .. " " .. loadstringErr
+        U.Print.PrintErrorText(errMsg)
         return cbResults
     end
-    local cbStatus, cbResult = pcall(script.extraAttr.cb)
-    if cbStatus then
-        if U.Table.IsArray(cbResult) then
-            for _, cb in ipairs(cbResult) do
-                if cb then
-                    table.insert(cbResults, cb)
-                end
-            end
-        else
-            local errMsg = L["Illegal script."] .. " " .. tostring(cbResult)
-            U.Print.PrintErrorText(errMsg)
-        end
-    else
+    local cbStatus, cbResult = pcall(func())
+    if not cbStatus then
         local errMsg = L["Illegal script."] .. " " .. tostring(cbResult)
         U.Print.PrintErrorText(errMsg)
+        return cbResults
+    end
+    if not U.Table.IsArray(cbResult) then
+        local errMsg = L["Illegal script."] .. " " .. tostring(cbResult)
+        U.Print.PrintErrorText(errMsg)
+        return cbResults
+    end
+    for _, cb in ipairs(cbResult) do
+        if cb then
+            table.insert(cbResults, cb)
+        end
     end
     return cbResults
 end

@@ -39,7 +39,8 @@ local ECB = addon:GetModule('ElementCallback')
 ---@field Bars Bar[]
 ---@field IsOpen boolean  -- 是否处理打开状态
 ---@field IsMouseInside boolean  -- 鼠标是否处在框体内
----@field IconSize number 图标大小
+---@field IconHeight number
+---@field IconWidth number
 ---@field CurrentBarIndex number | nil 当前选择的Bar的下标
 local ElementFrame = addon:NewModule("ElementFrame")
 
@@ -54,6 +55,12 @@ function ElementFrame:IsHorizontal()
     return self.Config.arrange == const.ARRANGE.HORIZONTAL
 end
 
+-- 判断图标列表横向展示
+function ElementFrame:IsIconsHorizontal()
+    -- 1. 当是BarGroup的时候、且组是纵向排列
+    -- 2. 当是Bar的时候、且Bar水平排列
+    return (self:IsBarGroup() and not self:IsHorizontal()) or (not self:IsBarGroup() and self:IsHorizontal())
+end
 
 ---@param element ElementConfig
 ---@param index number
@@ -65,7 +72,8 @@ function ElementFrame:New(element, index)
     obj.Index = index
     obj.IsOpen = false
     obj.IsMouseInside = false
-    obj.IconSize = 32
+    obj.IconHeight = element.iconHeight or addon.G.iconHeight
+    obj.IconWidth = element.iconWidth or addon.G.iconWidth
     obj.Bars = {}
     obj.CurrentBarIndex = 1
     obj:InitialWindow()
@@ -100,26 +108,8 @@ function ElementFrame:LoadConfig(element)
     elseif element.type == const.ELEMENT_TYPE.SCRIPT then
         local script = E:ToScript(element)
         if script.extraAttr.script then
-            local func, err = loadstring("return " .. script.extraAttr.script)
-            if func then
-                local status, result = pcall(func())
-                if status then
-                    if type(result) == "function" then
-                        script.extraAttr.cb = result
-                        ---@type ElementCbInfo
-                        local cb = {f=ECB.CallbackOfScriptMode, p=script, r={}}
-                        return {{cb, }}
-                    else
-                        local errMsg = L["Illegal script."] .. " " .. "the script should return a callback function."
-                        U.Print.PrintErrorText(errMsg)
-                    end
-                else
-                    local errMsg = L["Illegal script."] .. " " .. tostring(result)
-                    U.Print.PrintErrorText(errMsg)
-                end
-            else
-                U.Print.PrintErrorText(L["Illegal script."] .. " " .. err)
-            end
+            local cb = {f=ECB.CallbackOfScriptMode, p=script, r={}}
+            return {{cb, }}
         end
     elseif element.type == const.ELEMENT_TYPE.BAR then
         ---@type ElementCbInfo[]
@@ -142,11 +132,6 @@ function ElementFrame:LoadConfig(element)
 end
 
 function ElementFrame:Update()
-    if self.Config.isDisplayDefault == false and self.Config.isDisplayMouseEnter == false then
-        self:HideWindow()
-        return
-    end
-    local iconSize = self.IconSize
     for barIndex, bar in ipairs(self.Bars) do
         local cbResults = {} ---@type CbResult[]
         if self.Cbss[barIndex] then
@@ -162,11 +147,13 @@ function ElementFrame:Update()
             if cbIndex > #bar.BarBtns then
                 local btn = CreateFrame("Button", ("Button-%s-%s-%s"):format(self.Index, barIndex, cbIndex), bar.BarFrame, "SecureActionButtonTemplate, UIPanelButtonTemplate")
                 btn:SetNormalTexture(134400)
-                btn:SetSize(iconSize, iconSize)
-                if self:IsHorizontal() then
-                    btn:SetPoint("TOPLEFT", bar.BarFrame, "TOPLEFT", iconSize * cbIndex, 0)
+                btn:SetSize(self.IconWidth, self.IconHeight)
+                if self:IsIconsHorizontal() then
+                    -- 图标水平排列
+                    btn:SetPoint("TOPLEFT", bar.BarFrame, "TOPLEFT", self.IconWidth * (cbIndex - 1), 0)
                 else
-                    btn:SetPoint("TOPLEFT", bar.BarFrame, "TOPLEFT",  0, iconSize * cbIndex)
+                    -- 图标垂直排列
+                    btn:SetPoint("TOPLEFT", bar.BarFrame, "TOPLEFT",  0, - self.IconHeight * (cbIndex - 1))
                 end
                 btn:RegisterForClicks("AnyDown", "AnyUp")
                 btn:SetAttribute("macrotext", "")
@@ -192,19 +179,19 @@ function ElementFrame:Update()
             if self.Config.isDisplayText == true then
                 if btn.text == nil then
                     btn.text = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-                    if self:IsHorizontal() then
-                        btn.text:SetWidth(iconSize)
+                    if self:IsIconsHorizontal() then
+                        btn.text:SetWidth(self.IconWidth)
                     else
-                        btn.text:SetHeight(iconSize)
+                        btn.text:SetHeight(self.IconHeight)
                     end
-                    if self:IsHorizontal() then
+                    if self:IsIconsHorizontal() then
                         btn.text:SetPoint("TOP", btn, "BOTTOM", 0, -5)
                     else
                         btn.text:SetPoint("LEFT", btn, "RIGHT", 5, 0)
                     end
                 end
                 if r.text then
-                    if self:IsHorizontal() then
+                    if self:IsIconsHorizontal() then
                         btn.text:SetText(U.String.ToVertical(r.text))
                     else
                         btn.text:SetText(r.text)
@@ -227,7 +214,6 @@ function ElementFrame:Update()
 end
 
 function ElementFrame:InitialWindow()
-    local iconSize = self.IconSize
     local barNum = #self.Cbss
     for _, _ in ipairs(self.Cbss) do
         ---@type Bar
@@ -238,11 +224,11 @@ function ElementFrame:InitialWindow()
     self.Window:SetFrameStrata("BACKGROUND")
 
     if self:IsHorizontal() then
-        self.Window:SetHeight(iconSize)
-        self.Window:SetWidth(iconSize * barNum)
+        self.Window:SetHeight(self.IconHeight)
+        self.Window:SetWidth(self.IconWidth * barNum)
     else
-        self.Window:SetHeight(iconSize * barNum)
-        self.Window:SetWidth(iconSize)
+        self.Window:SetHeight(self.IconHeight * barNum)
+        self.Window:SetWidth(self.IconWidth)
     end
 
     -- 将窗口定位到初始位置
@@ -254,12 +240,7 @@ function ElementFrame:InitialWindow()
     self.Window:EnableMouse(true)
     self.Window:RegisterForDrag("LeftButton")
     self.Window:SetClampedToScreen(true)
-
-    if self.Config.isDisplayDefault == true then
-        self:ShowWindow()
-    else
-        self:HideWindow()
-    end
+    self:ShowWindow()
 
     -- 监听鼠标点击事件：右键关闭编辑模式
     self.Window:SetScript("OnMouseDown", function(_, button)
@@ -304,6 +285,10 @@ function ElementFrame:InitialWindow()
                 else
                     self:SetBarTransparency()
                 end
+            else
+                if self:IsBarGroup() then
+                    self:HideAllBarFrame()
+                end
             end
             self.IsMouseInside = false
         end
@@ -312,12 +297,10 @@ function ElementFrame:InitialWindow()
 end
 
 function ElementFrame:InitialCateMenuFrame()
-    local iconSize = self.IconSize
-    local barNum = #self.Cbss
     self.CateMenuFrame = CreateFrame("Frame", ("HtCateMenuFrame-%s"), self.Window)
     self.CateMenuFrame:SetHeight(self.Window:GetHeight())
     self.CateMenuFrame:SetWidth(self.Window:GetWidth())
-    self.CateMenuFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, iconSize)
+    self.CateMenuFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
     for index, bar in ipairs(self.Bars) do
         local TabBtn = CreateFrame("Button", ("tab-%s"):format(index), self.CateMenuFrame, "UIPanelButtonTemplate")
         local icon =  self.Config.icon
@@ -331,8 +314,12 @@ function ElementFrame:InitialCateMenuFrame()
         else
             TabBtn:SetNormalTexture(134400)
         end
-        TabBtn:SetSize(iconSize, iconSize)
-        TabBtn:SetPoint("TOPLEFT", self.CateMenuFrame, "TOPLEFT", 0, - (iconSize * index))
+        TabBtn:SetSize(self.IconWidth, self.IconHeight)
+        if self:IsHorizontal() then
+            TabBtn:SetPoint("TOPLEFT", self.CateMenuFrame, "TOPLEFT", self.IconWidth * (index - 1), 0)
+        else
+            TabBtn:SetPoint("TOPLEFT", self.CateMenuFrame, "TOPLEFT", 0, - (self.IconHeight * (index - 1)))
+        end
         TabBtn:SetScript("OnEnter", function (_)
             local highlightTexture = TabBtn:CreateTexture()
             highlightTexture:SetColorTexture(255, 255, 255, 0.2)
@@ -348,16 +335,21 @@ end
 
 function ElementFrame:InitialBarFrame()
     for _, bar in ipairs(self.Bars) do
-        local iconSize = self.IconSize
         local barFrame = CreateFrame("Frame", ("HtBarFrame-%s"):format(_), self.Window)
         if self:IsBarGroup() then
-            barFrame:SetPoint("TOPLEFT", bar.TabBtn, "TOPLEFT", 0, 0)
+            if self:IsHorizontal() then
+                barFrame:SetPoint("TOPLEFT", bar.TabBtn, "BOTTOMLEFT", 0, 0)
+            else
+                barFrame:SetPoint("TOPLEFT", bar.TabBtn, "TOPRIGHT", 0, 0)
+            end
         else
-            barFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", -iconSize, 0)
+            barFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
         end
-        barFrame:SetWidth(iconSize)
-        barFrame:SetHeight(iconSize)
-        -- barFrame:Hide()
+        barFrame:SetWidth(self.IconWidth)
+        barFrame:SetHeight(self.IconHeight)
+        if self:IsBarGroup() or self.Config.isDisplayMouseEnter then
+            barFrame:Hide()
+        end
         bar.BarFrame = barFrame
     end
 end
@@ -367,7 +359,7 @@ function ElementFrame:CreateEditModeFrame()
     self.EditModeBg = self.Window:CreateTexture(nil, "BACKGROUND")
     self.EditModeBg:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
     self.EditModeBg:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
-    self.EditModeBg:SetColorTexture(0, 0, 1, 0.5)  -- 蓝色半透明背景
+    self.EditModeBg:SetColorTexture(0, 0, 1,1)  -- 蓝色半透明背景
     self.EditModeBg:Hide()
 end
 
@@ -391,6 +383,17 @@ function ElementFrame:ShowBarFrame(index)
         end
     end
     self.Bars[index].BarFrame:Show()
+    self:SetWindowSize()
+end
+
+-- 隐藏所有的BarFrame
+function ElementFrame:HideAllBarFrame()
+    for _index, bar in ipairs(self.Bars) do
+        if bar.BarFrame ~= nil then
+            self.Bars[_index].BarFrame:Hide()
+        end
+    end
+    self.CurrentBarIndex = nil
     self:SetWindowSize()
 end
 
@@ -676,13 +679,22 @@ function ElementFrame:SetWindowSize()
         if self.CurrentBarIndex ~= nil then
             buttonNum = (#self.Bars[self.CurrentBarIndex].BarBtns) + 1
         end
+        if self:IsHorizontal() then
+            self.Window:SetWidth(self.IconWidth * #self.Bars)
+            self.Window:SetHeight(self.IconHeight * buttonNum)
+        else
+            self.Window:SetWidth(self.IconWidth * buttonNum)
+            self.Window:SetHeight(self.IconHeight * #self.Bars)
+        end
     else
         buttonNum = #self.Bars[1].BarBtns
-    end
-    if self:IsHorizontal() then
-        self.Window:SetHeight(self.IconSize * buttonNum)
-    else
-        self.Window:SetWidth(self.IconSize * buttonNum)
+        if self:IsHorizontal() then
+            self.Window:SetWidth(self.IconWidth * buttonNum)
+            self.Window:SetHeight(self.IconHeight)
+        else
+            self.Window:SetWidth(self.IconWidth)
+            self.Window:SetHeight(self.IconHeight * buttonNum)
+        end
     end
 end
 

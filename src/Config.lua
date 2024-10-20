@@ -286,6 +286,43 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
         local iconPath = "|T" .. showIcon .. ":16|t"
         local args = {}
         local order = 1
+        args.delete = {
+            order = order,
+            width = 1,
+            type = 'execute',
+            name = L["Delete"],
+            confirm=true,
+            func = function()
+                table.remove(elements, i)
+                AceConfigDialog:SelectGroup(addonName, unpack(selectGroups))
+            end,
+        }
+        order = order + 1
+        args.export = {
+            order=order,
+            width=1,
+            type = 'execute',
+            name = L['Export'],
+            func = function()
+                local serializedData = AceSerializer:Serialize(ele)
+                local compressedData = LibDeflate:CompressDeflate(serializedData)
+                local base64Encoded = LibDeflate:EncodeForPrint(compressedData)
+                Config.ShowExportDialog(base64Encoded)
+            end,
+        }
+        order = order + 1
+        args.sapce1 = {
+            order = order,
+            type = 'description',
+            name = "\n"
+        }
+        order = order + 1
+        args.elementHeader = {
+            order = order,
+            type = 'header',
+            name = L["Element"],
+        }
+        order = order + 1
         args.title = {
             order = order,
             width=1,
@@ -319,16 +356,175 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
         }
         order = order + 1
         if isTopElement then
-            args.arrange = {
+            args.iconWidth = {
+                step = 1,
+                order=order,
+                width=1,
+                type = 'range',
+                name = L["Icon Width"],
+                min = 24,
+                max = 128,
+                get = function(_) return ele.iconWidth or addon.G.iconWidth end,
+                set = function(_, value) ele.iconWidth = value end,
+            }
+            order = order + 1
+            args.iconHeight = {
+                step = 1,
+                order=order,
+                width=1,
+                type = 'range',
+                name = L["Icon Height"],
+                min = 24,
+                max = 128,
+                get = function(_) return ele.iconHeight or addon.G.iconHeight end,
+                set = function(_, value) ele.iconHeight = value end,
+            }
+            order = order + 1
+        end
+        if ele.type == const.ELEMENT_TYPE.ITEM then
+            local item = E:ToItem(ele)
+            local extraAttr = item.extraAttr
+            if extraAttr.id == nil then
+                args.itemType = {
+                    order = order,
+                    type = 'select',
+                    name = L["Item Type"],
+                    values = const.ItemTypeOptions,
+                    set = function(_, val)
+                        addon.G.tmpNewItemType = val
+                    end,
+                    get = function ()
+                        return addon.G.tmpNewItemType
+                    end
+                }
+                order = order + 1
+                args.itemVal = {
+                    order = order,
+                    type = 'input',
+                    name = L["Item name or item id"],
+                    validate = function (_, val)
+                        local r = VerifyItemAttr(val)
+                        if r:is_err() then
+                            return r:unwrap_err()
+                        end
+                        return true
+                    end,
+                    set = function(_, _)
+                        item.extraAttr = U.Table.DeepCopyDict(addon.G.tmpNewItem)
+                        addon.G.tmpNewItemVal = nil
+                        addon.G.tmpNewItem = {}
+                    end,
+                    get = function ()
+                        return addon.G.tmpNewItemVal
+                    end
+                }
+                order = order + 1
+            else
+                args.id = {
+                    order = order,
+                    width=1,
+                    type = 'input',
+                    name = L["ID"],
+                    disabled = true,
+                    get = function() return tostring(extraAttr.id) end,
+                }
+                order = order + 1
+                args.name = {
+                    order = order,
+                    width=1,
+                    type = 'input',
+                    name = L["Name"],
+                    disabled = true,
+                    get = function() return extraAttr.name end,
+                }
+                order = order + 1
+                args.type = {
+                    order = order,
+                    width=2,
+                    type = 'select',
+                    name = L["Type"],
+                    values = const.ItemTypeOptions,
+                    disabled = true,
+                    get = function() return extraAttr.type end,
+                }
+                order = order + 1
+                args.space = {
+                    order = order,
+                    type = 'description',
+                    name = "\n"
+                }
+                order = order + 1
+            end
+        end
+        if isTopElement then
+            if ele.type ~= const.ELEMENT_TYPE.ITEM then
+                args.arrange = {
+                    order = order,
+                    width=2,
+                    type = 'select',
+                    name = L["Arrange"],
+                    values = const.ArrangeOptions,
+                    set = function(_, val)
+                        ele.arrange = val
+                    end,
+                    get = function () return ele.arrange end,
+                }
+                order = order + 1
+            end
+        end
+        if ele.type == const.ELEMENT_TYPE.SCRIPT then
+            local script = E:ToScript(ele)
+            args.edit = {
+                order = order,
+                type = 'input',
+                name = L["Script"],
+                multiline = 20,
+                width = "full",
+                validate = function (_, val)
+                    local func, loadstringErr = loadstring("return " .. val)
+                    if not func then
+                        local errMsg = L["Illegal script."] .. " " .. loadstringErr
+                        U.Print.PrintErrorText(errMsg)
+                        return errMsg
+                    end
+                    local status, pcallErr = pcall(func())
+                    if not status then
+                        local errMsg = L["Illegal script."] .. " " .. tostring(pcallErr)
+                        U.Print.PrintErrorText(errMsg)
+                        return errMsg
+                    end
+                    return true
+                end,
+                set = function(_, val)
+                    script.extraAttr.script = val
+                    addon:UpdateOptions()
+                end,
+                get = function()
+                    return script.extraAttr.script
+                end,
+            }
+            order = order + 1
+        end
+        if isTopElement then
+            args.sapce2 = {
+                order = order,
+                type = 'description',
+                name = "\n"
+            }
+            order = order + 1
+            args.displayHeader = {
+                order = order,
+                type = 'header',
+                name = L["Display Rule"],
+            }
+            order = order + 1
+            args.isDisplayMouseEnter = {
                 order = order,
                 width=2,
-                type = 'select',
-                name = L["Arrange"],
-                values = const.ArrangeOptions,
-                set = function(_, val)
-                    ele.arrange = val
-                end,
-                get = function () return ele.arrange end,
+                type = 'toggle',
+                name = L["Whether to show the bar menu when the mouse enter."],
+                set = function(_, val) ele.isDisplayMouseEnter = val end,
+                get = function(_) return ele.isDisplayMouseEnter end,
             }
             order = order + 1
             args.isDisplayFontToggle = {
@@ -340,26 +536,33 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                 get = function(_) return ele.isDisplayText end,
             }
             order = order + 1
+            if ele.type == const.ELEMENT_TYPE.ITEM then
+                local item = E:ToItem(ele)
+                local extraAttr = item.extraAttr
+                args.replaceNameToggle = {
+                    order = order,
+                    width=2,
+                    type = 'toggle',
+                    name = L["Wheter to use element title to replace item name."],
+                    set = function(_, val) extraAttr.replaceName = val end,
+                    get = function(_) return extraAttr.replaceName == true end,
+                }
+                order = order + 1
+            end
         end
-        args.isDisplayDefaultToggle = {
-            order = order,
-            width=2,
-            type = 'toggle',
-            name = L["Whether to display by default."],
-            set = function(_, val) ele.isDisplayDefault = val end,
-            get = function(_) return ele.isDisplayDefault end,
-        }
-        order = order + 1
-        args.isDisplayMouseEnter = {
-            order = order,
-            width=2,
-            type = 'toggle',
-            name = L["Whether to show the bar menu when the mouse enter."],
-            set = function(_, val) ele.isDisplayMouseEnter = val end,
-            get = function(_) return ele.isDisplayMouseEnter end,
-        }
-        order = order + 1
         if ele.type == const.ELEMENT_TYPE.BAR_GROUP then
+            args.sapceAddChild = {
+                order = order,
+                type = 'description',
+                name = "\n\n"
+            }
+            order = order + 1
+            args.addChildHeader = {
+                order = order,
+                type = 'header',
+                name = L["Add Child Elements"],
+            }
+            order = order + 1
             args.addBar = {
                 order = order,
                 width = 1,
@@ -374,6 +577,18 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
             order = order + 1
         end
         if ele.type == const.ELEMENT_TYPE.BAR then
+            args.sapceAddChild = {
+                order = order,
+                type = 'description',
+                name = "\n\n"
+            }
+            order = order + 1
+            args.addChildHeader = {
+                order = order,
+                type = 'header',
+                name = L["Add Child Elements"],
+            }
+            order = order + 1
             args.addItemGroup = {
                 order = order,
                 width = 1,
@@ -443,10 +658,10 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                 get = function(_) return itemGroup.extraAttr.replaceName == true end,
             }
             order = order + 1
-            args.sapce1 = {
+            args.sapceAddChild = {
                 order = order,
                 type = 'description',
-                name = "\n\n\n"
+                name = "\n\n"
             }
             order = order + 1
             args.itemHeading = {
@@ -494,145 +709,19 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
             }
             order = order + 1
         end
-        if ele.type == const.ELEMENT_TYPE.SCRIPT then
-            local script = E:ToScript(ele)
-            args.edit = {
-                order = order,
-                type = 'input',
-                name = L["Script"],
-                multiline = 20,
-                width = "full",
-                validate = function (_, val)
-                    local func, loadstringErr = loadstring("return " .. val)
-                    if not func then
-                        local errMsg = L["Illegal script."] .. " " .. loadstringErr
-                        U.Print.PrintErrorText(errMsg)
-                        return errMsg
-                    end
-                    local status, pcallErr = pcall(func())
-                    if not status then
-                        local errMsg = L["Illegal script."] .. " " .. tostring(pcallErr)
-                        U.Print.PrintErrorText(errMsg)
-                        return errMsg
-                    end
-                    return true
-                end,
-                set = function(_, val)
-                    script.extraAttr.script = val
-                    addon:UpdateOptions()
-                end,
-                get = function()
-                    return script.extraAttr.script
-                end,
-            }
-            order = order + 1
-        end
-        if ele.type == const.ELEMENT_TYPE.ITEM then
-            local item = E:ToItem(ele)
-            local extraAttr = item.extraAttr
-            if extraAttr.id == nil then
-                args.itemType = {
-                    order = order,
-                    type = 'select',
-                    name = L["Item Type"],
-                    values = const.ItemTypeOptions,
-                    set = function(_, val)
-                        addon.G.tmpNewItemType = val
-                    end,
-                    get = function ()
-                        return addon.G.tmpNewItemType
-                    end
-                }
-                order = order + 1
-                args.itemVal = {
-                    order = order,
-                    type = 'input',
-                    name = L["Item name or item id"],
-                    validate = function (_, val)
-                        local r = VerifyItemAttr(val)
-                        if r:is_err() then
-                            return r:unwrap_err()
-                        end
-                        return true
-                    end,
-                    set = function(_, _)
-                        item.extraAttr = U.Table.DeepCopyDict(addon.G.tmpNewItem)
-                        addon.G.tmpNewItemVal = nil
-                        addon.G.tmpNewItem = {}
-                    end,
-                    get = function ()
-                        return addon.G.tmpNewItemVal
-                    end
-                }
-                order = order + 1
-            else
-                args.replaceNameToggle = {
-                    order = order,
-                    width=2,
-                    type = 'toggle',
-                    name = L["Wheter to use element title to replace item name."],
-                    set = function(_, val) extraAttr.replaceName = val end,
-                    get = function(_) return extraAttr.replaceName == true end,
-                }
-                order = order + 1
-                args.id = {
-                    order = order,
-                    width=1,
-                    type = 'input',
-                    name = L["ID"],
-                    disabled = true,
-                    get = function() return tostring(extraAttr.id) end,
-                }
-                order = order + 1
-                args.name = {
-                    order = order,
-                    width=1,
-                    type = 'input',
-                    name = L["Name"],
-                    disabled = true,
-                    get = function() return extraAttr.name end,
-                }
-                order = order + 1
-                args.type = {
-                    order = order,
-                    width=2,
-                    type = 'select',
-                    name = L["Type"],
-                    values = const.ItemTypeOptions,
-                    disabled = true,
-                    get = function() return extraAttr.type end,
-                }
-                order = order + 1
-                args.space = {
-                    order = order,
-                    type = 'description',
-                    name = "\n"
-                }
-                order = order + 1
-            end
-        end
-        args.delete = {
-            order = order,
-            width = 2,
-            type = 'execute',
-            name = L["Delete"],
-            confirm=true,
-            func = function()
-                table.remove(elements, i)
-                AceConfigDialog:SelectGroup(addonName, unpack(selectGroups))
-            end,
-        }
-        order = order + 1
         if ele.elements and #ele.elements then
             local tmpArgs = GetElementOptions(ele.elements, false, copySelectGroups)
             for k, v in pairs(tmpArgs) do
                 args[k] = v
             end
         end
-
+        local menuName = iconPath .. showTitle
+        if not isTopElement then
+            menuName = "|cff00ff00" .. iconPath .. showTitle .. "|r"
+        end
         eleArgs["elementMenu" .. i] = {
             type = 'group',
-            name = "|cff00ff00" .. iconPath .. showTitle .. "|r",
+            name = menuName,
             args = args,
             order = i + 1,
         }
@@ -1466,6 +1555,8 @@ function addon:OnInitialize()
     -- 全局变量
     ---@class GlobalValue
     self.G = {
+        iconWidth = 32,
+        iconHeight = 32,
         IsEditMode = false,
         tmpNewItemType = nil,
         tmpNewItemVal = nil,
