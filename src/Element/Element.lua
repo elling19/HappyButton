@@ -24,7 +24,7 @@ function E:New(title, type)
     elements = {},
     isDisplayMouseEnter = false,
     isDisplayText = false,
-    arrange=const.ARRANGE.HORIZONTAL,
+    elesGrowth=const.GROWTH.RIGHT_BOTTOM
   }
   config.title = title
   return config

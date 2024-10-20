@@ -117,6 +117,35 @@ const.ArrangeOptions = {
 }
 
 --[[
+生长方向
+]]
+---@enum Growth
+const.GROWTH = {
+    TOP_LEFT = "TOP_LEFT",
+    TOP_RIGHT = "TOP_RIGHT",
+    BOTTOM_LEFT = "BOTTOM_LEFT",
+    BOTTOM_RIGHT = "BOTTOM_RIGHT",
+    LEFT_TOP = "LEFT_TOP",
+    LEFT_BOTTOM = "LEFT_BOTTOM",
+    RIGHT_TOP = "RIGHT_TOP",
+    RIGHT_BOTTOM = "RIGHT_BOTTOM"
+}
+
+-- 生长方向类型选项
+---@class ArrangeOptions
+---@type table<number, string>
+const.GrowthOptions = {
+    [const.GROWTH.TOP_LEFT] = L["TOP_LEFT"] ,
+    [const.GROWTH.TOP_RIGHT] = L["TOP_RIGHT"],
+    [const.GROWTH.BOTTOM_LEFT] = L["BOTTOM_LEFT"],
+    [const.GROWTH.BOTTOM_RIGHT] = L["BOTTOM_RIGHT"],
+    [const.GROWTH.LEFT_TOP] = L["LEFT_TOP"] ,
+    [const.GROWTH.LEFT_BOTTOM] = L["LEFT_BOTTOM"],
+    [const.GROWTH.RIGHT_TOP] = L["RIGHT_TOP"],
+    [const.GROWTH.RIGHT_BOTTOM] = L["RIGHT_BOTTOM"],
+}
+
+--[[
 -- 事件常量
 ]]
 const.EVENT = {

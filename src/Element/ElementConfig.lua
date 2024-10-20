@@ -14,10 +14,6 @@
 ---@class ScriptAttr
 ---@field script string | nil  -- 原始脚本文件
 
----@class Bar
-
----@class BarGroup
-
 ---@class ElementConfig
 ---@field iconWidth number | nil
 ---@field iconHeight number | nil
@@ -26,11 +22,12 @@
 ---@field extraAttr any | nil
 ---@field elements ElementConfig[]
 ---@field icon string | number | nil
----@field attachFrame string | nil --依附框体
 ---@field anchorPos string | nil --锚点位置
+---@field attachFrame string | nil --依附框体
+---@field attachFrameAnchorPos string | nil -- 依附框体锚点位置
 ---@field posX number | nil -- X轴位置
 ---@field posY number | nil  -- Y轴位置
----@field arrange Arrange -- 排列方向
+---@field elesGrowth string --子元素生长方向
 ---@field isDisplayMouseEnter boolean --是否鼠标移入显示
 ---@field isDisplayText boolean  -- 是否显示文字
 local ElementConfig = {}

@@ -20,7 +20,6 @@ Main.lua
 Src\Const.lua
 Src\Result.lua
 Src\Utils.lua
-Src\HtItem.lua
 Src\Element\Element.lua
 Src\Element\ItemGroup.lua
 Src\Element\Item.lua

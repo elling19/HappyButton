@@ -1,10 +1,6 @@
 local addonName, _ = ...  ---@type string, table
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
-
----@class HtItem: AceModule
-local HtItem = addon:GetModule('HtItem')
-
 ---@class E: AceModule
 local E = addon:GetModule("Element")
 
@@ -23,7 +19,7 @@ local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 ---@field closeGUIAfterClick boolean | nil
 ---@field icon string | number
 ---@field text string
----@field item ItemOfHtItem
+---@field item ItemAttr
 ---@field macro string | nil
 ---@field leftClickCallback function | nil
 local CbResult = {}

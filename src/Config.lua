@@ -138,8 +138,8 @@ end
 ---@field mode integer
 ---@field replaceName boolean | nil
 ---@field displayUnLearned boolean | nil
----@field item ItemOfHtItem | nil
----@field itemList ItemOfHtItem[] | nil
+---@field item ItemAttr | nil
+---@field itemList ItemAttr[] | nil
 ---@field script string | nil
 local SourceAttrs = {}
 
@@ -188,7 +188,7 @@ end
 ---@field tmpImportSourceString string | nil
 ---@field tmpNewItemType integer | nil
 ---@field tmpNewItemVal string | nil
----@field tmpNewItem ItemOfHtItem
+---@field tmpNewItem ItemAttr
 ---@field ShowExportDialog function
 ---@field IsTitleDuplicated function
 ---@field CreateDuplicateTitle function
@@ -457,17 +457,17 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
             end
         end
         if isTopElement then
-            if ele.type ~= const.ELEMENT_TYPE.ITEM then
-                args.arrange = {
+            if ele.type ~= const.ELEMENT_TYPE.ITEM and ele.type ~= const.ELEMENT_TYPE.ITEM_GROUP then
+                args.elementsGrowth = {
                     order = order,
                     width=2,
                     type = 'select',
-                    name = L["Arrange"],
-                    values = const.ArrangeOptions,
+                    name = L["Direction of elements growth"] ,
+                    values = const.GrowthOptions,
                     set = function(_, val)
-                        ele.arrange = val
+                        ele.elesGrowth = val
                     end,
-                    get = function () return ele.arrange end,
+                    get = function () return ele.elesGrowth end,
                 }
                 order = order + 1
             end
@@ -789,6 +789,107 @@ function ConfigOptions.ElementsOptions()
                     table.insert(addon.db.profile.elements, item)
                     AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
                 end,
+            },
+
+            sapce1 = {
+                order = 6,
+                type = 'description',
+                name = "\n\n\n"
+            },
+            itemHeading = {
+                order = 7,
+                type = 'header',
+                name = L["Import Configuration"],
+            },
+            coverToggle = {
+                order = 8,
+                width=2,
+                type = 'toggle',
+                name = L["Whether to overwrite the existing configuration."] ,
+                set = function(_, _) Config.tmpCoverConfig = not Config.tmpCoverConfig end,
+                get = function(_) return Config.tmpCoverConfig end,
+            },
+            importEditBox = {
+                order = 9,
+                type = 'input',
+                name = L["Configuration string"],
+                multiline = 20,
+                width = "full",
+                set = function(_, val)
+                    Config.tmpImportSourceString = val
+                    local errorMsg = L["Import failed: Invalid configuration string."]
+                    if val == nil or val == "" then
+                        print(errorMsg)
+                        return
+                    end
+                    local decodedData = LibDeflate:DecodeForPrint(val)
+                    if decodedData == nil then
+                        print(errorMsg)
+                        return
+                    end
+                    local decompressedData = LibDeflate:DecompressDeflate(decodedData)
+                    if decompressedData == nil then
+                        print(errorMsg)
+                        return
+                    end
+                    ---@type boolean, ElementConfig
+                    local success, configTable = AceSerializer:Deserialize(decompressedData)
+                    if not success then
+                        print(errorMsg)
+                        return
+                    end
+                    -- 校验反序列是否正确
+                    -- table需要包含:
+                    -- {title=val, type="ITEM_GROUP", attrs={ mode=const.ITEMS_GROUP_MODE.MULTIPLE, replaceName=false, displayUnLearned=false, itemList={} }}
+                    -- {title=val, type="SCRIPT", attrs={script=nil}}
+                    if type(configTable) ~= "table" then
+                        print(errorMsg)
+                        return
+                    end
+                    if configTable.title == nil then
+                        print(errorMsg)
+                        return
+                    end
+                    local rightType = false
+                    for _, v in pairs(const.ELEMENT_TYPE) do
+                        print(_, v)
+                        if v == configTable.type then
+                            rightType = true
+                            break
+                        end
+                    end
+                    if rightType == false then
+                        print(errorMsg)
+                        return
+                    end
+                    if configTable.extraAttr == nil then
+                        print(errorMsg)
+                        return
+                    end
+                    -- 判断标题是否重复
+                    local titleList = {}
+                    for _, source in ipairs(addon.db.profile.sourceList) do
+                        table.insert(titleList, source.title)
+                    end
+                    if Config.IsTitleDuplicated(configTable.title, titleList) then
+                        if Config.tmpCoverConfig == true then
+                            for i, itemGroup in ipairs(addon.db.profile.sourceList) do
+                                if itemGroup.title == configTable.title then
+                                    addon.db.profile.sourceList[i] = configTable
+                                    addon:UpdateOptions()
+                                    AceConfigDialog:SelectGroup(addonName, "source", "SourceMenu" .. i)
+                                    return true
+                                end
+                            end
+                        else
+                            configTable.title = Config.CreateDuplicateTitle(configTable.title, titleList)
+                        end
+                    end
+                    table.insert(addon.db.profile.elements, configTable)
+                    addon:UpdateOptions()
+                    AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
+                end,
+                get = function (_) return Config.tmpImportSourceString end
             },
         },
     }

@@ -17,7 +17,7 @@ local Item = addon:GetModule("Item")
 ---@class Utils: AceModule
 local U = addon:GetModule('Utils')
 
----@class Callback: AceModule
+---@class ElementCallback: AceModule
 local ECB = addon:GetModule('ElementCallback')
 
 ---@class ElementCbInfo
@@ -52,7 +52,11 @@ end
 
 -- 判断是否水平方向展示
 function ElementFrame:IsHorizontal()
-    return self.Config.arrange == const.ARRANGE.HORIZONTAL
+    return
+    self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM
+    or self.Config.elesGrowth == const.GROWTH.LEFT_TOP
+    or self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM
+    or self.Config.elesGrowth == const.GROWTH.RIGHT_TOP
 end
 
 -- 判断图标列表横向展示
@@ -148,12 +152,32 @@ function ElementFrame:Update()
                 local btn = CreateFrame("Button", ("Button-%s-%s-%s"):format(self.Index, barIndex, cbIndex), bar.BarFrame, "SecureActionButtonTemplate, UIPanelButtonTemplate")
                 btn:SetNormalTexture(134400)
                 btn:SetSize(self.IconWidth, self.IconHeight)
-                if self:IsIconsHorizontal() then
-                    -- 图标水平排列
-                    btn:SetPoint("TOPLEFT", bar.BarFrame, "TOPLEFT", self.IconWidth * (cbIndex - 1), 0)
+                if self.Config.type == const.ELEMENT_TYPE.BAR_GROUP then
+                    if self.Config.elesGrowth == const.GROWTH.LEFT_TOP or self.Config.elesGrowth == const.GROWTH.RIGHT_TOP then
+                        btn:SetPoint("BOTTOM", bar.BarFrame, "BOTTOM",  0, self.IconHeight * (cbIndex - 1))
+                    elseif self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM or self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM then
+                        btn:SetPoint("TOP", bar.BarFrame, "TOP",  0, - self.IconHeight * (cbIndex - 1))
+                    elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT or self.Config.elesGrowth == const.GROWTH.TOP_LEFT then
+                        btn:SetPoint("RIGHT", bar.BarFrame, "RIGHT",  - self.IconWidth * (cbIndex - 1), 0)
+                    elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT or self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
+                        btn:SetPoint("LEFT", bar.BarFrame, "LEFT",  self.IconWidth * (cbIndex - 1), 0)
+                    else
+                        -- 默认右下
+                        btn:SetPoint("TOP", bar.BarFrame, "TOP",  0, - self.IconHeight * (cbIndex - 1))
+                    end
                 else
-                    -- 图标垂直排列
-                    btn:SetPoint("TOPLEFT", bar.BarFrame, "TOPLEFT",  0, - self.IconHeight * (cbIndex - 1))
+                    if self.Config.elesGrowth == const.GROWTH.LEFT_TOP or self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
+                        btn:SetPoint("RIGHT", bar.BarFrame, "RIGHT",  - self.IconWidth * (cbIndex - 1), 0)
+                    elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT or self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
+                        btn:SetPoint("BOTTOM", bar.BarFrame, "BOTTOM",  0, self.IconHeight * (cbIndex - 1))
+                    elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT or self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
+                        btn:SetPoint("TOP", bar.BarFrame, "TOP",  0, - self.IconHeight * (cbIndex - 1))
+                    elseif self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM or self.Config.elesGrowth == const.GROWTH.RIGHT_TOP then
+                        btn:SetPoint("LEFT", bar.BarFrame, "LEFT",  self.IconWidth * (cbIndex - 1), 0)
+                    else
+                        -- 默认右下
+                        btn:SetPoint("LEFT", bar.BarFrame, "LEFT",  self.IconWidth * (cbIndex - 1), 0)
+                    end
                 end
                 btn:RegisterForClicks("AnyDown", "AnyUp")
                 btn:SetAttribute("macrotext", "")
@@ -233,9 +257,28 @@ function ElementFrame:InitialWindow()
 
     -- 将窗口定位到初始位置
     local x = self.Config.posX or 0
-    local y = - (self.Config.posY or 0)
+    local y = self.Config.posY or 0
 
-    self.Window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
+    if self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM then
+        self.Window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
+    elseif self.Config.elesGrowth == const.GROWTH.RIGHT_TOP then
+        self.Window:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
+    elseif self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
+        self.Window:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", x, y)
+    elseif self.Config.elesGrowth == const.GROWTH.LEFT_TOP then
+        self.Window:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", x, y)
+    elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT then
+        self.Window:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", x, y)
+    elseif self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
+        self.Window:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
+    elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT then
+        self.Window:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", x, y)
+    elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
+        self.Window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
+    else
+        -- 默认右下
+        self.Window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
+    end
     self.Window:SetMovable(true)
     self.Window:EnableMouse(true)
     self.Window:RegisterForDrag("LeftButton")
@@ -259,9 +302,38 @@ function ElementFrame:InitialWindow()
     -- 监听窗口的拖拽事件
     self.Window:SetScript("OnDragStop", function(frame)
         frame:StopMovingOrSizing()
-        local newX, newY = frame:GetLeft(), frame:GetTop() - UIParent:GetHeight()
+        local newX, newY
+        if self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM then
+            newX = frame:GetLeft()
+            newY = frame:GetTop() - UIParent:GetHeight()
+        elseif self.Config.elesGrowth == const.GROWTH.RIGHT_TOP then
+            newX = frame:GetLeft()
+            newY = frame:GetTop()
+        elseif self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
+            newX = frame:GetLeft() - UIParent:GetWidth()
+            newY = frame:GetTop() - UIParent:GetHeight()
+        elseif self.Config.elesGrowth == const.GROWTH.LEFT_TOP then
+            newX = frame:GetLeft() - UIParent:GetWidth()
+            newY = frame:GetTop()
+        elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT then
+            newX = frame:GetLeft() - UIParent:GetWidth()
+            newY = frame:GetTop()
+        elseif self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
+            newX = frame:GetLeft()
+            newY = frame:GetTop()
+        elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT then
+            newX = frame:GetLeft() - UIParent:GetWidth()
+            newY = frame:GetTop() - UIParent:GetHeight()
+        elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
+            newX = frame:GetLeft()
+            newY = frame:GetTop() - UIParent:GetHeight()
+        else
+            -- 默认右下
+            newX = frame:GetLeft()
+            newY = frame:GetTop() - UIParent:GetHeight()
+        end
         self.Config.posX = math.floor(newX)
-        self.Config.posY = - math.floor(newY)
+        self.Config.posY = math.floor(newY)
     end)
 
     self.Window:SetScript("OnUpdate", function(frame)
@@ -300,7 +372,27 @@ function ElementFrame:InitialCateMenuFrame()
     self.CateMenuFrame = CreateFrame("Frame", ("HtCateMenuFrame-%s"), self.Window)
     self.CateMenuFrame:SetHeight(self.Window:GetHeight())
     self.CateMenuFrame:SetWidth(self.Window:GetWidth())
-    self.CateMenuFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
+
+    if self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM then
+        self.CateMenuFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.RIGHT_TOP then
+        self.CateMenuFrame:SetPoint("BOTTOMLEFT", self.Window, "BOTTOMLEFT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
+        self.CateMenuFrame:SetPoint("TOPRIGHT", self.Window, "TOPRIGHT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.LEFT_TOP then
+        self.CateMenuFrame:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT then
+        self.CateMenuFrame:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
+        self.CateMenuFrame:SetPoint("BOTTOMLEFT", self.Window, "BOTTOMLEFT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT then
+        self.CateMenuFrame:SetPoint("TOPRIGHT", self.Window, "TOPRIGHT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
+        self.CateMenuFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
+    else
+        -- 默认右下
+        self.CateMenuFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
+    end
     for index, bar in ipairs(self.Bars) do
         local TabBtn = CreateFrame("Button", ("tab-%s"):format(index), self.CateMenuFrame, "UIPanelButtonTemplate")
         local icon =  self.Config.icon
@@ -315,10 +407,14 @@ function ElementFrame:InitialCateMenuFrame()
             TabBtn:SetNormalTexture(134400)
         end
         TabBtn:SetSize(self.IconWidth, self.IconHeight)
-        if self:IsHorizontal() then
-            TabBtn:SetPoint("TOPLEFT", self.CateMenuFrame, "TOPLEFT", self.IconWidth * (index - 1), 0)
+        if self.Config.elesGrowth == const.GROWTH.LEFT_TOP or self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
+            TabBtn:SetPoint("RIGHT", self.CateMenuFrame, "RIGHT", -(index - 1) * self.IconWidth, 0)
+        elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT or self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
+            TabBtn:SetPoint("BOTTOM", self.CateMenuFrame, "BOTTOM", 0, (index - 1) * self.IconHeight)
+        elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT or self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
+            TabBtn:SetPoint("TOP", self.CateMenuFrame, "TOP", 0, -(index - 1) * self.IconHeight)
         else
-            TabBtn:SetPoint("TOPLEFT", self.CateMenuFrame, "TOPLEFT", 0, - (self.IconHeight * (index - 1)))
+            TabBtn:SetPoint("LEFT", self.CateMenuFrame, "LEFT", (index - 1) * self.IconWidth, 0)
         end
         TabBtn:SetScript("OnEnter", function (_)
             local highlightTexture = TabBtn:CreateTexture()
@@ -334,16 +430,43 @@ function ElementFrame:InitialCateMenuFrame()
 end
 
 function ElementFrame:InitialBarFrame()
-    for _, bar in ipairs(self.Bars) do
-        local barFrame = CreateFrame("Frame", ("HtBarFrame-%s"):format(_), self.Window)
+    for index, bar in ipairs(self.Bars) do
+        local barFrame = CreateFrame("Frame", ("HtBarFrame-%s"):format(index), self.Window)
+
         if self:IsBarGroup() then
-            if self:IsHorizontal() then
-                barFrame:SetPoint("TOPLEFT", bar.TabBtn, "BOTTOMLEFT", 0, 0)
+            if self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM or self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
+                barFrame:SetPoint("TOP", bar.TabBtn, "BOTTOM", 0, 0)
+            elseif self.Config.elesGrowth == const.GROWTH.RIGHT_TOP or self.Config.elesGrowth == const.GROWTH.LEFT_TOP then
+                barFrame:SetPoint("BOTTOM", bar.TabBtn, "TOP", 0, 0)
+            elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT or self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT then
+                barFrame:SetPoint("RIGHT", bar.TabBtn, "LEFT", 0, 0)
+            elseif self.Config.elesGrowth == const.GROWTH.TOP_RIGHT or self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
+                barFrame:SetPoint("LEFT", bar.TabBtn, "RIGHT", 0, 0)
             else
-                barFrame:SetPoint("TOPLEFT", bar.TabBtn, "TOPRIGHT", 0, 0)
+                -- 默认右下
+                barFrame:SetPoint("LEFT", bar.TabBtn, "RIGHT", 0, 0)
             end
         else
-            barFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
+            if self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM then
+                barFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
+            elseif self.Config.elesGrowth == const.GROWTH.RIGHT_TOP then
+                barFrame:SetPoint("BOTTOMLEFT", self.Window, "BOTTOMLEFT", 0, 0)
+            elseif self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
+                barFrame:SetPoint("TOPRIGHT", self.Window, "TOPRIGHT", 0, 0)
+            elseif self.Config.elesGrowth == const.GROWTH.LEFT_TOP then
+                barFrame:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
+            elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT then
+                barFrame:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
+            elseif self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
+                barFrame:SetPoint("BOTTOMLEFT", self.Window, "BOTTOMLEFT", 0, 0)
+            elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT then
+                barFrame:SetPoint("TOPRIGHT", self.Window, "TOPRIGHT", 0, 0)
+            elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
+                barFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
+            else
+                -- 默认右下
+                barFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
+            end
         end
         barFrame:SetWidth(self.IconWidth)
         barFrame:SetHeight(self.IconHeight)
@@ -359,7 +482,7 @@ function ElementFrame:CreateEditModeFrame()
     self.EditModeBg = self.Window:CreateTexture(nil, "BACKGROUND")
     self.EditModeBg:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
     self.EditModeBg:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
-    self.EditModeBg:SetColorTexture(0, 0, 1,1)  -- 蓝色半透明背景
+    self.EditModeBg:SetColorTexture(0, 0, 1,0.5)  -- 蓝色半透明背景
     self.EditModeBg:Hide()
 end
 
