@@ -263,8 +263,9 @@ end
 local ConfigOptions = {}
 
 ---@param elements ElementConfig[]
+---@param isTopElement boolean 是否是顶层的菜单
 ---@param selectGroups table  配置界面选项卡位置
-local function GetElementOptions(elements, selectGroups)
+local function GetElementOptions(elements, isTopElement, selectGroups)
     local eleArgs = {}
     for i, ele in ipairs(elements) do
         local copySelectGroups = U.Table.DeepCopyList(selectGroups)
@@ -317,6 +318,29 @@ local function GetElementOptions(elements, selectGroups)
             end,
         }
         order = order + 1
+        if isTopElement then
+            args.arrange = {
+                order = order,
+                width=2,
+                type = 'select',
+                name = L["Arrange"],
+                values = const.ArrangeOptions,
+                set = function(_, val)
+                    ele.arrange = val
+                end,
+                get = function () return ele.arrange end,
+            }
+            order = order + 1
+            args.isDisplayFontToggle = {
+                order = order,
+                width=2,
+                type = 'toggle',
+                name = L["Whether to display text."],
+                set = function(_, val) ele.isDisplayText = val end,
+                get = function(_) return ele.isDisplayText end,
+            }
+            order = order + 1
+        end
         args.isDisplayDefaultToggle = {
             order = order,
             width=2,
@@ -600,7 +624,7 @@ local function GetElementOptions(elements, selectGroups)
         }
         order = order + 1
         if ele.elements and #ele.elements then
-            local tmpArgs = GetElementOptions(ele.elements, copySelectGroups)
+            local tmpArgs = GetElementOptions(ele.elements, false, copySelectGroups)
             for k, v in pairs(tmpArgs) do
                 args[k] = v
             end
@@ -679,7 +703,7 @@ function ConfigOptions.ElementsOptions()
             },
         },
     }
-    local args = GetElementOptions(addon.db.profile.elements, {"element", })
+    local args = GetElementOptions(addon.db.profile.elements, true, {"element", })
     for k, v in pairs(args) do
         options.args[k] = v
     end

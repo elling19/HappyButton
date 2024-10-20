@@ -105,8 +105,17 @@ const.ItemsGroupModeOptions = {
 ---@enum Arrange
 const.ARRANGE = {
     HORIZONTAL = 1,  -- 水平
-    Vertical = 2,  -- 垂直
+    VERTICAL = 2,  -- 垂直
 }
+
+-- 排列方向类型选项
+---@class ArrangeOptions
+---@type table<number, string>
+const.ArrangeOptions = {
+    [const.ARRANGE.HORIZONTAL] = L["Horizontal"] ,
+    [const.ARRANGE.VERTICAL] = L["Vertical"],
+}
+
 --[[
 -- 事件常量
 ]]

@@ -29,9 +29,10 @@
 ---@field anchorPos string | nil --锚点位置
 ---@field posX number | nil -- X轴位置
 ---@field posY number | nil  -- Y轴位置
----@field arrange Arrange | nil -- 排列方向
+---@field arrange Arrange -- 排列方向
 ---@field isDisplayDefault boolean -- 默认是否展示
 ---@field isDisplayMouseEnter boolean --是否鼠标移入显示
+---@field isDisplayText boolean  -- 是否显示文字
 local ElementConfig = {}
 
 

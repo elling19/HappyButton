@@ -49,6 +49,11 @@ function ElementFrame:IsBarGroup()
     return self.Config.type == const.ELEMENT_TYPE.BAR_GROUP
 end
 
+-- 判断是否水平方向展示
+function ElementFrame:IsHorizontal()
+    return self.Config.arrange == const.ARRANGE.HORIZONTAL
+end
+
 
 ---@param element ElementConfig
 ---@param index number
@@ -57,9 +62,6 @@ function ElementFrame:New(element, index)
     obj.Config = element
     obj.Cbss = self:LoadConfig(element)
     obj.Window = CreateFrame("Frame", ("HtWindow-%s"):format(index), UIParent)
-    if element.type == const.ELEMENT_TYPE.BAR_GROUP then
-        obj.CateMenuFrame = CreateFrame("Frame", ("HtCateMenuFrame-%s"), UIParent)
-    end
     obj.Index = index
     obj.IsOpen = false
     obj.IsMouseInside = false
@@ -161,12 +163,13 @@ function ElementFrame:Update()
                 local btn = CreateFrame("Button", ("Button-%s-%s-%s"):format(self.Index, barIndex, cbIndex), bar.BarFrame, "SecureActionButtonTemplate, UIPanelButtonTemplate")
                 btn:SetNormalTexture(134400)
                 btn:SetSize(iconSize, iconSize)
-                btn:SetPoint("TOPLEFT", bar.BarFrame, "TOPLEFT", iconSize * cbIndex, 0)
+                if self:IsHorizontal() then
+                    btn:SetPoint("TOPLEFT", bar.BarFrame, "TOPLEFT", iconSize * cbIndex, 0)
+                else
+                    btn:SetPoint("TOPLEFT", bar.BarFrame, "TOPLEFT",  0, iconSize * cbIndex)
+                end
                 btn:RegisterForClicks("AnyDown", "AnyUp")
                 btn:SetAttribute("macrotext", "")
-                btn.text = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-                btn.text:SetWidth(iconSize)
-                btn.text:SetPoint("TOP", btn, "BOTTOM", 0, -5)
                 btn.r = r
                 btn.barIndex = barIndex
                 btn.cbIndex = cbIndex
@@ -185,8 +188,32 @@ function ElementFrame:Update()
             else
                 self:SetScriptEvent(btn)
             end
-            if r.text and r.text then
-                btn.text:SetText(U.String.ToVertical(r.text))
+            -- 隐藏/显示文字
+            if self.Config.isDisplayText == true then
+                if btn.text == nil then
+                    btn.text = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+                    if self:IsHorizontal() then
+                        btn.text:SetWidth(iconSize)
+                    else
+                        btn.text:SetHeight(iconSize)
+                    end
+                    if self:IsHorizontal() then
+                        btn.text:SetPoint("TOP", btn, "BOTTOM", 0, -5)
+                    else
+                        btn.text:SetPoint("LEFT", btn, "RIGHT", 5, 0)
+                    end
+                end
+                if r.text then
+                    if self:IsHorizontal() then
+                        btn.text:SetText(U.String.ToVertical(r.text))
+                    else
+                        btn.text:SetText(r.text)
+                    end
+                end
+            else
+                if btn.text then
+                    btn.text:Hide()
+                end
             end
         end
         -- 如果按钮过多，删除冗余按钮
@@ -196,14 +223,12 @@ function ElementFrame:Update()
             end
         end
     end
-    print("Update")
-    self:SetWindowsWidth()
+    self:SetWindowSize()
 end
 
 function ElementFrame:InitialWindow()
     local iconSize = self.IconSize
     local barNum = #self.Cbss
-    local windowHeight = iconSize * barNum
     for _, _ in ipairs(self.Cbss) do
         ---@type Bar
         local bar = {TabBtn = nil, BarFrame = nil, BarBtns = {}}
@@ -211,8 +236,14 @@ function ElementFrame:InitialWindow()
     end
 
     self.Window:SetFrameStrata("BACKGROUND")
-    self.Window:SetHeight(windowHeight)
-    self.Window:SetWidth(iconSize)
+
+    if self:IsHorizontal() then
+        self.Window:SetHeight(iconSize)
+        self.Window:SetWidth(iconSize * barNum)
+    else
+        self.Window:SetHeight(iconSize * barNum)
+        self.Window:SetWidth(iconSize)
+    end
 
     -- 将窗口定位到初始位置
     local x = self.Config.posX or 0
@@ -260,7 +291,7 @@ function ElementFrame:InitialWindow()
         if mouseOver and not self.IsMouseInside then
             if self.Config.isDisplayMouseEnter == true then
                 if self:IsBarGroup() then
-                    self:ShowCateMenuFrame()
+                    self:SetBarGroupShow()
                 else
                     self:SetBarNonTransparency()
                 end
@@ -283,16 +314,17 @@ end
 function ElementFrame:InitialCateMenuFrame()
     local iconSize = self.IconSize
     local barNum = #self.Cbss
-    local windowHeight = iconSize * barNum
-    self.CateMenuFrame:SetWidth(iconSize)
-    self.CateMenuFrame:SetHeight(windowHeight)
+    self.CateMenuFrame = CreateFrame("Frame", ("HtCateMenuFrame-%s"), self.Window)
+    self.CateMenuFrame:SetHeight(self.Window:GetHeight())
+    self.CateMenuFrame:SetWidth(self.Window:GetWidth())
     self.CateMenuFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, iconSize)
     for index, bar in ipairs(self.Bars) do
         local TabBtn = CreateFrame("Button", ("tab-%s"):format(index), self.CateMenuFrame, "UIPanelButtonTemplate")
         local icon =  self.Config.icon
         if icon then
-            if tonumber(icon) then
-                TabBtn:SetNormalTexture(tonumber(icon))
+            local iconNumber = tonumber(icon)
+            if iconNumber then
+                TabBtn:SetNormalTexture(iconNumber)
             else
                 TabBtn:SetNormalTexture(icon)
             end
@@ -305,10 +337,10 @@ function ElementFrame:InitialCateMenuFrame()
             local highlightTexture = TabBtn:CreateTexture()
             highlightTexture:SetColorTexture(255, 255, 255, 0.2)
             TabBtn:SetHighlightTexture(highlightTexture)
-            self:ShowIconFrame(index)
+            self:ShowBarFrame(index)
         end)
         TabBtn:SetScript("OnClick", function(_, _)
-            self:ToggleIconFrame(index)
+            self:ToggleBarFrame(index)
         end)
         bar.TabBtn = TabBtn
     end
@@ -339,18 +371,19 @@ function ElementFrame:CreateEditModeFrame()
     self.EditModeBg:Hide()
 end
 
-function ElementFrame:ToggleIconFrame(index)
+function ElementFrame:ToggleBarFrame(index)
     if self.CurrentBarIndex == index then
         self.CurrentBarIndex = nil
         self.Bars[index].BarFrame:Hide()
     else
         self.CurrentBarIndex = index
         self.Bars[index].BarFrame:Show()
-        self:SetWindowsWidth()
+        self:SetWindowSize()
     end
 end
 
-function ElementFrame:ShowIconFrame(index)
+-- 显示指定下标的BarFrame
+function ElementFrame:ShowBarFrame(index)
     self.CurrentBarIndex = index
     for _index, bar in ipairs(self.Bars) do
         if bar.BarFrame ~= nil then
@@ -358,22 +391,7 @@ function ElementFrame:ShowIconFrame(index)
         end
     end
     self.Bars[index].BarFrame:Show()
-    self:SetWindowsWidth()
-end
-
-function ElementFrame:HideCateMenuFrame()
-    -- 当设置了鼠标移入显示菜单的时候，不能隐藏window
-    if self.Config.isDisplayMouseEnter == false then
-        self.Window:Hide()
-    end
-end
-
-function ElementFrame:ShowCateMenuFrame()
-    self.Window:Show()
-    if self.CateMenuFrame then
-        self.CateMenuFrame:Show()
-    end
-    self.IsOpen = true
+    self:SetWindowSize()
 end
 
 -- 将bargroup类型设置成隐藏
@@ -460,9 +478,6 @@ function ElementFrame:SetPoolMacro(btn)
         macroText = macroText .. "\r" .. "/closehtmainframe"
     end
     btn:SetAttribute("macrotext", macroText)
-    if r.text and btn.text then
-        btn.text:SetText(U.String.ToVertical(r.text))
-    end
 end
 
 -- 设置pool的冷却
@@ -541,9 +556,6 @@ function ElementFrame:SetScriptEvent(btn)
     end
     if r.icon then
         btn:SetNormalTexture(r.icon)
-    end
-    if r.text and btn.text then
-        btn.text:SetText(U.String.ToVertical(r.text))
     end
 end
 
@@ -658,7 +670,7 @@ end
 
 
 -- 设置窗口宽度：窗口会遮挡视图，会减少鼠标可点击范围，因此窗口宽度尽可能小
-function ElementFrame:SetWindowsWidth()
+function ElementFrame:SetWindowSize()
     local buttonNum = 1
     if self:IsBarGroup() then
         if self.CurrentBarIndex ~= nil then
@@ -667,8 +679,11 @@ function ElementFrame:SetWindowsWidth()
     else
         buttonNum = #self.Bars[1].BarBtns
     end
-    local windowWidth = self.IconSize * buttonNum
-    self.Window:SetWidth(windowWidth)
+    if self:IsHorizontal() then
+        self.Window:SetHeight(self.IconSize * buttonNum)
+    else
+        self.Window:SetWidth(self.IconSize * buttonNum)
+    end
 end
 
 -- 隐藏窗口

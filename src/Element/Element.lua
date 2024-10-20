@@ -36,7 +36,9 @@ function E:New(title, type)
     icon = icon,
     elements = {},
     isDisplayDefault = true,
-    isDisplayMouseEnter = false
+    isDisplayMouseEnter = false,
+    isDisplayText = false,
+    arrange=const.ARRANGE.HORIZONTAL,
   }
   config.title = title
   return config
