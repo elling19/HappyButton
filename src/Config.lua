@@ -27,106 +27,164 @@ local AceSerializer = LibStub("AceSerializer-3.0")
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
 local AceGUI = LibStub("AceGUI-3.0")
 
-
+---@param itemType ElementType
 ---@param val string | nil
 ---@return Result
-local function VerifyItemAttr(val)
+local function VerifyItemAttr(itemType, val)
     if val == nil or val == "" or val == " " then
         return R:Err("Please input effect title.")
     end
     local G = addon.G
-    G.tmpNewItem = {}
-    G.tmpNewItem.type = G.tmpNewItemType
-    if G.tmpNewItem.type == nil then
+    local item = {} ---@type ItemAttr
+    item.type = itemType
+    if item.type == nil then
         return R:Err(L["Please select item type."])
     end
     -- 添加物品逻辑
-    if G.tmpNewItem.type == const.ITEM_TYPE.ITEM or G.tmpNewItem.type == const.ITEM_TYPE.EQUIPMENT or G.tmpNewItem.type == const.ITEM_TYPE.TOY then
+    if item.type == const.ITEM_TYPE.ITEM or item.type == const.ITEM_TYPE.EQUIPMENT or item.type == const.ITEM_TYPE.TOY then
         local itemID = C_Item.GetItemIDForItemInfo(val)
         if itemID then
-            G.tmpNewItem.id = itemID
+            item.id = itemID
         else
             return R:Err(L["Unable to get the id, please check the input."])
         end
-        local itemName = C_Item.GetItemNameByID(G.tmpNewItem.id)
+        local itemName = C_Item.GetItemNameByID(item.id)
         if itemName then
-            G.tmpNewItem.name = itemName
+            item.name = itemName
         else
             return R:Err(L["Unable to get the name, please check the input."])
         end
-        local itemIcon = C_Item.GetItemIconByID(G.tmpNewItem.id)
+        local itemIcon = C_Item.GetItemIconByID(item.id)
         if itemIcon then
-            G.tmpNewItem.icon = itemIcon
+            item.icon = itemIcon
         else
             return R:Err("Can not get the icon, please check your input.")
         end
-    elseif G.tmpNewItem.type == const.ITEM_TYPE.SPELL then
+    elseif item.type == const.ITEM_TYPE.SPELL then
         local spellID = C_Spell.GetSpellIDForSpellIdentifier(val)
         if spellID then
-            G.tmpNewItem.id = spellID
+            item.id = spellID
         else
             return R:Err(L["Unable to get the id, please check the input."])
         end
-        local spellName = C_Spell.GetSpellName(G.tmpNewItem.id)
+        local spellName = C_Spell.GetSpellName(item.id)
         if spellName then
-            G.tmpNewItem.name = spellName
+            item.name = spellName
         else
             return R:Err("Can not get the name, please check your input.")
         end
-        local iconID, originalIconID = C_Spell.GetSpellTexture(G.tmpNewItem.id)
+        local iconID, originalIconID = C_Spell.GetSpellTexture(item.id)
         if iconID then
-            G.tmpNewItem.icon = iconID
+            item.icon = iconID
         else
             return R:Err(L["Unable to get the icon, please check the input."])
         end
-    elseif G.tmpNewItem.type == const.ITEM_TYPE.MOUNT then
-        G.tmpNewItem.id = tonumber(val)
-        if G.tmpNewItem.id == nil then
+    elseif item.type == const.ITEM_TYPE.MOUNT then
+        item.id = tonumber(val)
+        if item.id == nil then
             for mountDisplayIndex = 1, C_MountJournal.GetNumDisplayedMounts() do
                 local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight = C_MountJournal.GetDisplayedMountInfo(mountDisplayIndex)
                 if name == val then
-                    G.tmpNewItem.id = mountID
-                    G.tmpNewItem.name = name
-                    G.tmpNewItem.icon = icon
+                    item.id = mountID
+                    item.name = name
+                    item.icon = icon
                     break
                 end
             end
         end
-        if G.tmpNewItem.id == nil then
+        if item.id == nil then
             return R:Err(L["Unable to get the id, please check the input."])
         end
-        if G.tmpNewItem.icon == nil then
-            local name, spellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID = C_MountJournal.GetMountInfoByID(G.tmpNewItem.id)
+        if item.icon == nil then
+            local name, spellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID = C_MountJournal.GetMountInfoByID(item.id)
             if name then
-                G.tmpNewItem.id = mountID
-                G.tmpNewItem.name = name
-                G.tmpNewItem.icon = icon
+                item.id = mountID
+                item.name = name
+                item.icon = icon
             else
                 return R:Err("Can not get the name, please check your input.")
             end
         end
-    elseif G.tmpNewItem.type == const.ITEM_TYPE.PET then
-        G.tmpNewItem.id = tonumber(val)
-        if G.tmpNewItem.id == nil then
+    elseif item.type == const.ITEM_TYPE.PET then
+        item.id = tonumber(val)
+        if item.id == nil then
             local speciesId, petGUID = C_PetJournal.FindPetIDByName(val)
             if speciesId then
-                G.tmpNewItem.id = speciesId
+                item.id = speciesId
             end
         end
-        if G.tmpNewItem.id == nil then
+        if item.id == nil then
             return R:Err(L["Unable to get the id, please check the input."])
         end
         local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID = C_PetJournal.GetPetInfoBySpeciesID(G.tmpNewItem.id)
         if speciesName then
-            G.tmpNewItem.name = speciesName
-            G.tmpNewItem.icon = speciesIcon
+            item.name = speciesName
+            item.icon = speciesIcon
         else
             return R:Err(L["Unable to get the name, please check the input."])
         end
     else
         return R:Err("Wrong type, please check your input.")
     end
-    return R:Ok()
+    return R:Ok(item)
+end
+
+---@param item ItemConfig
+local function UpdateItemLocalizeName(item)
+    if item == nil or item.extraAttr == nil or item.extraAttr.id == nil or item.extraAttr.type == nil then
+        return
+    end
+    if item.extraAttr.type == const.ITEM_TYPE.ITEM or item.extraAttr.type == const.ITEM_TYPE.EQUIPMENT or item.extraAttr.type == const.ITEM_TYPE.TOY then
+        local itemName = C_Item.GetItemNameByID(item.extraAttr.id)
+        if itemName then
+            item.extraAttr.name = itemName
+        else
+            local syncItem = Item:CreateFromItemID(item.extraAttr.id)
+            syncItem:ContinueOnItemLoad(function()
+                local syncName = syncItem:GetItemName()
+                if syncName then
+                    item.extraAttr.name = syncItem:GetItemName()
+                end
+            end)
+        end
+    elseif item.extraAttr.type == const.ITEM_TYPE.SPELL then
+        local spellName = C_Spell.GetSpellName(item.extraAttr.id)
+        if spellName then
+            item.extraAttr.name = spellName
+        else
+            local syncSpell = Spell:CreateFromSpellID(item.extraAttr.id)
+            syncSpell:ContinueOnSpellLoad(function()
+                local syncName = syncSpell:GetSpellName()
+                if syncName then
+                    item.extraAttr.name = syncName
+                end
+            end)
+        end
+    elseif item.extraAttr.type == const.ITEM_TYPE.MOUNT then
+        local name, spellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID = C_MountJournal.GetMountInfoByID(item.extraAttr.id)
+        if name then
+            item.extraAttr.name = name
+        end
+    elseif item.extraAttr.type == const.ITEM_TYPE.PET then
+        local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID = C_PetJournal.GetPetInfoBySpeciesID(item.extraAttr.id)
+        if speciesName then
+            item.extraAttr.name = speciesName
+        end
+    else
+    end
+end
+
+---@param ele ElementConfig
+local function LocalizeItemsName(ele)
+    if ele.type == const.ELEMENT_TYPE.ITEM then
+        local item = E:ToItem(ele)
+        UpdateItemLocalizeName(item)
+    end
+    if ele.elements then
+        for _, childEle in ipairs(ele.elements) do
+            LocalizeItemsName(childEle)
+        end
+    end
 end
 
 ---@class ProfileConfig.ConfigTable
@@ -309,6 +367,16 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
             end,
         }
         order = order + 1
+        args.localize = {
+            order=order,
+            width=1,
+            type = 'execute',
+            name = L["Localize the name of items"],
+            func = function()
+                LocalizeItemsName(ele)
+            end,
+        }
+        order = order + 1
         args.sapce1 = {
             order = order,
             type = 'description',
@@ -345,7 +413,7 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
             order=order,
             width=1,
             type = 'input',
-            name = L["Element Icon"],
+            name = L["Element Icon ID or Path"],
             get = function() return ele.icon end,
             set = function(_, val)
                 ele.icon = val
@@ -401,9 +469,11 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                     type = 'input',
                     name = L["Item name or item id"],
                     validate = function (_, val)
-                        local r = VerifyItemAttr(val)
+                        local r = VerifyItemAttr(addon.G.tmpNewItemType, val)
                         if r:is_err() then
                             return r:unwrap_err()
+                        else
+                            addon.G.tmpNewItem = r:unwrap()
                         end
                         return true
                     end,
@@ -533,6 +603,25 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                 set = function(_, val) ele.isDisplayText = val end,
                 get = function(_) return ele.isDisplayText end,
             }
+            order = order + 1
+            if ele.type == const.ELEMENT_TYPE.BAR_GROUP then
+                args.combatLoadCond = {
+                    order = order,
+                    width=2,
+                    type = 'description',
+                    name = L["BarGroup only load when out of combat"]
+                }
+            else
+                args.combatLoadCond = {
+                    order = order,
+                    width=2,
+                    type = 'select',
+                    values = const.CombatLoadCondOptions,
+                    name = L["Combat Load Condition"],
+                    set = function(_, val) ele.combatLoadCond = val end,
+                    get = function(_) return ele.combatLoadCond end,
+                }
+            end
             order = order + 1
             if ele.type == const.ELEMENT_TYPE.ITEM then
                 local item = E:ToItem(ele)
@@ -686,9 +775,11 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                 type = 'input',
                 name = L["Item name or item id"],
                 validate = function (_, val)
-                    local r = VerifyItemAttr(val)
+                    local r = VerifyItemAttr(addon.G.tmpNewItemType, val)
                     if r:is_err() then
                         return r:unwrap_err()
+                    else
+                        addon.G.tmpNewItem = r:unwrap()
                     end
                     return true
                 end,

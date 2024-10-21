@@ -42,23 +42,6 @@ const.BarDisplayModeOptions = {
     [const.BAR_DISPLAY_MODE.Mount] = L["Append to the main frame"],
 }
 
-
----@enum ElementLayoutMode
-const.ELEMENT_LAYOUT_MODE = {
-    GRID = 1,  -- 平铺式
-    DRAWER = 2,  -- 抽屉式
-}
-
-
--- 物品条分类选项
----@class ElementLayoutModeOptions
----@type table<number, string>
-const.ElementLayoutOptions = {
-    [const.ELEMENT_LAYOUT_MODE.GRID] = L['Grid Layout'],
-    [const.ELEMENT_LAYOUT_MODE.DRAWER] = L['Drawer Layout'],
-}
-
-
 -- 物品分类
 ---@enum ItemType
 const.ITEM_TYPE = {
@@ -144,6 +127,25 @@ const.GrowthOptions = {
     [const.GROWTH.RIGHT_TOP] = L["RIGHT_TOP"],
     [const.GROWTH.RIGHT_BOTTOM] = L["RIGHT_BOTTOM"],
 }
+
+--[[
+战斗状态加载条件
+]]
+---@enum CombatLoadCond
+const.COMBAT_LOAD_COND = {
+    ALWAYS_LOAD = 1,  -- 总是显示
+    OUT_COMBAT_LOAD = 2,  -- 战斗外显示
+    IN_COMBAT_LOAD = 3  -- 战斗中显示
+}
+
+
+---@class CombatLoadCondOptions
+const.CombatLoadCondOptions = {
+    [const.COMBAT_LOAD_COND.ALWAYS_LOAD] = L["Always load"],
+    [const.COMBAT_LOAD_COND.OUT_COMBAT_LOAD] = L["Load when out of combat"],
+    [const.COMBAT_LOAD_COND.IN_COMBAT_LOAD] = L["Load when in combat"],
+}
+
 
 --[[
 -- 事件常量

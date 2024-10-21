@@ -26,9 +26,9 @@ local ECB = addon:GetModule('ElementCallback')
 ---@field r CbResult[]
 
 ---@class Bar
----@field TabBtn nil|table|Button|UIPanelButtonTemplate
----@field BarFrame nil|table|Button|UIPanelButtonTemplate
----@field BarBtns (table|Button|SecureActionButtonTemplate, UIPanelButtonTemplate)[]
+---@field TabBtn nil|table|Button
+---@field BarFrame nil|table|Button
+---@field BarBtns (table|Button)[]
 
 ---@class ElementFrame: AceModule
 ---@field Cbss ElementCbInfo[][]

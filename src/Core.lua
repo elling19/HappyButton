@@ -26,6 +26,7 @@ function ToolkitCore:Start()
     ToolkitCore.Frame:RegisterEvent("PLAYER_LOGIN")  -- 登录
     ToolkitCore.Frame:RegisterEvent("SPELL_UPDATE_COOLDOWN")  -- 触发冷却
     ToolkitCore.Frame:RegisterEvent("PLAYER_REGEN_DISABLED")  -- 进入战斗事件
+    ToolkitCore.Frame:RegisterEvent("PLAYER_REGEN_ENABLED")  -- 退出战斗事件
     ToolkitCore.Frame:SetScript("OnEvent", function(self, event, arg1)
         if event == "PLAYER_LOGIN" then
             ToolkitCore:Initial()
@@ -35,6 +36,10 @@ function ToolkitCore:Start()
         if event == "SPELL_UPDATE_COOLDOWN" then
         end
         if event == "PLAYER_REGEN_DISABLED" then
+            HtFrame:OnCombatEvent()
+        end
+        if event == "PLAYER_REGEN_ENABLED" then
+            HtFrame:OutCombatEvent()
         end
     end)
 end

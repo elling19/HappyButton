@@ -51,3 +51,33 @@ function HtFrame:CloseEditMode()
         eFrame:CloseEditMode()
     end
 end
+
+-- 处理战斗event
+function HtFrame:OnCombatEvent()
+    for _, eFrame in ipairs(HtFrame.EFrames) do
+        if eFrame:IsBarGroup() then
+            eFrame:HideWindow()
+        else
+            if eFrame.Config.combatLoadCond == const.COMBAT_LOAD_COND.OUT_COMBAT_LOAD then
+                eFrame:HideWindow()
+            else
+                eFrame:ShowWindow()
+            end
+        end
+    end
+end
+
+-- 处理战斗结束event
+function HtFrame:OutCombatEvent()
+    for _, eFrame in ipairs(HtFrame.EFrames) do
+        if eFrame:IsBarGroup() then
+            eFrame:ShowWindow()
+        else
+            if eFrame.Config.combatLoadCond == const.COMBAT_LOAD_COND.IN_COMBAT_LOAD  then
+                eFrame:HideWindow()
+            else
+                eFrame:ShowWindow()
+            end
+        end
+    end
+end

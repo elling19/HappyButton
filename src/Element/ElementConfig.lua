@@ -30,6 +30,7 @@
 ---@field elesGrowth string --子元素生长方向
 ---@field isDisplayMouseEnter boolean --是否鼠标移入显示
 ---@field isDisplayText boolean  -- 是否显示文字
+---@field combatLoadCond CombatLoadCond  -- 战斗状态显示
 local ElementConfig = {}
 
 

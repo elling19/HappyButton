@@ -24,7 +24,8 @@ function E:New(title, type)
     elements = {},
     isDisplayMouseEnter = false,
     isDisplayText = false,
-    elesGrowth=const.GROWTH.RIGHT_BOTTOM
+    elesGrowth=const.GROWTH.RIGHT_BOTTOM,
+    combatDisplayCond = const.COMBAT_LOAD_COND.OUT_COMBAT_LOAD,
   }
   config.title = title
   return config
