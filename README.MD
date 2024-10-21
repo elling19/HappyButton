@@ -1,6 +1,6 @@
-# HappyToolkit
+# HappyActionBar
 
-<img src="./Media/Logo.png" alt="HappyToolkit" width="300" height="300">
+<img src="./Media/Logo.png" alt="HappyActionBar" width="300" height="300">
 
 This is a World of Warcraft addon that collect your toys and items, use them anytime without searching it.
 

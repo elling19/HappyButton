@@ -1,5 +1,0 @@
-<Bindings>
-	<Binding name="Toggle HappyToolkit GUI" category="HappyToolkit">
-		G_HAPPY_TOOLKIT.RunWishByKeyBinding()
-	</Binding>
-</Bindings>

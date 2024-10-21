@@ -1,7 +1,7 @@
 local addonName, _ = ...
 
 
----@class HappyToolkit: AceAddon
+---@class HappyActionBar: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
 ---@class CONST: AceModule
@@ -25,7 +25,7 @@ function E:New(title, type)
     isDisplayMouseEnter = false,
     isDisplayText = false,
     elesGrowth=const.GROWTH.RIGHT_BOTTOM,
-    combatDisplayCond = const.COMBAT_LOAD_COND.OUT_COMBAT_LOAD,
+    combatLoadCond = const.COMBAT_LOAD_COND.OUT_COMBAT_LOAD,
   }
   config.title = title
   return config

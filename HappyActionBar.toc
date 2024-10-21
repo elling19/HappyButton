@@ -1,13 +1,13 @@
 ## Interface: 110002
-## Title: HappyToolkit
-## Notes: |cffbc8f8fHappyToolkit |r
+## Title: HappyActionBar
+## Notes: |cffbc8f8fHappyActionBar |r
 ## Notes-zhCN: |cffbc8f8f工具包|r
 ## Notes-zhTW: |cffbc8f8f工具包|r
 ## Author: CN Cryy
 ## Version: 1.0.0
 ## IconTexture: 1418621
-## IconTexture: Interface\AddOns\HappyToolkit\Media\Logo64.blp
-## SavedVariables: HappyToolkitDB
+## IconTexture: Interface\AddOns\HappyActionBar\Media\Logo64.blp
+## SavedVariables: HappyActionBarDB
 
 # 引入Libs中的模块
 Libs\embeds.xml
@@ -31,6 +31,6 @@ Src\Frame\ElementFrame.lua
 Src\Frame\HtFrame.lua
 Src\Core.lua
 Src\Command.lua
-HappyToolkit.lua
+HappyActionBar.lua
 Src\Config.lua
 Src\Event.lua

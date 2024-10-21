@@ -1,7 +1,7 @@
-local L = LibStub("AceLocale-3.0"):NewLocale("HappyToolkit", "enUS", true)
+local L = LibStub("AceLocale-3.0"):NewLocale("HappyActionBar", "enUS", true)
 
-L["Welcome to use HappyToolkit."] = true
-L["Can not register toolkit: must be a callback function."] = true
+L["Welcome to use HappyActionBar."] = true
+L["Can not register Bar: must be a callback function."] = true
 L["You cannot use this in combat."] = true
 L["Teleport"] = true
 L["Class"] = true

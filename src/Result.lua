@@ -1,5 +1,5 @@
 local addonName, _ = ...  ---@type string, table
----@class HappyToolkit: AceAddon
+---@class HappyActionBar: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
 ---@class Result: AceModule
@@ -9,7 +9,7 @@ local Result = addon:NewModule("Result")
 
 -- 定义 Result 的 Ok 构造函数
 ---@param value any
----@return Result
+---@return Result<any>
 function Result:Ok(value)
     local obj = setmetatable({}, {__index = self})
     obj._value = value
@@ -39,6 +39,7 @@ function Result:is_err()
 end
 
 -- 定义方法来处理 Result
+---@return any
 function Result:unwrap()
     if self:is_ok() then
         return self._value
@@ -55,6 +56,7 @@ function Result:unwrap_or(default)
     end
 end
 
+---@return any
 function Result:unwrap_err()
     if not self:is_ok() then
         return self._error

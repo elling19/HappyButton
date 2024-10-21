@@ -1,6 +1,6 @@
 local addonName, _ = ...
 
----@class HappyToolkit: AceAddon
+---@class HappyActionBar: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
 local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
@@ -598,7 +598,7 @@ function ElementFrame:SetPoolMacro(btn)
         macroText = "/SummonPet " .. r.item.name
     end
     -- 宏命令附加更新冷却计时
-    macroText = macroText .. "\r" .. ("/sethappytoolkitguicooldown %s %s %s"):format(self.Index, btn.barIndex, btn.cbIndex)
+    macroText = macroText .. "\r" .. ("/setHappyActionBarguicooldown %s %s %s"):format(self.Index, btn.barIndex, btn.cbIndex)
     -- 宏命令附加关闭窗口
     if r.closeGUIAfterClick == nil or r.closeGUIAfterClick == true then
         macroText = macroText .. "\r" .. "/closehtmainframe"

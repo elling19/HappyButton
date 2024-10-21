@@ -1,20 +1,20 @@
 local addonName, _ = ...  ---@type string, table
 
----@class HappyToolkit: AceAddon
+---@class HappyActionBar: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
 ---@class CONST: AceModule
 local const = addon:GetModule('CONST')
 
----@class ToolkitCore: AceModule
-local ToolkitCore = addon:GetModule("ToolkitCore")
+---@class BarCore: AceModule
+local BarCore = addon:GetModule("BarCore")
 
 ---@class HtFrame: AceModule
 local HtFrame = addon:GetModule("HtFrame")
 
 -- 注册命令：更新冷却计时
--- /sethappytoolkitguicooldown 1 1
-SlashCmdList["SETHAPPYTOOLKITGUICOOLDOWN"] = function(msg)
+-- /setHappyActionBarguicooldown 1 1
+SlashCmdList["SETHappyActionBarGUICOOLDOWN"] = function(msg)
     local barGroupIndex, barIndex, btnIndex = msg:match("(%d+) (%d+) (%d+)")
     barGroupIndex = tonumber(barGroupIndex)
     local barIdx = tonumber(barIndex)
@@ -39,4 +39,4 @@ SlashCmdList["SETHAPPYTOOLKITGUICOOLDOWN"] = function(msg)
         end
     end)
 end
-SLASH_SETHAPPYTOOLKITGUICOOLDOWN1 = "/sethappytoolkitguicooldown"
+SLASH_SETHappyActionBarGUICOOLDOWN1 = "/setHappyActionBarguicooldown"

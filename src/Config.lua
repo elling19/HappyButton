@@ -1,6 +1,6 @@
 local addonName, _ = ... ---@type string, table
 
----@class HappyToolkit: AceAddon
+---@class HappyActionBar: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
 ---@class CONST: AceModule
@@ -27,10 +27,52 @@ local AceSerializer = LibStub("AceSerializer-3.0")
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
 local AceGUI = LibStub("AceGUI-3.0")
 
+
+
+---@class ProfileConfig.ConfigTable
+---@field name string
+---@field profile table
+
+---@class ProfileConfig
+local ProfileConfig = {}
+
+
+-- 创建新的全局配置名称
+---@param title  string
+---@return string
+function ProfileConfig.GenerateNewProfileName(title)
+    local index = 1
+    while addon.db.profiles[title .. "[" .. index .. "]"] do
+        index = index + 1
+    end
+    return title .. "[" .. index .. "]"
+end
+
+-- 导入配置后是否重载界面
+---@param profileName string
+function ProfileConfig.ShowLoadConfirmation(profileName)
+    StaticPopupDialogs["LOAD_NEW_PROFILE"] = {
+        text = L["Configuration imported. Would you like to switch to the new configuration?"] ,
+        button1 = L["Yes"],
+        button2 = L["No"],
+        OnAccept = function()
+            addon.db:SetProfile(profileName)
+            ReloadUI()
+        end,
+        timeout = 0,
+        whileDead = true,
+        hideOnEscape = true,
+    }
+    StaticPopup_Show("LOAD_NEW_PROFILE")
+end
+
+---@class Config
+local Config = {}
+
 ---@param itemType ElementType
 ---@param val string | nil
 ---@return Result
-local function VerifyItemAttr(itemType, val)
+function Config.VerifyItemAttr(itemType, val)
     if val == nil or val == "" or val == " " then
         return R:Err("Please input effect title.")
     end
@@ -130,7 +172,7 @@ local function VerifyItemAttr(itemType, val)
 end
 
 ---@param item ItemConfig
-local function UpdateItemLocalizeName(item)
+function Config.UpdateItemLocalizeName(item)
     if item == nil or item.extraAttr == nil or item.extraAttr.id == nil or item.extraAttr.type == nil then
         return
     end
@@ -175,91 +217,20 @@ local function UpdateItemLocalizeName(item)
 end
 
 ---@param ele ElementConfig
-local function LocalizeItemsName(ele)
+function Config.LocalizeItemsName(ele)
     if ele.type == const.ELEMENT_TYPE.ITEM then
         local item = E:ToItem(ele)
-        UpdateItemLocalizeName(item)
+        Config.UpdateItemLocalizeName(item)
     end
     if ele.elements then
         for _, childEle in ipairs(ele.elements) do
-            LocalizeItemsName(childEle)
+            Config.LocalizeItemsName(childEle)
         end
     end
 end
 
----@class ProfileConfig.ConfigTable
----@field name string
----@field profile table
-
-
----@class SourceAttrs
----@field mode integer
----@field replaceName boolean | nil
----@field displayUnLearned boolean | nil
----@field item ItemAttr | nil
----@field itemList ItemAttr[] | nil
----@field script string | nil
-local SourceAttrs = {}
-
-
----@class Source
----@field title string
----@field type string
----@field attrs SourceAttrs
-local Source = {}
-
-
----@class ProfileConfig
----@field tmpConfigString string
----@field GenerateNewProfileName fun(title: string): string
----@field ShowLoadConfirmation fun(title: string): nil
-local ProfileConfig = {}
-
-ProfileConfig.tmpConfigString = nil  -- 全局配置编辑字符串
-
-function ProfileConfig.GenerateNewProfileName(title)
-    local index = 1
-    while addon.db.profiles[title .. "[" .. index .. "]"] do
-        index = index + 1
-    end
-    return title .. "[" .. index .. "]"
-end
-
-function ProfileConfig.ShowLoadConfirmation(profileName)
-    StaticPopupDialogs["LOAD_NEW_PROFILE"] = {
-        text = L["Configuration imported. Would you like to switch to the new configuration?"] ,
-        button1 = L["Yes"],
-        button2 = L["No"],
-        OnAccept = function()
-            addon.db:SetProfile(profileName)
-            ReloadUI()
-        end,
-        timeout = 0,
-        whileDead = true,
-        hideOnEscape = true,
-    }
-    StaticPopup_Show("LOAD_NEW_PROFILE")
-end
-
----@class Config
----@field tmpCoverConfig boolean 
----@field tmpImportSourceString string | nil
----@field tmpNewItemType integer | nil
----@field tmpNewItemVal string | nil
----@field tmpNewItem ItemAttr
----@field ShowExportDialog function
----@field IsTitleDuplicated function
----@field CreateDuplicateTitle function
-local Config = {}
-
--- 临时变量
-Config.tmpCoverConfig = false  -- 默认选择不覆盖配置，默认创建副本
-Config.tmpImportSourceString = nil  -- 导入itemGroup配置字符串
-Config.tmpNewItemType = nil
-Config.tmpNewItemVal = nil
-Config.tmpNewItem = {type=nil, id = nil, icon = nil, name = nil}
-
 -- 展示导出配置框
+---@param exportData string
 function Config.ShowExportDialog(exportData)
     local dialog = AceGUI:Create("Window")
     dialog:SetTitle(L["Please copy the configuration to the clipboard."])
@@ -280,6 +251,9 @@ function Config.ShowExportDialog(exportData)
 end
 
 -- 检查标题是否重复的函数
+---@param title string
+---@param titleList string[]
+---@return boolean
 function Config.IsTitleDuplicated(title, titleList)
     for _, _title in pairs(titleList) do
         if _title == title then
@@ -290,6 +264,9 @@ function Config.IsTitleDuplicated(title, titleList)
 end
 
 -- 创建副本标题的函数
+---@param title string
+---@param titleList string[]
+---@return string
 function Config.CreateDuplicateTitle(title, titleList)
     local count = 1
     local newTitle = title .. " [" .. count .. "]"
@@ -301,7 +278,7 @@ function Config.CreateDuplicateTitle(title, titleList)
     return newTitle
 end
 
-local function getNewElementTitle(title, elements)
+function Config.GetNewElementTitle(title, elements)
     local titleList = {}
     for _, ele in ipairs(elements) do
         table.insert(titleList, ele.title)
@@ -373,7 +350,7 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
             type = 'execute',
             name = L["Localize the name of items"],
             func = function()
-                LocalizeItemsName(ele)
+                Config.LocalizeItemsName(ele)
             end,
         }
         order = order + 1
@@ -469,7 +446,7 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                     type = 'input',
                     name = L["Item name or item id"],
                     validate = function (_, val)
-                        local r = VerifyItemAttr(addon.G.tmpNewItemType, val)
+                        local r = Config.VerifyItemAttr(addon.G.tmpNewItemType, val)
                         if r:is_err() then
                             return r:unwrap_err()
                         else
@@ -656,7 +633,7 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                 type = 'execute',
                 name = L["New Bar"],
                 func = function()
-                    local bar = E:New(getNewElementTitle(L["Bar"], ele.elements), const.ELEMENT_TYPE.BAR)
+                    local bar = E:New(Config.GetNewElementTitle(L["Bar"], ele.elements), const.ELEMENT_TYPE.BAR)
                     table.insert(ele.elements, bar)
                     AceConfigDialog:SelectGroup(addonName, unpack(selectGroupsAfterAddItem))
                 end,
@@ -682,7 +659,7 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                 type = 'execute',
                 name = L["New ItemGroup"],
                 func = function()
-                    local itemGroup = E:NewItemGroup(getNewElementTitle(L["ItemGroup"], ele.elements))
+                    local itemGroup = E:NewItemGroup(Config.GetNewElementTitle(L["ItemGroup"], ele.elements))
                     table.insert(ele.elements, itemGroup)
                     AceConfigDialog:SelectGroup(addonName, unpack(selectGroupsAfterAddItem))
                 end,
@@ -694,7 +671,7 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                 type = 'execute',
                 name = L["New Script"],
                 func = function()
-                    local script = E:New(getNewElementTitle(L["Script"], ele.elements), const.ELEMENT_TYPE.SCRIPT)
+                    local script = E:New(Config.GetNewElementTitle(L["Script"], ele.elements), const.ELEMENT_TYPE.SCRIPT)
                     table.insert(ele.elements, script)
                     AceConfigDialog:SelectGroup(addonName, unpack(selectGroupsAfterAddItem))
                 end,
@@ -706,7 +683,7 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                 type = 'execute',
                 name = L["New Item"],
                 func = function()
-                    local item = E:New(getNewElementTitle(L["Item"], ele.elements), const.ELEMENT_TYPE.ITEM)
+                    local item = E:New(Config.GetNewElementTitle(L["Item"], ele.elements), const.ELEMENT_TYPE.ITEM)
                     table.insert(ele.elements, item)
                     AceConfigDialog:SelectGroup(addonName, unpack(selectGroupsAfterAddItem))
                 end,
@@ -775,7 +752,7 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                 type = 'input',
                 name = L["Item name or item id"],
                 validate = function (_, val)
-                    local r = VerifyItemAttr(addon.G.tmpNewItemType, val)
+                    local r = Config.VerifyItemAttr(addon.G.tmpNewItemType, val)
                     if r:is_err() then
                         return r:unwrap_err()
                     else
@@ -784,7 +761,7 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                     return true
                 end,
                 set = function(_, _)
-                    local newElement = E:New(getNewElementTitle(L["Item"], ele.elements), const.ELEMENT_TYPE.ITEM)
+                    local newElement = E:New(Config.GetNewElementTitle(L["Item"], ele.elements), const.ELEMENT_TYPE.ITEM)
                     local item = E:ToItem(newElement)
                     item.extraAttr = U.Table.DeepCopyDict(addon.G.tmpNewItem)
                     table.insert(ele.elements, item)
@@ -830,7 +807,7 @@ function ConfigOptions.ElementsOptions()
                 type = 'execute',
                 name = L["New BarGroup"],
                 func = function()
-                    local barGroup = E:New(getNewElementTitle(L["BarGroup"], addon.db.profile.elements), const.ELEMENT_TYPE.BAR_GROUP)
+                    local barGroup = E:New(Config.GetNewElementTitle(L["BarGroup"], addon.db.profile.elements), const.ELEMENT_TYPE.BAR_GROUP)
                     table.insert(addon.db.profile.elements, barGroup)
                     AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
                 end,
@@ -841,7 +818,7 @@ function ConfigOptions.ElementsOptions()
                 type = 'execute',
                 name = L["New Bar"],
                 func = function()
-                    local bar = E:New(getNewElementTitle(L["Bar"], addon.db.profile.elements), const.ELEMENT_TYPE.BAR)
+                    local bar = E:New(Config.GetNewElementTitle(L["Bar"], addon.db.profile.elements), const.ELEMENT_TYPE.BAR)
                     table.insert(addon.db.profile.elements, bar)
                     AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
                 end,
@@ -852,7 +829,7 @@ function ConfigOptions.ElementsOptions()
                 type = 'execute',
                 name = L["New ItemGroup"],
                 func = function()
-                    local itemGroup = E:NewItemGroup(getNewElementTitle(L["ItemGroup"], addon.db.profile.elements))
+                    local itemGroup = E:NewItemGroup(Config.GetNewElementTitle(L["ItemGroup"], addon.db.profile.elements))
                     table.insert(addon.db.profile.elements, itemGroup)
                     AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
                 end,
@@ -863,7 +840,7 @@ function ConfigOptions.ElementsOptions()
                 type = 'execute',
                 name = L["New Script"],
                 func = function()
-                    local script = E:New(getNewElementTitle(L["Script"], addon.db.profile.elements), const.ELEMENT_TYPE.SCRIPT)
+                    local script = E:New(Config.GetNewElementTitle(L["Script"], addon.db.profile.elements), const.ELEMENT_TYPE.SCRIPT)
                     table.insert(addon.db.profile.elements, script)
                     AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
                 end,
@@ -874,7 +851,7 @@ function ConfigOptions.ElementsOptions()
                 type = 'execute',
                 name = L["New Item"],
                 func = function()
-                    local item = E:New(getNewElementTitle(L["Item"], addon.db.profile.elements), const.ELEMENT_TYPE.ITEM)
+                    local item = E:New(Config.GetNewElementTitle(L["Item"], addon.db.profile.elements), const.ELEMENT_TYPE.ITEM)
                     table.insert(addon.db.profile.elements, item)
                     AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
                 end,
@@ -895,8 +872,8 @@ function ConfigOptions.ElementsOptions()
                 width=2,
                 type = 'toggle',
                 name = L["Whether to overwrite the existing configuration."] ,
-                set = function(_, _) Config.tmpCoverConfig = not Config.tmpCoverConfig end,
-                get = function(_) return Config.tmpCoverConfig end,
+                set = function(_, _) addon.G.tmpCoverConfig = not addon.G.tmpCoverConfig end,
+                get = function(_) return addon.G.tmpCoverConfig end,
             },
             importEditBox = {
                 order = 9,
@@ -905,7 +882,7 @@ function ConfigOptions.ElementsOptions()
                 multiline = 20,
                 width = "full",
                 set = function(_, val)
-                    Config.tmpImportSourceString = val
+                    addon.G.tmpImportElementConfigString = val
                     local errorMsg = L["Import failed: Invalid configuration string."]
                     if val == nil or val == "" then
                         print(errorMsg)
@@ -927,10 +904,6 @@ function ConfigOptions.ElementsOptions()
                         print(errorMsg)
                         return
                     end
-                    -- 校验反序列是否正确
-                    -- table需要包含:
-                    -- {title=val, type="ITEM_GROUP", attrs={ mode=const.ITEMS_GROUP_MODE.MULTIPLE, replaceName=false, displayUnLearned=false, itemList={} }}
-                    -- {title=val, type="SCRIPT", attrs={script=nil}}
                     if type(configTable) ~= "table" then
                         print(errorMsg)
                         return
@@ -957,16 +930,16 @@ function ConfigOptions.ElementsOptions()
                     end
                     -- 判断标题是否重复
                     local titleList = {}
-                    for _, source in ipairs(addon.db.profile.sourceList) do
-                        table.insert(titleList, source.title)
+                    for _, ele in ipairs(addon.db.profile.elements) do
+                        table.insert(titleList, ele.title)
                     end
                     if Config.IsTitleDuplicated(configTable.title, titleList) then
-                        if Config.tmpCoverConfig == true then
-                            for i, itemGroup in ipairs(addon.db.profile.sourceList) do
-                                if itemGroup.title == configTable.title then
-                                    addon.db.profile.sourceList[i] = configTable
+                        if addon.G.tmpCoverConfig == true then
+                            for i, ele in ipairs(addon.db.profile.elements) do
+                                if ele.title == configTable.title then
+                                    addon.db.profile.elements[i] = configTable
                                     addon:UpdateOptions()
-                                    AceConfigDialog:SelectGroup(addonName, "source", "SourceMenu" .. i)
+                                    AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. i)
                                     return true
                                 end
                             end
@@ -978,7 +951,7 @@ function ConfigOptions.ElementsOptions()
                     addon:UpdateOptions()
                     AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
                 end,
-                get = function (_) return Config.tmpImportSourceString end
+                get = function (_) return addon.G.tmpImportElementConfigString end
             },
         },
     }
@@ -991,65 +964,14 @@ end
 
 function ConfigOptions.ConfigOptions()
     local profiles = AceDBOptions:GetOptionsTable(addon.db)
-    profiles.args.importExport = {
-        type = "group",
-        order = -1,
-        name = L["Import/Export Configuration"] ,
-        inline = true,
-        args = {
-            export = {
-                type = "execute",
-                name = L["Export"],
-                func = function()
-                    ---@type ProfileConfig.ConfigTable
-                    local configTable = {
-                        name=addon.db:GetCurrentProfile() or L["Default"],
-                        profile=addon.db.profile
-                    }
-                    local serializedData = AceSerializer:Serialize(configTable)
-                    local compressedData = LibDeflate:CompressDeflate(serializedData)
-                    ProfileConfig.tmpConfigString = LibDeflate:EncodeForPrint(compressedData)
-                end,
-                order = 1,
-            },
-            import = {
-                order = 2,
-                type = 'input',
-                name = L["Configuration String Edit Box"],
-                multiline = 20,
-                width = "full",
-                get = function () return ProfileConfig.tmpConfigString end,
-                set = function(_, val)
-                    if val == nil or val == "" then
-                        print(L["Import failed: Invalid configuration string."])
-                        return
-                    end
-                    local decodedData = LibDeflate:DecodeForPrint(val)
-                    if decodedData == nil then
-                        print(L["Import failed: Invalid configuration string."])
-                        return
-                    end
-                    local decompressedData = LibDeflate:DecompressDeflate(decodedData)
-                    if decompressedData == nil then
-                        print(L["Import failed: Invalid configuration string."])
-                        return
-                    end
-                    ---@type boolean, ProfileConfig.ConfigTable 
-                    local success, configTable = AceSerializer:Deserialize(decompressedData)
-                    if not success then
-                        print(L["Import failed: Invalid configuration string."])
-                        return
-                    end
-                    local newProfileName = ProfileConfig.GenerateNewProfileName(configTable.name or L["Default"])
-                    addon.db.profiles[newProfileName] = configTable.profile
-                    Config.tmpImportSourceString = nil
-                    ProfileConfig.ShowLoadConfirmation(newProfileName)
-                end,
-            },
-        },
-    }
+    -- 重写ace3dbconfig的设置配置文件方法，增加是否重载输入框
+    profiles.args.choose.set = function (_, val)
+        addon.db:SetProfile(val)
+        ProfileConfig.ShowLoadConfirmation(val)
+    end
     return profiles
 end
+
 
 function ConfigOptions.Options()
     local options = {
@@ -1080,6 +1002,66 @@ function ConfigOptions.Options()
                         type = "description",
                         name = L["Left-click to drag and move, right-click to exit edit mode."]
                     },
+                    sapceExport = {
+                        order = 3,
+                        type = 'description',
+                        name = "\n"
+                    },
+                    exportHeader = {
+                        order = 4,
+                        type = 'header',
+                        name = L["Import/Export Configuration"],
+                    },
+                    export = {
+                        order = 5,
+                        width = 2,
+                        type = "execute",
+                        name = L["Export"],
+                        func = function()
+                            ---@type ProfileConfig.ConfigTable
+                            local configTable = {
+                                name=addon.db:GetCurrentProfile() or L["Default"],
+                                profile=addon.db.profile
+                            }
+                            local serializedData = AceSerializer:Serialize(configTable)
+                            local compressedData = LibDeflate:CompressDeflate(serializedData)
+                            addon.G.tmpConfigString = LibDeflate:EncodeForPrint(compressedData)
+                        end,
+                    },
+                    import = {
+                        order = 6,
+                        type = 'input',
+                        name = L["Configuration String Edit Box"],
+                        multiline = 20,
+                        width = "full",
+                        get = function () return addon.G.tmpConfigString end,
+                        set = function(_, val)
+                            if val == nil or val == "" then
+                                print(L["Import failed: Invalid configuration string."])
+                                return
+                            end
+                            local decodedData = LibDeflate:DecodeForPrint(val)
+                            if decodedData == nil then
+                                print(L["Import failed: Invalid configuration string."])
+                                return
+                            end
+                            local decompressedData = LibDeflate:DecompressDeflate(decodedData)
+                            if decompressedData == nil then
+                                print(L["Import failed: Invalid configuration string."])
+                                return
+                            end
+                            ---@type boolean, ProfileConfig.ConfigTable 
+                            local success, configTable = AceSerializer:Deserialize(decompressedData)
+                            if not success then
+                                print(L["Import failed: Invalid configuration string."])
+                                return
+                            end
+                            local newProfileName = ProfileConfig.GenerateNewProfileName(configTable.name or L["Default"])
+                            addon.db.profiles[newProfileName] = configTable.profile
+                            addon.G.tmpImportElementConfigString = nil
+                            ProfileConfig.ShowLoadConfirmation(newProfileName)
+                        end,
+                    },
                 },
             },
             element=ConfigOptions.ElementsOptions(),
@@ -1097,12 +1079,15 @@ function addon:OnInitialize()
         iconWidth = 32,
         iconHeight = 32,
         IsEditMode = false,
+        tmpCoverConfig = false,  -- 默认选择不覆盖配置，默认创建副本
+        tmpImportElementConfigString = nil,  -- 导入elementconfig配置字符串
+        tmpConfigString = nil,  -- 全局配置编辑字符串
         tmpNewItemType = nil,
         tmpNewItemVal = nil,
         tmpNewItem = {type=nil, id = nil, icon = nil, name = nil}  ---@type ItemAttr
     }
     -- 注册数据库，添加分类设置
-    self.db = LibStub("AceDB-3.0"):New("HappyToolkitDB", {
+    self.db = LibStub("AceDB-3.0"):New("HappyActionBarDB", {
         profile = {
             elements = {},  ---@type ElementConfig[]
         }
@@ -1111,7 +1096,7 @@ function addon:OnInitialize()
     AceConfig:RegisterOptionsTable(addonName, ConfigOptions.Options)
     -- 在Blizzard界面选项中添加一个子选项
     self.optionsFrame = AceConfigDialog:AddToBlizOptions(addonName, addonName)
-    -- 输入 /HappyToolkit 打开配置
+    -- 输入 /HappyActionBar 打开配置
     self:RegisterChatCommand(addonName, "OpenConfig")
 end
 
