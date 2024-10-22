@@ -1,7 +1,7 @@
-local L = LibStub("AceLocale-3.0"):NewLocale("HappyActionBar", "zhCN")
+local L = LibStub("AceLocale-3.0"):NewLocale("HappyButton", "zhCN")
 if not L then return end
 
-L["Welcome to use HappyActionBar."] = "欢迎使用插件HappyActionBar。"
+L["Welcome to use HappyButton."] = "欢迎使用插件HappyButton。"
 L["Can not register Bar: must be a callback function."] = "无法注册：必须是回调函数。"
 L["You cannot use this in combat."] = "你无法在战斗中使用。"
 L["Teleport"] = "传送"
@@ -91,6 +91,7 @@ L["Vertical"] = "垂直方向"
 L["Icon Width"] = "图标宽度"
 L["Icon Height"] = "图标高度"
 L["Display Rule"] = "展示规则"
+L["Load"] = "启用"
 L["Load Rule"] = "载入规则"
 L["Add Child Elements"] = "添加子元素"
 L["TOP_LEFT"] = "上左"

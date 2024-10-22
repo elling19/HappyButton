@@ -1,6 +1,6 @@
 local addonName, _ = ...  ---@type string, table
 
----@class HappyActionBar: AceAddon
+---@class HappyButton: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
 ---@class CONST: AceModule
@@ -9,34 +9,22 @@ local const = addon:GetModule('CONST')
 ---@class BarCore: AceModule
 local BarCore = addon:GetModule("BarCore")
 
----@class HtFrame: AceModule
-local HtFrame = addon:GetModule("HtFrame")
+---@class HbFrame: AceModule
+local HbFrame = addon:GetModule("HbFrame")
 
--- 注册命令：更新冷却计时
--- /setHappyActionBarguicooldown 1 1
-SlashCmdList["SETHappyActionBarGUICOOLDOWN"] = function(msg)
-    local barGroupIndex, barIndex, btnIndex = msg:match("(%d+) (%d+) (%d+)")
-    barGroupIndex = tonumber(barGroupIndex)
-    local barIdx = tonumber(barIndex)
-    local btnIdx = tonumber(btnIndex)
-    local eFrame = HtFrame.EFrames[barGroupIndex]
+-- 注册命令：关闭窗口
+-- /closeEframe xxxxxx
+SlashCmdList["SETCLOSEEFRAME"] = function(configId)
+    local eFrame = HbFrame.EFrames[configId]
     if eFrame == nil then
         return
     end
-    local bar = eFrame.Bars[barIdx]
-    if bar == nil then
-        return
-    end
-    local btn = bar.BarBtns[btnIdx]
-    if btn == nil then
-        return
-    end
-    local ticker
-    ticker = C_Timer.NewTicker(0.5, function()
-        if not UnitCastingInfo("player") and not UnitChannelInfo("player") then
-            ticker:Cancel()
-            eFrame:SetPoolCooldown(btn)
+    if eFrame:IsBarGroup() then
+        eFrame:HideAllBarFrame()
+    else
+        if eFrame.Config.isDisplayMouseEnter then
+            eFrame:SetBarTransparency()
         end
-    end)
+    end
 end
-SLASH_SETHappyActionBarGUICOOLDOWN1 = "/setHappyActionBarguicooldown"
+SLASH_SETCLOSEEFRAME1 = "/SETCLOSEEFRAME"

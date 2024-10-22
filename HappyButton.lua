@@ -1,6 +1,6 @@
 local addonName, _ = ...  ---@type string, table
 
----@class HappyActionBar: AceAddon
+---@class HappyButton: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
 ---@class BarCore: AceModule

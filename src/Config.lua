@@ -1,6 +1,6 @@
 local addonName, _ = ... ---@type string, table
 
----@class HappyActionBar: AceAddon
+---@class HappyButton: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
 ---@class CONST: AceModule
@@ -9,8 +9,8 @@ local const = addon:GetModule('CONST')
 ---@class Result: AceModule
 local R = addon:GetModule("Result")
 
----@class HtFrame: AceModule
-local HtFrame = addon:GetModule("HtFrame")
+---@class HbFrame: AceModule
+local HbFrame = addon:GetModule("HbFrame")
 
 local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 
@@ -27,15 +27,12 @@ local AceSerializer = LibStub("AceSerializer-3.0")
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
 local AceGUI = LibStub("AceGUI-3.0")
 
-
-
 ---@class ProfileConfig.ConfigTable
 ---@field name string
 ---@field profile table
 
 ---@class ProfileConfig
 local ProfileConfig = {}
-
 
 -- 创建新的全局配置名称
 ---@param title  string
@@ -52,7 +49,7 @@ end
 ---@param profileName string
 function ProfileConfig.ShowLoadConfirmation(profileName)
     StaticPopupDialogs["LOAD_NEW_PROFILE"] = {
-        text = L["Configuration imported. Would you like to switch to the new configuration?"] ,
+        text = L["Configuration imported. Would you like to switch to the new configuration?"],
         button1 = L["Yes"],
         button2 = L["No"],
         OnAccept = function()
@@ -61,7 +58,7 @@ function ProfileConfig.ShowLoadConfirmation(profileName)
         end,
         timeout = 0,
         whileDead = true,
-        hideOnEscape = true,
+        hideOnEscape = true
     }
     StaticPopup_Show("LOAD_NEW_PROFILE")
 end
@@ -79,11 +76,10 @@ function Config.VerifyItemAttr(itemType, val)
     local G = addon.G
     local item = {} ---@type ItemAttr
     item.type = itemType
-    if item.type == nil then
-        return R:Err(L["Please select item type."])
-    end
+    if item.type == nil then return R:Err(L["Please select item type."]) end
     -- 添加物品逻辑
-    if item.type == const.ITEM_TYPE.ITEM or item.type == const.ITEM_TYPE.EQUIPMENT or item.type == const.ITEM_TYPE.TOY then
+    if item.type == const.ITEM_TYPE.ITEM or item.type ==
+        const.ITEM_TYPE.EQUIPMENT or item.type == const.ITEM_TYPE.TOY then
         local itemID = C_Item.GetItemIDForItemInfo(val)
         if itemID then
             item.id = itemID
@@ -125,7 +121,10 @@ function Config.VerifyItemAttr(itemType, val)
         item.id = tonumber(val)
         if item.id == nil then
             for mountDisplayIndex = 1, C_MountJournal.GetNumDisplayedMounts() do
-                local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight = C_MountJournal.GetDisplayedMountInfo(mountDisplayIndex)
+                local name, spellID, icon, isActive, isUsable, sourceType,
+                isFavorite, isFactionSpecific, faction, shouldHideOnChar,
+                isCollected, mountID, isSteadyFlight =
+                    C_MountJournal.GetDisplayedMountInfo(mountDisplayIndex)
                 if name == val then
                     item.id = mountID
                     item.name = name
@@ -138,7 +137,9 @@ function Config.VerifyItemAttr(itemType, val)
             return R:Err(L["Unable to get the id, please check the input."])
         end
         if item.icon == nil then
-            local name, spellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID = C_MountJournal.GetMountInfoByID(item.id)
+            local name, spellID, icon, active, isUsable, sourceType, isFavorite,
+            isFactionSpecific, faction, shouldHideOnChar, isCollected,
+            mountID = C_MountJournal.GetMountInfoByID(item.id)
             if name then
                 item.id = mountID
                 item.name = name
@@ -151,14 +152,15 @@ function Config.VerifyItemAttr(itemType, val)
         item.id = tonumber(val)
         if item.id == nil then
             local speciesId, petGUID = C_PetJournal.FindPetIDByName(val)
-            if speciesId then
-                item.id = speciesId
-            end
+            if speciesId then item.id = speciesId end
         end
         if item.id == nil then
             return R:Err(L["Unable to get the id, please check the input."])
         end
-        local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID = C_PetJournal.GetPetInfoBySpeciesID(G.tmpNewItem.id)
+        local speciesName, speciesIcon, petType, companionID, tooltipSource,
+        tooltipDescription, isWild, canBattle, isTradeable, isUnique,
+        obtainable, creatureDisplayID =
+            C_PetJournal.GetPetInfoBySpeciesID(item.id)
         if speciesName then
             item.name = speciesName
             item.icon = speciesIcon
@@ -173,10 +175,12 @@ end
 
 ---@param item ItemConfig
 function Config.UpdateItemLocalizeName(item)
-    if item == nil or item.extraAttr == nil or item.extraAttr.id == nil or item.extraAttr.type == nil then
+    if item == nil or item.extraAttr == nil or item.extraAttr.id == nil or
+        item.extraAttr.type == nil then
         return
     end
-    if item.extraAttr.type == const.ITEM_TYPE.ITEM or item.extraAttr.type == const.ITEM_TYPE.EQUIPMENT or item.extraAttr.type == const.ITEM_TYPE.TOY then
+    if item.extraAttr.type == const.ITEM_TYPE.ITEM or item.extraAttr.type ==
+        const.ITEM_TYPE.EQUIPMENT or item.extraAttr.type == const.ITEM_TYPE.TOY then
         local itemName = C_Item.GetItemNameByID(item.extraAttr.id)
         if itemName then
             item.extraAttr.name = itemName
@@ -197,21 +201,20 @@ function Config.UpdateItemLocalizeName(item)
             local syncSpell = Spell:CreateFromSpellID(item.extraAttr.id)
             syncSpell:ContinueOnSpellLoad(function()
                 local syncName = syncSpell:GetSpellName()
-                if syncName then
-                    item.extraAttr.name = syncName
-                end
+                if syncName then item.extraAttr.name = syncName end
             end)
         end
     elseif item.extraAttr.type == const.ITEM_TYPE.MOUNT then
-        local name, spellID, icon, active, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID = C_MountJournal.GetMountInfoByID(item.extraAttr.id)
-        if name then
-            item.extraAttr.name = name
-        end
+        local name, spellID, icon, active, isUsable, sourceType, isFavorite,
+        isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID =
+            C_MountJournal.GetMountInfoByID(item.extraAttr.id)
+        if name then item.extraAttr.name = name end
     elseif item.extraAttr.type == const.ITEM_TYPE.PET then
-        local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID = C_PetJournal.GetPetInfoBySpeciesID(item.extraAttr.id)
-        if speciesName then
-            item.extraAttr.name = speciesName
-        end
+        local speciesName, speciesIcon, petType, companionID, tooltipSource,
+        tooltipDescription, isWild, canBattle, isTradeable, isUnique,
+        obtainable, creatureDisplayID =
+            C_PetJournal.GetPetInfoBySpeciesID(item.extraAttr.id)
+        if speciesName then item.extraAttr.name = speciesName end
     else
     end
 end
@@ -244,34 +247,41 @@ function Config.ShowExportDialog(exportData)
     editBox:SetFullWidth(true)
     editBox:SetFullHeight(true)
     editBox:SetText(exportData)
-    editBox:SetCallback("OnEnterPressed", function(widget)
-        widget:ClearFocus()
-    end)
+    editBox:SetCallback("OnEnterPressed",
+        function(widget) widget:ClearFocus() end)
     dialog:AddChild(editBox)
 end
 
 -- 检查标题是否重复的函数
 ---@param title string
----@param titleList string[]
+---@param eleList ElementConfig[]
 ---@return boolean
-function Config.IsTitleDuplicated(title, titleList)
-    for _, _title in pairs(titleList) do
-        if _title == title then
-            return true
-        end
+function Config.IsTitleDuplicated(title, eleList)
+    -- 判断标题是否重复
+    for _, ele in pairs(eleList) do
+        if ele.title == title then return true end
     end
+    return false
+end
+
+-- 检查ID是否重复
+---@param eleId string
+---@param eleList ElementConfig[]
+---@return boolean
+function Config.IsIdDuplicated(eleId, eleList)
+    for _, ele in pairs(eleList) do if ele.id == eleId then return true end end
     return false
 end
 
 -- 创建副本标题的函数
 ---@param title string
----@param titleList string[]
+---@param eleList ElementConfig[]
 ---@return string
-function Config.CreateDuplicateTitle(title, titleList)
+function Config.CreateDuplicateTitle(title, eleList)
     local count = 1
     local newTitle = title .. " [" .. count .. "]"
     -- 检查新标题是否也重复，如果是则继续递增
-    while Config.IsTitleDuplicated(newTitle, titleList) do
+    while Config.IsTitleDuplicated(newTitle, eleList) do
         count = count + 1
         newTitle = title .. " [" .. count .. "]"
     end
@@ -279,12 +289,8 @@ function Config.CreateDuplicateTitle(title, titleList)
 end
 
 function Config.GetNewElementTitle(title, elements)
-    local titleList = {}
-    for _, ele in ipairs(elements) do
-        table.insert(titleList, ele.title)
-    end
-    if Config.IsTitleDuplicated(title, titleList) then
-        title = Config.CreateDuplicateTitle(title, titleList)
+    if Config.IsTitleDuplicated(title, elements) then
+        title = Config.CreateDuplicateTitle(title, elements)
     end
     return title
 end
@@ -296,15 +302,24 @@ end
 local ConfigOptions = {}
 
 ---@param elements ElementConfig[]
----@param isTopElement boolean 是否是顶层的菜单
+---@param topEleConfig ElementConfig | nil 顶层的菜单，当为nil的时候，表示当前elements参数本身是顶层菜单
 ---@param selectGroups table  配置界面选项卡位置
-local function GetElementOptions(elements, isTopElement, selectGroups)
+local function GetElementOptions(elements, topEleConfig, selectGroups)
+    local isTopElement = topEleConfig == nil
     local eleArgs = {}
     for i, ele in ipairs(elements) do
+        -- 判断需要触发哪个菜单的更新事件
+        local updateFrameConfig
+        if topEleConfig ~= nil then
+            updateFrameConfig = topEleConfig
+        else
+            updateFrameConfig = ele
+        end
         local copySelectGroups = U.Table.DeepCopyList(selectGroups)
         table.insert(copySelectGroups, "elementMenu" .. i)
         local selectGroupsAfterAddItem = U.Table.DeepCopyList(copySelectGroups)
-        table.insert(selectGroupsAfterAddItem, "elementMenu" .. (#ele.elements + 1))
+        table.insert(selectGroupsAfterAddItem,
+            "elementMenu" .. (#ele.elements + 1))
         local showTitle = ele.title
         local showIcon = ele.icon or 134400
         if ele.type == const.ELEMENT_TYPE.ITEM then
@@ -324,54 +339,57 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
             width = 1,
             type = 'execute',
             name = L["Delete"],
-            confirm=true,
+            confirm = true,
             func = function()
                 table.remove(elements, i)
+                if topEleConfig == nil then
+                    HbFrame:DeleteEframe(ele)
+                else
+                    HbFrame:ReloadEframeUI(topEleConfig)
+                end
                 AceConfigDialog:SelectGroup(addonName, unpack(selectGroups))
-            end,
+            end
         }
         order = order + 1
         args.export = {
-            order=order,
-            width=1,
+            order = order,
+            width = 1,
             type = 'execute',
             name = L['Export'],
             func = function()
                 local serializedData = AceSerializer:Serialize(ele)
-                local compressedData = LibDeflate:CompressDeflate(serializedData)
+                local compressedData =
+                    LibDeflate:CompressDeflate(serializedData)
                 local base64Encoded = LibDeflate:EncodeForPrint(compressedData)
                 Config.ShowExportDialog(base64Encoded)
-            end,
+            end
         }
         order = order + 1
         args.localize = {
-            order=order,
-            width=1,
+            order = order,
+            width = 1,
             type = 'execute',
             name = L["Localize the name of items"],
             func = function()
                 Config.LocalizeItemsName(ele)
-            end,
+                HbFrame:ReloadEframeUI(updateFrameConfig)
+            end
         }
         order = order + 1
-        args.sapce1 = {
-            order = order,
-            type = 'description',
-            name = "\n"
-        }
+        args.sapce1 = { order = order, type = 'description', name = "\n" }
         order = order + 1
         args.elementHeader = {
             order = order,
             type = 'header',
-            name = L["Element"],
+            name = L["Element"]
         }
         order = order + 1
         args.title = {
             order = order,
-            width=1,
+            width = 1,
             type = 'input',
             name = L['Element Title'],
-            validate = function (_, val)
+            validate = function(_, val)
                 for _i, _ele in ipairs(elements) do
                     if _ele.title == val and i ~= _i then
                         return "repeat title, please input another one."
@@ -382,45 +400,57 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
             get = function() return ele.title end,
             set = function(_, val)
                 ele.title = val
+                HbFrame:ReloadEframeUI(updateFrameConfig)
                 addon:UpdateOptions()
-            end,
+            end
         }
         order = order + 1
         args.icon = {
-            order=order,
-            width=1,
+            order = order,
+            width = 1,
             type = 'input',
             name = L["Element Icon ID or Path"],
             get = function() return ele.icon end,
             set = function(_, val)
                 ele.icon = val
+                HbFrame:ReloadEframeUI(updateFrameConfig)
                 addon:UpdateOptions()
-            end,
+            end
         }
         order = order + 1
         if isTopElement then
             args.iconWidth = {
                 step = 1,
-                order=order,
-                width=1,
+                order = order,
+                width = 1,
                 type = 'range',
                 name = L["Icon Width"],
                 min = 24,
                 max = 128,
-                get = function(_) return ele.iconWidth or addon.G.iconWidth end,
-                set = function(_, value) ele.iconWidth = value end,
+                get = function(_)
+                    return ele.iconWidth or addon.G.iconWidth
+                end,
+                set = function(_, value)
+                    ele.iconWidth = value
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end
             }
             order = order + 1
             args.iconHeight = {
                 step = 1,
-                order=order,
-                width=1,
+                order = order,
+                width = 1,
                 type = 'range',
                 name = L["Icon Height"],
                 min = 24,
                 max = 128,
-                get = function(_) return ele.iconHeight or addon.G.iconHeight end,
-                set = function(_, value) ele.iconHeight = value end,
+                get = function(_)
+                    return ele.iconHeight or addon.G.iconHeight
+                end,
+                set = function(_, value)
+                    ele.iconHeight = value
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end
             }
             order = order + 1
         end
@@ -436,7 +466,7 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                     set = function(_, val)
                         addon.G.tmpNewItemType = val
                     end,
-                    get = function ()
+                    get = function()
                         return addon.G.tmpNewItemType
                     end
                 }
@@ -445,8 +475,9 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                     order = order,
                     type = 'input',
                     name = L["Item name or item id"],
-                    validate = function (_, val)
-                        local r = Config.VerifyItemAttr(addon.G.tmpNewItemType, val)
+                    validate = function(_, val)
+                        local r = Config.VerifyItemAttr(addon.G.tmpNewItemType,
+                            val)
                         if r:is_err() then
                             return r:unwrap_err()
                         else
@@ -455,11 +486,13 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                         return true
                     end,
                     set = function(_, _)
-                        item.extraAttr = U.Table.DeepCopyDict(addon.G.tmpNewItem)
+                        item.extraAttr = U.Table
+                            .DeepCopyDict(addon.G.tmpNewItem)
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
                         addon.G.tmpNewItemVal = nil
                         addon.G.tmpNewItem = {}
                     end,
-                    get = function ()
+                    get = function()
                         return addon.G.tmpNewItemVal
                     end
                 }
@@ -467,52 +500,52 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
             else
                 args.id = {
                     order = order,
-                    width=1,
+                    width = 1,
                     type = 'input',
                     name = L["ID"],
                     disabled = true,
-                    get = function() return tostring(extraAttr.id) end,
+                    get = function()
+                        return tostring(extraAttr.id)
+                    end
                 }
                 order = order + 1
                 args.name = {
                     order = order,
-                    width=1,
+                    width = 1,
                     type = 'input',
                     name = L["Name"],
                     disabled = true,
-                    get = function() return extraAttr.name end,
+                    get = function() return extraAttr.name end
                 }
                 order = order + 1
                 args.type = {
                     order = order,
-                    width=2,
+                    width = 2,
                     type = 'select',
                     name = L["Type"],
                     values = const.ItemTypeOptions,
                     disabled = true,
-                    get = function() return extraAttr.type end,
+                    get = function() return extraAttr.type end
                 }
                 order = order + 1
-                args.space = {
-                    order = order,
-                    type = 'description',
-                    name = "\n"
-                }
+                args.space = { order = order, type = 'description', name = "\n" }
                 order = order + 1
             end
         end
         if isTopElement then
-            if ele.type ~= const.ELEMENT_TYPE.ITEM and ele.type ~= const.ELEMENT_TYPE.ITEM_GROUP then
+            if ele.type ~= const.ELEMENT_TYPE.ITEM and ele.type ~=
+                const.ELEMENT_TYPE.ITEM_GROUP then
                 args.elementsGrowth = {
                     order = order,
-                    width=2,
+                    width = 2,
                     type = 'select',
-                    name = L["Direction of elements growth"] ,
+                    name = L["Direction of elements growth"],
                     values = const.GrowthOptions,
                     set = function(_, val)
                         ele.elesGrowth = val
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
                     end,
-                    get = function () return ele.elesGrowth end,
+                    get = function() return ele.elesGrowth end
                 }
                 order = order + 1
             end
@@ -525,16 +558,18 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                 name = L["Script"],
                 multiline = 20,
                 width = "full",
-                validate = function (_, val)
+                validate = function(_, val)
                     local func, loadstringErr = loadstring("return " .. val)
                     if not func then
-                        local errMsg = L["Illegal script."] .. " " .. loadstringErr
+                        local errMsg = L["Illegal script."] .. " " ..
+                            loadstringErr
                         U.Print.PrintErrorText(errMsg)
                         return errMsg
                     end
                     local status, pcallErr = pcall(func())
                     if not status then
-                        local errMsg = L["Illegal script."] .. " " .. tostring(pcallErr)
+                        local errMsg = L["Illegal script."] .. " " ..
+                            tostring(pcallErr)
                         U.Print.PrintErrorText(errMsg)
                         return errMsg
                     end
@@ -542,61 +577,91 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                 end,
                 set = function(_, val)
                     script.extraAttr.script = val
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
                     addon:UpdateOptions()
                 end,
-                get = function()
-                    return script.extraAttr.script
-                end,
+                get = function() return script.extraAttr.script end
             }
             order = order + 1
         end
+        args.sapce2 = { order = order, type = 'description', name = "\n" }
+        order = order + 1
+        args.displayHeader = {
+            order = order,
+            type = 'header',
+            name = L["Display Rule"]
+        }
+        order = order + 1
+        args.isLoadToggle = {
+            order = order,
+            width = 2,
+            type = 'toggle',
+            name = L["Load"],
+            set = function(_, val)
+                ele.isLoad = val
+                if ele.isLoad == true then
+                    if isTopElement then
+                        HbFrame:AddEframe(updateFrameConfig)
+                    else
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
+                    end
+                else
+                    if isTopElement then
+                        HbFrame:DeleteEframe(updateFrameConfig)
+                    else
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
+                    end
+                end
+            end,
+            get = function(_) return ele.isLoad end
+        }
+        order = order + 1
         if isTopElement then
-            args.sapce2 = {
-                order = order,
-                type = 'description',
-                name = "\n"
-            }
-            order = order + 1
-            args.displayHeader = {
-                order = order,
-                type = 'header',
-                name = L["Display Rule"],
-            }
-            order = order + 1
             args.isDisplayMouseEnter = {
                 order = order,
-                width=2,
+                width = 2,
                 type = 'toggle',
                 name = L["Whether to show the bar menu when the mouse enter."],
-                set = function(_, val) ele.isDisplayMouseEnter = val end,
-                get = function(_) return ele.isDisplayMouseEnter end,
+                set = function(_, val)
+                    ele.isDisplayMouseEnter = val
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end,
+                get = function(_) return ele.isDisplayMouseEnter end
             }
             order = order + 1
             args.isDisplayFontToggle = {
                 order = order,
-                width=2,
+                width = 2,
                 type = 'toggle',
                 name = L["Whether to display text."],
-                set = function(_, val) ele.isDisplayText = val end,
-                get = function(_) return ele.isDisplayText end,
+                set = function(_, val)
+                    ele.isDisplayText = val
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end,
+                get = function(_) return ele.isDisplayText end
             }
             order = order + 1
             if ele.type == const.ELEMENT_TYPE.BAR_GROUP then
                 args.combatLoadCond = {
                     order = order,
-                    width=2,
+                    width = 2,
                     type = 'description',
                     name = L["BarGroup only load when out of combat"]
                 }
             else
                 args.combatLoadCond = {
                     order = order,
-                    width=2,
+                    width = 2,
                     type = 'select',
                     values = const.CombatLoadCondOptions,
                     name = L["Combat Load Condition"],
-                    set = function(_, val) ele.combatLoadCond = val end,
-                    get = function(_) return ele.combatLoadCond end,
+                    set = function(_, val)
+                        ele.combatLoadCond = val
+                        HbFrame:UpdateEframe(updateFrameConfig)
+                    end,
+                    get = function(_)
+                        return ele.combatLoadCond
+                    end
                 }
             end
             order = order + 1
@@ -605,11 +670,16 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                 local extraAttr = item.extraAttr
                 args.replaceNameToggle = {
                     order = order,
-                    width=2,
+                    width = 2,
                     type = 'toggle',
                     name = L["Wheter to use element title to replace item name."],
-                    set = function(_, val) extraAttr.replaceName = val end,
-                    get = function(_) return extraAttr.replaceName == true end,
+                    set = function(_, val)
+                        extraAttr.replaceName = val
+                        HbFrame:UpdateEframe(updateFrameConfig)
+                    end,
+                    get = function(_)
+                        return extraAttr.replaceName == true
+                    end
                 }
                 order = order + 1
             end
@@ -624,7 +694,7 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
             args.addChildHeader = {
                 order = order,
                 type = 'header',
-                name = L["Add Child Elements"],
+                name = L["Add Child Elements"]
             }
             order = order + 1
             args.addBar = {
@@ -633,10 +703,14 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                 type = 'execute',
                 name = L["New Bar"],
                 func = function()
-                    local bar = E:New(Config.GetNewElementTitle(L["Bar"], ele.elements), const.ELEMENT_TYPE.BAR)
+                    local bar = E:New(Config.GetNewElementTitle(L["Bar"],
+                            ele.elements),
+                        const.ELEMENT_TYPE.BAR)
                     table.insert(ele.elements, bar)
-                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupsAfterAddItem))
-                end,
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                    AceConfigDialog:SelectGroup(addonName, unpack(
+                        selectGroupsAfterAddItem))
+                end
             }
             order = order + 1
         end
@@ -650,7 +724,7 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
             args.addChildHeader = {
                 order = order,
                 type = 'header',
-                name = L["Add Child Elements"],
+                name = L["Add Child Elements"]
             }
             order = order + 1
             args.addItemGroup = {
@@ -659,10 +733,14 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                 type = 'execute',
                 name = L["New ItemGroup"],
                 func = function()
-                    local itemGroup = E:NewItemGroup(Config.GetNewElementTitle(L["ItemGroup"], ele.elements))
+                    local itemGroup = E:NewItemGroup(
+                        Config.GetNewElementTitle(
+                            L["ItemGroup"], ele.elements))
                     table.insert(ele.elements, itemGroup)
-                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupsAfterAddItem))
-                end,
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                    AceConfigDialog:SelectGroup(addonName, unpack(
+                        selectGroupsAfterAddItem))
+                end
             }
             order = order + 1
             args.addScript = {
@@ -671,10 +749,15 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                 type = 'execute',
                 name = L["New Script"],
                 func = function()
-                    local script = E:New(Config.GetNewElementTitle(L["Script"], ele.elements), const.ELEMENT_TYPE.SCRIPT)
+                    local script = E:New(
+                        Config.GetNewElementTitle(L["Script"],
+                            ele.elements),
+                        const.ELEMENT_TYPE.SCRIPT)
                     table.insert(ele.elements, script)
-                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupsAfterAddItem))
-                end,
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                    AceConfigDialog:SelectGroup(addonName, unpack(
+                        selectGroupsAfterAddItem))
+                end
             }
             order = order + 1
             args.addItem = {
@@ -683,10 +766,14 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                 type = 'execute',
                 name = L["New Item"],
                 func = function()
-                    local item = E:New(Config.GetNewElementTitle(L["Item"], ele.elements), const.ELEMENT_TYPE.ITEM)
+                    local item = E:New(Config.GetNewElementTitle(L["Item"],
+                            ele.elements),
+                        const.ELEMENT_TYPE.ITEM)
                     table.insert(ele.elements, item)
-                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupsAfterAddItem))
-                end,
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                    AceConfigDialog:SelectGroup(addonName, unpack(
+                        selectGroupsAfterAddItem))
+                end
             }
             order = order + 1
         end
@@ -694,32 +781,43 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
             local itemGroup = E:ToItemGroup(ele)
             args.mode = {
                 order = order,
-                width=2,
+                width = 2,
                 type = 'select',
                 name = L["Mode"],
                 values = const.ItemsGroupModeOptions,
                 set = function(_, val)
                     itemGroup.extraAttr.mode = val
+                    HbFrame:UpdateEframe(updateFrameConfig)
                 end,
-                get = function () return itemGroup.extraAttr.mode end,
+                get = function() return itemGroup.extraAttr.mode end
             }
             order = order + 1
             args.displayLearnedToggle = {
                 order = order,
-                width=2,
+                width = 2,
                 type = 'toggle',
                 name = L["Whether to display only learned or owned items."],
-                set = function(_, val) itemGroup.extraAttr.displayUnLearned = not val end,
-                get = function(_) return not itemGroup.extraAttr.displayUnLearned end,
+                set = function(_, val)
+                    itemGroup.extraAttr.displayUnLearned = not val
+                    HbFrame:UpdateEframe(updateFrameConfig)
+                end,
+                get = function(_)
+                    return not itemGroup.extraAttr.displayUnLearned
+                end
             }
             order = order + 1
             args.replaceNameToggle = {
                 order = order,
-                width=2,
+                width = 2,
                 type = 'toggle',
                 name = L["Wheter to use element title to replace item name."],
-                set = function(_, val) itemGroup.extraAttr.replaceName = val end,
-                get = function(_) return itemGroup.extraAttr.replaceName == true end,
+                set = function(_, val)
+                    itemGroup.extraAttr.replaceName = val
+                    HbFrame:UpdateEframe(updateFrameConfig)
+                end,
+                get = function(_)
+                    return itemGroup.extraAttr.replaceName == true
+                end
             }
             order = order + 1
             args.sapceAddChild = {
@@ -731,7 +829,7 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
             args.itemHeading = {
                 order = order,
                 type = 'header',
-                name = L["Add Item"],
+                name = L["Add Item"]
             }
             order = order + 1
             args.itemType = {
@@ -742,16 +840,14 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                 set = function(_, val)
                     addon.G.tmpNewItemType = val
                 end,
-                get = function ()
-                    return addon.G.tmpNewItemType
-                end
+                get = function() return addon.G.tmpNewItemType end
             }
             order = order + 1
             args.itemVal = {
                 order = order,
                 type = 'input',
                 name = L["Item name or item id"],
-                validate = function (_, val)
+                validate = function(_, val)
                     local r = Config.VerifyItemAttr(addon.G.tmpNewItemType, val)
                     if r:is_err() then
                         return r:unwrap_err()
@@ -761,25 +857,27 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
                     return true
                 end,
                 set = function(_, _)
-                    local newElement = E:New(Config.GetNewElementTitle(L["Item"], ele.elements), const.ELEMENT_TYPE.ITEM)
+                    local newElement = E:New(
+                        Config.GetNewElementTitle(L["Item"],
+                            ele.elements),
+                        const.ELEMENT_TYPE.ITEM)
                     local item = E:ToItem(newElement)
                     item.extraAttr = U.Table.DeepCopyDict(addon.G.tmpNewItem)
                     table.insert(ele.elements, item)
-                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroupsAfterAddItem))
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                    AceConfigDialog:SelectGroup(addonName, unpack(
+                        selectGroupsAfterAddItem))
                     addon.G.tmpNewItemVal = nil
                     addon.G.tmpNewItem = {}
                 end,
-                get = function ()
-                    return addon.G.tmpNewItemVal
-                end
+                get = function() return addon.G.tmpNewItemVal end
             }
             order = order + 1
         end
         if ele.elements and #ele.elements then
-            local tmpArgs = GetElementOptions(ele.elements, false, copySelectGroups)
-            for k, v in pairs(tmpArgs) do
-                args[k] = v
-            end
+            local tmpArgs = GetElementOptions(ele.elements, topEleConfig or ele,
+                copySelectGroups)
+            for k, v in pairs(tmpArgs) do args[k] = v end
         end
         local menuName = iconPath .. showTitle
         if not isTopElement then
@@ -789,7 +887,7 @@ local function GetElementOptions(elements, isTopElement, selectGroups)
             type = 'group',
             name = menuName,
             args = args,
-            order = i + 1,
+            order = i + 1
         }
     end
     return eleArgs
@@ -798,7 +896,7 @@ end
 function ConfigOptions.ElementsOptions()
     local options = {
         type = 'group',
-        name = L["Element"] ,
+        name = L["Element"],
         order = 2,
         args = {
             addBarGroup = {
@@ -807,10 +905,17 @@ function ConfigOptions.ElementsOptions()
                 type = 'execute',
                 name = L["New BarGroup"],
                 func = function()
-                    local barGroup = E:New(Config.GetNewElementTitle(L["BarGroup"], addon.db.profile.elements), const.ELEMENT_TYPE.BAR_GROUP)
+                    local barGroup = E:New(
+                        Config.GetNewElementTitle(
+                            L["BarGroup"],
+                            addon.db.profile.elements),
+                        const.ELEMENT_TYPE.BAR_GROUP)
                     table.insert(addon.db.profile.elements, barGroup)
-                    AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
-                end,
+                    HbFrame:AddEframe(barGroup)
+                    AceConfigDialog:SelectGroup(addonName, "element",
+                        "elementMenu" ..
+                        #addon.db.profile.elements)
+                end
             },
             addBar = {
                 order = 2,
@@ -818,10 +923,16 @@ function ConfigOptions.ElementsOptions()
                 type = 'execute',
                 name = L["New Bar"],
                 func = function()
-                    local bar = E:New(Config.GetNewElementTitle(L["Bar"], addon.db.profile.elements), const.ELEMENT_TYPE.BAR)
+                    local bar = E:New(Config.GetNewElementTitle(L["Bar"],
+                            addon.db.profile
+                            .elements),
+                        const.ELEMENT_TYPE.BAR)
                     table.insert(addon.db.profile.elements, bar)
-                    AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
-                end,
+                    HbFrame:AddEframe(bar)
+                    AceConfigDialog:SelectGroup(addonName, "element",
+                        "elementMenu" ..
+                        #addon.db.profile.elements)
+                end
             },
             addItemGroup = {
                 order = 3,
@@ -829,10 +940,16 @@ function ConfigOptions.ElementsOptions()
                 type = 'execute',
                 name = L["New ItemGroup"],
                 func = function()
-                    local itemGroup = E:NewItemGroup(Config.GetNewElementTitle(L["ItemGroup"], addon.db.profile.elements))
+                    local itemGroup = E:NewItemGroup(
+                        Config.GetNewElementTitle(
+                            L["ItemGroup"],
+                            addon.db.profile.elements))
                     table.insert(addon.db.profile.elements, itemGroup)
-                    AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
-                end,
+                    HbFrame:AddEframe(itemGroup)
+                    AceConfigDialog:SelectGroup(addonName, "element",
+                        "elementMenu" ..
+                        #addon.db.profile.elements)
+                end
             },
             addScript = {
                 order = 4,
@@ -840,10 +957,18 @@ function ConfigOptions.ElementsOptions()
                 type = 'execute',
                 name = L["New Script"],
                 func = function()
-                    local script = E:New(Config.GetNewElementTitle(L["Script"], addon.db.profile.elements), const.ELEMENT_TYPE.SCRIPT)
+                    local script = E:New(
+                        Config.GetNewElementTitle(L["Script"],
+                            addon.db
+                            .profile
+                            .elements),
+                        const.ELEMENT_TYPE.SCRIPT)
                     table.insert(addon.db.profile.elements, script)
-                    AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
-                end,
+                    HbFrame:AddEframe(script)
+                    AceConfigDialog:SelectGroup(addonName, "element",
+                        "elementMenu" ..
+                        #addon.db.profile.elements)
+                end
             },
             addItem = {
                 order = 5,
@@ -851,29 +976,34 @@ function ConfigOptions.ElementsOptions()
                 type = 'execute',
                 name = L["New Item"],
                 func = function()
-                    local item = E:New(Config.GetNewElementTitle(L["Item"], addon.db.profile.elements), const.ELEMENT_TYPE.ITEM)
+                    local item = E:New(Config.GetNewElementTitle(L["Item"],
+                            addon.db
+                            .profile
+                            .elements),
+                        const.ELEMENT_TYPE.ITEM)
                     table.insert(addon.db.profile.elements, item)
-                    AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
-                end,
+                    HbFrame:AddEframe(item)
+                    AceConfigDialog:SelectGroup(addonName, "element",
+                        "elementMenu" ..
+                        #addon.db.profile.elements)
+                end
             },
 
-            sapce1 = {
-                order = 6,
-                type = 'description',
-                name = "\n\n\n"
-            },
+            sapce1 = { order = 6, type = 'description', name = "\n\n\n" },
             itemHeading = {
                 order = 7,
                 type = 'header',
-                name = L["Import Configuration"],
+                name = L["Import Configuration"]
             },
             coverToggle = {
                 order = 8,
-                width=2,
+                width = 2,
                 type = 'toggle',
-                name = L["Whether to overwrite the existing configuration."] ,
-                set = function(_, _) addon.G.tmpCoverConfig = not addon.G.tmpCoverConfig end,
-                get = function(_) return addon.G.tmpCoverConfig end,
+                name = L["Whether to overwrite the existing configuration."],
+                set = function(_, _)
+                    addon.G.tmpCoverConfig = not addon.G.tmpCoverConfig
+                end,
+                get = function(_) return addon.G.tmpCoverConfig end
             },
             importEditBox = {
                 order = 9,
@@ -883,7 +1013,8 @@ function ConfigOptions.ElementsOptions()
                 width = "full",
                 set = function(_, val)
                     addon.G.tmpImportElementConfigString = val
-                    local errorMsg = L["Import failed: Invalid configuration string."]
+                    local errorMsg =
+                        L["Import failed: Invalid configuration string."]
                     if val == nil or val == "" then
                         print(errorMsg)
                         return
@@ -893,29 +1024,31 @@ function ConfigOptions.ElementsOptions()
                         print(errorMsg)
                         return
                     end
-                    local decompressedData = LibDeflate:DecompressDeflate(decodedData)
+                    local decompressedData =
+                        LibDeflate:DecompressDeflate(decodedData)
                     if decompressedData == nil then
                         print(errorMsg)
                         return
                     end
                     ---@type boolean, ElementConfig
-                    local success, configTable = AceSerializer:Deserialize(decompressedData)
+                    local success, eleConfig =
+                        AceSerializer:Deserialize(decompressedData)
                     if not success then
                         print(errorMsg)
                         return
                     end
-                    if type(configTable) ~= "table" then
+                    if type(eleConfig) ~= "table" then
                         print(errorMsg)
                         return
                     end
-                    if configTable.title == nil then
+                    if eleConfig.title == nil then
                         print(errorMsg)
                         return
                     end
                     local rightType = false
                     for _, v in pairs(const.ELEMENT_TYPE) do
                         print(_, v)
-                        if v == configTable.type then
+                        if v == eleConfig.type then
                             rightType = true
                             break
                         end
@@ -924,54 +1057,63 @@ function ConfigOptions.ElementsOptions()
                         print(errorMsg)
                         return
                     end
-                    if configTable.extraAttr == nil then
+                    if eleConfig.extraAttr == nil then
                         print(errorMsg)
                         return
                     end
-                    -- 判断标题是否重复
-                    local titleList = {}
-                    for _, ele in ipairs(addon.db.profile.elements) do
-                        table.insert(titleList, ele.title)
-                    end
-                    if Config.IsTitleDuplicated(configTable.title, titleList) then
+                    if Config.IsIdDuplicated(eleConfig.id,
+                            addon.db.profile.elements) then
+                        --- 如果覆盖配置
                         if addon.G.tmpCoverConfig == true then
                             for i, ele in ipairs(addon.db.profile.elements) do
-                                if ele.title == configTable.title then
-                                    addon.db.profile.elements[i] = configTable
+                                if ele.id == eleConfig.id then
+                                    addon.db.profile.elements[i] = eleConfig
                                     addon:UpdateOptions()
-                                    AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. i)
+                                    AceConfigDialog:SelectGroup(addonName,
+                                        "element",
+                                        "elementMenu" ..
+                                        i)
                                     return true
                                 end
                             end
                         else
-                            configTable.title = Config.CreateDuplicateTitle(configTable.title, titleList)
+                            eleConfig.id = E:GenerateID()
                         end
                     end
-                    table.insert(addon.db.profile.elements, configTable)
+                    if Config.IsTitleDuplicated(eleConfig.title,
+                            addon.db.profile.elements) then
+                        eleConfig.title =
+                            Config.CreateDuplicateTitle(eleConfig.title,
+                                addon.db.profile
+                                .elements)
+                    end
+                    table.insert(addon.db.profile.elements, eleConfig)
+                    HbFrame:AddEframe(eleConfig)
                     addon:UpdateOptions()
-                    AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
+                    AceConfigDialog:SelectGroup(addonName, "element",
+                        "elementMenu" ..
+                        #addon.db.profile.elements)
                 end,
-                get = function (_) return addon.G.tmpImportElementConfigString end
-            },
-        },
+                get = function(_)
+                    return addon.G.tmpImportElementConfigString
+                end
+            }
+        }
     }
-    local args = GetElementOptions(addon.db.profile.elements, true, {"element", })
-    for k, v in pairs(args) do
-        options.args[k] = v
-    end
+    local args = GetElementOptions(addon.db.profile.elements, nil, { "element" })
+    for k, v in pairs(args) do options.args[k] = v end
     return options
 end
 
 function ConfigOptions.ConfigOptions()
     local profiles = AceDBOptions:GetOptionsTable(addon.db)
     -- 重写ace3dbconfig的设置配置文件方法，增加是否重载输入框
-    profiles.args.choose.set = function (_, val)
+    profiles.args.choose.set = function(_, val)
         addon.db:SetProfile(val)
         ProfileConfig.ShowLoadConfirmation(val)
     end
     return profiles
 end
-
 
 function ConfigOptions.Options()
     local options = {
@@ -980,21 +1122,21 @@ function ConfigOptions.Options()
         type = 'group',
         args = {
             general = {
-                order=1,
+                order = 1,
                 type = 'group',
                 name = L["General"],
                 args = {
                     editFrame = {
                         order = 1,
-                        width=2,
+                        width = 2,
                         type = "execute",
                         name = L["Edit Mode"],
                         func = function()
                             if addon.G.IsEditMode == false then
                                 addon.G.IsEditMode = true
-                                HtFrame:OpenEditMode()
+                                HbFrame:OpenEditMode()
                             end
-                        end,
+                        end
                     },
                     editFrameDesc = {
                         order = 2,
@@ -1002,15 +1144,11 @@ function ConfigOptions.Options()
                         type = "description",
                         name = L["Left-click to drag and move, right-click to exit edit mode."]
                     },
-                    sapceExport = {
-                        order = 3,
-                        type = 'description',
-                        name = "\n"
-                    },
+                    sapceExport = { order = 3, type = 'description', name = "\n" },
                     exportHeader = {
                         order = 4,
                         type = 'header',
-                        name = L["Import/Export Configuration"],
+                        name = L["Import/Export Configuration"]
                     },
                     export = {
                         order = 5,
@@ -1020,13 +1158,17 @@ function ConfigOptions.Options()
                         func = function()
                             ---@type ProfileConfig.ConfigTable
                             local configTable = {
-                                name=addon.db:GetCurrentProfile() or L["Default"],
-                                profile=addon.db.profile
+                                name = addon.db:GetCurrentProfile() or
+                                    L["Default"],
+                                profile = addon.db.profile
                             }
-                            local serializedData = AceSerializer:Serialize(configTable)
-                            local compressedData = LibDeflate:CompressDeflate(serializedData)
-                            addon.G.tmpConfigString = LibDeflate:EncodeForPrint(compressedData)
-                        end,
+                            local serializedData =
+                                AceSerializer:Serialize(configTable)
+                            local compressedData =
+                                LibDeflate:CompressDeflate(serializedData)
+                            addon.G.tmpConfigString =
+                                LibDeflate:EncodeForPrint(compressedData)
+                        end
                     },
                     import = {
                         order = 6,
@@ -1034,76 +1176,83 @@ function ConfigOptions.Options()
                         name = L["Configuration String Edit Box"],
                         multiline = 20,
                         width = "full",
-                        get = function () return addon.G.tmpConfigString end,
+                        get = function()
+                            return addon.G.tmpConfigString
+                        end,
                         set = function(_, val)
                             if val == nil or val == "" then
-                                print(L["Import failed: Invalid configuration string."])
+                                print(
+                                    L["Import failed: Invalid configuration string."])
                                 return
                             end
                             local decodedData = LibDeflate:DecodeForPrint(val)
                             if decodedData == nil then
-                                print(L["Import failed: Invalid configuration string."])
+                                print(
+                                    L["Import failed: Invalid configuration string."])
                                 return
                             end
-                            local decompressedData = LibDeflate:DecompressDeflate(decodedData)
+                            local decompressedData =
+                                LibDeflate:DecompressDeflate(decodedData)
                             if decompressedData == nil then
-                                print(L["Import failed: Invalid configuration string."])
+                                print(
+                                    L["Import failed: Invalid configuration string."])
                                 return
                             end
-                            ---@type boolean, ProfileConfig.ConfigTable 
-                            local success, configTable = AceSerializer:Deserialize(decompressedData)
+                            ---@type boolean, ProfileConfig.ConfigTable
+                            local success, configTable =
+                                AceSerializer:Deserialize(decompressedData)
                             if not success then
-                                print(L["Import failed: Invalid configuration string."])
+                                print(
+                                    L["Import failed: Invalid configuration string."])
                                 return
                             end
-                            local newProfileName = ProfileConfig.GenerateNewProfileName(configTable.name or L["Default"])
-                            addon.db.profiles[newProfileName] = configTable.profile
+                            local newProfileName =
+                                ProfileConfig.GenerateNewProfileName(
+                                    configTable.name or L["Default"])
+                            addon.db.profiles[newProfileName] =
+                                configTable.profile
                             addon.G.tmpImportElementConfigString = nil
                             ProfileConfig.ShowLoadConfirmation(newProfileName)
-                        end,
-                    },
-                },
+                        end
+                    }
+                }
             },
-            element=ConfigOptions.ElementsOptions(),
+            element = ConfigOptions.ElementsOptions(),
             profiles = ConfigOptions.ConfigOptions()
-        },
+        }
     }
     return options
 end
 
 function addon:OnInitialize()
-
     -- 全局变量
     ---@class GlobalValue
     self.G = {
         iconWidth = 32,
         iconHeight = 32,
         IsEditMode = false,
-        tmpCoverConfig = false,  -- 默认选择不覆盖配置，默认创建副本
-        tmpImportElementConfigString = nil,  -- 导入elementconfig配置字符串
-        tmpConfigString = nil,  -- 全局配置编辑字符串
+        tmpCoverConfig = false,             -- 默认选择不覆盖配置，默认创建副本
+        tmpImportElementConfigString = nil, -- 导入elementconfig配置字符串
+        tmpConfigString = nil,              -- 全局配置编辑字符串
         tmpNewItemType = nil,
         tmpNewItemVal = nil,
-        tmpNewItem = {type=nil, id = nil, icon = nil, name = nil}  ---@type ItemAttr
+        tmpNewItem = { type = nil, id = nil, icon = nil, name = nil } ---@type ItemAttr
     }
     -- 注册数据库，添加分类设置
-    self.db = LibStub("AceDB-3.0"):New("HappyActionBarDB", {
+    self.db = LibStub("AceDB-3.0"):New("HappyButtonDB", {
         profile = {
-            elements = {},  ---@type ElementConfig[]
+            elements = {} ---@type ElementConfig[]
         }
     }, true)
     -- 注册选项表
     AceConfig:RegisterOptionsTable(addonName, ConfigOptions.Options)
     -- 在Blizzard界面选项中添加一个子选项
     self.optionsFrame = AceConfigDialog:AddToBlizOptions(addonName, addonName)
-    -- 输入 /HappyActionBar 打开配置
+    -- 输入 /HappyButton 打开配置
     self:RegisterChatCommand(addonName, "OpenConfig")
 end
 
-function addon:OpenConfig()
-    AceConfigDialog:Open(addonName)
-end
-
+function addon:OpenConfig() AceConfigDialog:Open(addonName) end
 
 function addon:UpdateOptions()
     -- 重新注册配置表来更新菜单栏

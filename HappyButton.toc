@@ -1,13 +1,13 @@
 ## Interface: 110002
-## Title: HappyActionBar
-## Notes: |cffbc8f8fHappyActionBar |r
+## Title: HappyButton
+## Notes: |cffbc8f8fHappyButton |r
 ## Notes-zhCN: |cffbc8f8f工具包|r
 ## Notes-zhTW: |cffbc8f8f工具包|r
 ## Author: CN Cryy
 ## Version: 1.0.0
 ## IconTexture: 1418621
-## IconTexture: Interface\AddOns\HappyActionBar\Media\Logo64.blp
-## SavedVariables: HappyActionBarDB
+## IconTexture: Interface\AddOns\HappyButton\Media\Logo64.blp
+## SavedVariables: HappyButtonDB
 
 # 引入Libs中的模块
 Libs\embeds.xml
@@ -28,9 +28,9 @@ Src\Element\Bar.lua
 Src\Element\BarGroup.lua
 Src\Frame\ElementCallback.lua
 Src\Frame\ElementFrame.lua
-Src\Frame\HtFrame.lua
+Src\Frame\HbFrame.lua
 Src\Core.lua
 Src\Command.lua
-HappyActionBar.lua
+HappyButton.lua
 Src\Config.lua
 Src\Event.lua

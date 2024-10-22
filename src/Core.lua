@@ -4,8 +4,8 @@ local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 ---@class Utils: AceModule
 local U = addon:GetModule('Utils')
 
----@class HtFrame: AceModule
-local HtFrame = addon:GetModule("HtFrame")
+---@class HbFrame: AceModule
+local HbFrame = addon:GetModule("HbFrame")
 
 ---@class BarCore: AceModule
 local BarCore = addon:NewModule("BarCore")
@@ -14,7 +14,7 @@ BarCore.Frame = CreateFrame("Frame")
 
 -- 初始化配置
 function BarCore:Initial()
-    HtFrame:Initial()
+    HbFrame:Initial()
 end
 
 -- 注册事件
@@ -34,10 +34,10 @@ function BarCore:Start()
         if event == "SPELL_UPDATE_COOLDOWN" then
         end
         if event == "PLAYER_REGEN_DISABLED" then
-            HtFrame:OnCombatEvent()
+            HbFrame:OnCombatEvent()
         end
         if event == "PLAYER_REGEN_ENABLED" then
-            HtFrame:OutCombatEvent()
+            HbFrame:OutCombatEvent()
         end
     end)
 end

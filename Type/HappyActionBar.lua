@@ -1,12 +1,12 @@
 ---@meta _
----@class HappyActionBar : AceAddon
-HappyActionBar = {}
+---@class HappyButton : AceAddon
+HappyButton = {}
 
 --- 注册事件
 ---@param event string
 ---@param func function
-function HappyActionBar:RegisterMessage(event, func) end
+function HappyButton:RegisterMessage(event, func) end
 
 --- 发送事件
 ---@param event string
-function HappyActionBar:SendMessage(event) end
+function HappyButton:SendMessage(event) end

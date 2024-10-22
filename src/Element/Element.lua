@@ -1,7 +1,7 @@
 local addonName, _ = ...
 
 
----@class HappyActionBar: AceAddon
+---@class HappyButton: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
 ---@class CONST: AceModule
@@ -11,24 +11,42 @@ local const = addon:GetModule('CONST')
 ---@class E: AceModule
 local E = addon:NewModule("Element")
 
+--[[
+生成时间戳+8位随机字符串来标识配置的唯一性
+]]
+---@return string
+function E:GenerateID()
+    local chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    local result = {}
+    -- 生成随机部分
+    for _ = 1, 8 do
+        local index = math.random(#chars)
+        table.insert(result, chars:sub(index, index))
+    end
+    -- 获取时间戳
+    local timestamp = time()
+    -- 拼接随机字符串和时间戳
+    return timestamp .. '_' .. table.concat(result)
+end
 
 ---@return ElementConfig
 ---@param title string
 ---@param type ElementType
 function E:New(title, type)
-  ---@type ElementConfig
-  local config = {
-    title = title,
-    type = type,
-    icon = 134400,
-    elements = {},
-    isDisplayMouseEnter = false,
-    isDisplayText = false,
-    elesGrowth=const.GROWTH.RIGHT_BOTTOM,
-    combatLoadCond = const.COMBAT_LOAD_COND.OUT_COMBAT_LOAD,
-  }
-  config.title = title
-  return config
+    ---@type ElementConfig
+    local config = {
+        id = self:GenerateID(),
+        isLoad = true,
+        title = title,
+        type = type,
+        icon = 134400,
+        elements = {},
+        isDisplayMouseEnter = false,
+        isDisplayText = false,
+        elesGrowth = const.GROWTH.RIGHT_BOTTOM,
+        combatLoadCond = const.COMBAT_LOAD_COND.OUT_COMBAT_LOAD,
+    }
+    return config
 end
 
 ---@private
@@ -47,13 +65,11 @@ function E:ToScript(config)
     return E:InitExtraAttr(config) ---@type ScriptConfig
 end
 
-
 ---@param config ElementConfig
 ---@return ItemGroupConfig
 function E:ToItemGroup(config)
     return E:InitExtraAttr(config) ---@type ItemGroupConfig
 end
-
 
 ---@param config ElementConfig
 ---@return ItemConfig
@@ -69,8 +85,7 @@ function E:NewItemGroup(title)
     e.extraAttr.mode = const.ITEMS_GROUP_MODE.RANDOM
     e.extraAttr.displayUnLearned = false
     return e
-  end
-
+end
 
 ---@param config ElementConfig
 ---@return BarConfig

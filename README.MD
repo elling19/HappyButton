@@ -1,8 +1,8 @@
-# HappyActionbar
+# HappyButton
 
-<img src="./Media/Logo.png" alt="HappyActionBar" width="300" height="300">
+<img src="./Media/Logo.png" alt="HappyButton" width="300" height="300">
 
-Welcome to the **HappyActionbar** plugin! This is a dedicated addon for **World of Warcraft**, designed to provide custom extra action bars to help you manage and utilize items, skills, pets, mounts, and toys more conveniently.
+Welcome to the **HappyButton** plugin! This is a dedicated addon for **World of Warcraft**, designed to provide custom extra action bars to help you manage and utilize items, skills, pets, mounts, and toys more conveniently.
 
 ## Features
 
@@ -30,4 +30,4 @@ Welcome to the **HappyActionbar** plugin! This is a dedicated addon for **World 
 
 If you have any questions or suggestions, feel free to submit feedback on the plugin's GitHub page or contact the developer.
 
-Thank you for using HappyActionbar, and enjoy your game!
+Thank you for using HappyButton, and enjoy your game!

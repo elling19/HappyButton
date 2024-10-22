@@ -1,9 +1,7 @@
 local addonName, _ = ...
 
----@class HappyActionBar: AceAddon
+---@class HappyButton: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
-
-local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 
 ---@class CONST: AceModule
 local const = addon:GetModule('CONST')
@@ -29,13 +27,13 @@ local ECB = addon:GetModule('ElementCallback')
 ---@field TabBtn nil|table|Button
 ---@field BarFrame nil|table|Button
 ---@field BarBtns (table|Button)[]
+---@field Icon string | number | nil
 
 ---@class ElementFrame: AceModule
 ---@field Cbss ElementCbInfo[][]
 ---@field Config ElementConfig  -- 当前Frame的配置文件
----@field Index number  -- 当前Frame是总配置文件中的第几个
 ---@field Window Frame
----@field CateMenuFrame Frame
+---@field BarMenuFrame Frame
 ---@field Bars Bar[]
 ---@field IsOpen boolean  -- 是否处理打开状态
 ---@field IsMouseInside boolean  -- 鼠标是否处在框体内
@@ -53,10 +51,10 @@ end
 -- 判断是否水平方向展示
 function ElementFrame:IsHorizontal()
     return
-    self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM
-    or self.Config.elesGrowth == const.GROWTH.LEFT_TOP
-    or self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM
-    or self.Config.elesGrowth == const.GROWTH.RIGHT_TOP
+        self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM
+        or self.Config.elesGrowth == const.GROWTH.LEFT_TOP
+        or self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM
+        or self.Config.elesGrowth == const.GROWTH.RIGHT_TOP
 end
 
 -- 判断图标列表横向展示
@@ -67,72 +65,131 @@ function ElementFrame:IsIconsHorizontal()
 end
 
 ---@param element ElementConfig
----@param index number
-function ElementFrame:New(element, index)
-    local obj = setmetatable({}, {__index = self})
+---@return ElementFrame
+function ElementFrame:New(element)
+    local obj = setmetatable({}, { __index = self })
     obj.Config = element
-    obj.Cbss = self:LoadConfig(element)
-    obj.Window = CreateFrame("Frame", ("HtWindow-%s"):format(index), UIParent)
-    obj.Index = index
+    ElementFrame.InitialWindow(obj)
     obj.IsOpen = false
     obj.IsMouseInside = false
-    obj.IconHeight = element.iconHeight or addon.G.iconHeight
-    obj.IconWidth = element.iconWidth or addon.G.iconWidth
-    obj.Bars = {}
+    obj.IconHeight = obj.Config.iconHeight or addon.G.iconHeight
+    obj.IconWidth = obj.Config.iconWidth or addon.G.iconWidth
     obj.CurrentBarIndex = 1
-    obj:InitialWindow()
-    if element.type == const.ELEMENT_TYPE.BAR_GROUP then
-        obj:InitialCateMenuFrame()
-    end
-    obj:InitialBarFrame()
-    obj:CreateEditModeFrame()
-    obj:Update()
+    ElementFrame.ReLoadUI(obj)
     return obj
 end
 
----@param element ElementConfig
+function ElementFrame:ReLoadUI()
+    self.Cbss = self:GetCbss(self.Config)
+    self:UpdateWindow()
+    self:UpdateBarMenuFrame()
+    self:UpdateBars()
+    self:UpdateBarFrame()
+    self:CreateEditModeFrame()
+    self:Update()
+end
+
+---@param eleConfig ElementConfig
 ---@return ElementCbInfo[][]
-function ElementFrame:LoadConfig(element)
-    if element.type == const.ELEMENT_TYPE.ITEM then
-        local item = E:ToItem(element)
+function ElementFrame:GetCbss(eleConfig)
+    if eleConfig.isLoad == false then
+        return { {} }
+    end
+    if eleConfig.type == const.ELEMENT_TYPE.ITEM then
+        local item = E:ToItem(eleConfig)
         ---@type ElementCbInfo
-        local cb = {f=ECB.CallbackOfSingleMode, p=item, r={}}
-        return {{cb, }}
-    elseif element.type == const.ELEMENT_TYPE.ITEM_GROUP then
-        local itemGroup = E:ToItemGroup(element)
+        local cb = { f = ECB.CallbackOfSingleMode, p = item, r = {} }
+        return { { cb, } }
+    elseif eleConfig.type == const.ELEMENT_TYPE.ITEM_GROUP then
+        local itemGroup = E:ToItemGroup(eleConfig)
         ---@type ElementCbInfo
         local cb
         if itemGroup.extraAttr.mode == const.ITEMS_GROUP_MODE.RANDOM then
-            cb = {f=ECB.CallbackOfRandomMode, p=itemGroup, r={}}
+            cb = { f = ECB.CallbackOfRandomMode, p = itemGroup, r = {} }
         end
         if itemGroup.extraAttr.mode == const.ITEMS_GROUP_MODE.SEQ then
-            cb = {f=ECB.CallbackOfSeqMode, p=itemGroup, r={}}
+            cb = { f = ECB.CallbackOfSeqMode, p = itemGroup, r = {} }
         end
-        return {{cb, }}
-    elseif element.type == const.ELEMENT_TYPE.SCRIPT then
-        local script = E:ToScript(element)
+        return { { cb, } }
+    elseif eleConfig.type == const.ELEMENT_TYPE.SCRIPT then
+        local script = E:ToScript(eleConfig)
         if script.extraAttr.script then
-            local cb = {f=ECB.CallbackOfScriptMode, p=script, r={}}
-            return {{cb, }}
+            local cb = { f = ECB.CallbackOfScriptMode, p = script, r = {} }
+            return { { cb, } }
         end
-    elseif element.type == const.ELEMENT_TYPE.BAR then
+    elseif eleConfig.type == const.ELEMENT_TYPE.BAR then
         ---@type ElementCbInfo[]
         local cbs = {}
-        local bar = E:ToBar(element)
-        for _, _element in ipairs(bar.elements) do
-            table.insert(cbs, self:LoadConfig(_element)[1][1])
+        local bar = E:ToBar(eleConfig)
+        for _, _eleConfig in ipairs(bar.elements) do
+            if _eleConfig.isLoad then
+                table.insert(cbs, self:GetCbss(_eleConfig)[1][1])
+            end
         end
-        return {cbs, }
-    elseif element.type == const.ELEMENT_TYPE.BAR_GROUP then
+        return { cbs, }
+    elseif eleConfig.type == const.ELEMENT_TYPE.BAR_GROUP then
         ---@type ElementCbInfo[][]
         local cbss = {}
-        local barGroup = E:ToBarGroup(element)
-        for _, _element in ipairs(barGroup.elements) do
-            table.insert(cbss, self:LoadConfig(_element)[1])
+        local barGroup = E:ToBarGroup(eleConfig)
+        for _, _eleConfig in ipairs(barGroup.elements) do
+            if _eleConfig.isLoad == true then
+                table.insert(cbss, self:GetCbss(_eleConfig)[1])
+            end
         end
         return cbss
     end
-    return {{}}
+    return { {} }
+end
+
+-- 创建Bar[]
+function ElementFrame:UpdateBars()
+    self:RemoveBars()
+    ---@type Bar[]
+    local bars = {}
+    if self.Config.isLoad == false then
+        self.Bars = bars
+        return
+    end
+    if self.Config.type == const.ELEMENT_TYPE.BAR_GROUP then
+        for _, _eleConfig in ipairs(self.Config.elements) do
+            ---@type Bar
+            local bar = { TabBtn = nil, BarFrame = nil, BarBtns = {}, Icon = _eleConfig.icon }
+            table.insert(bars, bar)
+        end
+        self.Bars = bars
+    else
+        ---@type Bar
+        local bar = { TabBtn = nil, BarFrame = nil, BarBtns = {}, Icon = self.Config.icon }
+        table.insert(bars, bar)
+        self.Bars = bars
+    end
+end
+
+-- 移除Bar[]
+function ElementFrame:RemoveBars()
+    -- 清空旧的Bars
+    if not self.Bars then
+        return
+    end
+    for _, bar in ipairs(self.Bars) do
+        if bar.BarFrame then
+            bar.BarFrame:Hide()
+            bar.BarFrame:ClearAllPoints()
+            bar.BarFrame = nil
+        end
+        if bar.TabBtn then
+            bar.TabBtn:Hide()
+            bar.TabBtn:ClearAllPoints()
+            bar.TabBtn = nil
+        end
+        for _, btn in ipairs(bar.BarBtns) do
+            if btn then
+                btn:Hide()
+                btn:ClearAllPoints()
+                btn = {}
+            end
+        end
+    end
 end
 
 function ElementFrame:Update()
@@ -149,34 +206,35 @@ function ElementFrame:Update()
         for cbIndex, r in ipairs(cbResults) do
             -- 如果图标不足，补全图标
             if cbIndex > #bar.BarBtns then
-                local btn = CreateFrame("Button", ("Button-%s-%s-%s"):format(self.Index, barIndex, cbIndex), bar.BarFrame, "SecureActionButtonTemplate, UIPanelButtonTemplate")
+                local btn = CreateFrame("Button", ("Button-%s-%s-%s"):format(self.Config.id, barIndex, cbIndex),
+                    bar.BarFrame, "SecureActionButtonTemplate, UIPanelButtonTemplate")
                 btn:SetNormalTexture(134400)
                 btn:SetSize(self.IconWidth, self.IconHeight)
                 if self.Config.type == const.ELEMENT_TYPE.BAR_GROUP then
                     if self.Config.elesGrowth == const.GROWTH.LEFT_TOP or self.Config.elesGrowth == const.GROWTH.RIGHT_TOP then
-                        btn:SetPoint("BOTTOM", bar.BarFrame, "BOTTOM",  0, self.IconHeight * (cbIndex - 1))
+                        btn:SetPoint("BOTTOM", bar.BarFrame, "BOTTOM", 0, self.IconHeight * (cbIndex - 1))
                     elseif self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM or self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM then
-                        btn:SetPoint("TOP", bar.BarFrame, "TOP",  0, - self.IconHeight * (cbIndex - 1))
+                        btn:SetPoint("TOP", bar.BarFrame, "TOP", 0, -self.IconHeight * (cbIndex - 1))
                     elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT or self.Config.elesGrowth == const.GROWTH.TOP_LEFT then
-                        btn:SetPoint("RIGHT", bar.BarFrame, "RIGHT",  - self.IconWidth * (cbIndex - 1), 0)
+                        btn:SetPoint("RIGHT", bar.BarFrame, "RIGHT", -self.IconWidth * (cbIndex - 1), 0)
                     elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT or self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
-                        btn:SetPoint("LEFT", bar.BarFrame, "LEFT",  self.IconWidth * (cbIndex - 1), 0)
+                        btn:SetPoint("LEFT", bar.BarFrame, "LEFT", self.IconWidth * (cbIndex - 1), 0)
                     else
                         -- 默认右下
-                        btn:SetPoint("TOP", bar.BarFrame, "TOP",  0, - self.IconHeight * (cbIndex - 1))
+                        btn:SetPoint("TOP", bar.BarFrame, "TOP", 0, -self.IconHeight * (cbIndex - 1))
                     end
                 else
                     if self.Config.elesGrowth == const.GROWTH.LEFT_TOP or self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
-                        btn:SetPoint("RIGHT", bar.BarFrame, "RIGHT",  - self.IconWidth * (cbIndex - 1), 0)
+                        btn:SetPoint("RIGHT", bar.BarFrame, "RIGHT", -self.IconWidth * (cbIndex - 1), 0)
                     elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT or self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
-                        btn:SetPoint("BOTTOM", bar.BarFrame, "BOTTOM",  0, self.IconHeight * (cbIndex - 1))
+                        btn:SetPoint("BOTTOM", bar.BarFrame, "BOTTOM", 0, self.IconHeight * (cbIndex - 1))
                     elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT or self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
-                        btn:SetPoint("TOP", bar.BarFrame, "TOP",  0, - self.IconHeight * (cbIndex - 1))
+                        btn:SetPoint("TOP", bar.BarFrame, "TOP", 0, -self.IconHeight * (cbIndex - 1))
                     elseif self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM or self.Config.elesGrowth == const.GROWTH.RIGHT_TOP then
-                        btn:SetPoint("LEFT", bar.BarFrame, "LEFT",  self.IconWidth * (cbIndex - 1), 0)
+                        btn:SetPoint("LEFT", bar.BarFrame, "LEFT", self.IconWidth * (cbIndex - 1), 0)
                     else
                         -- 默认右下
-                        btn:SetPoint("LEFT", bar.BarFrame, "LEFT",  self.IconWidth * (cbIndex - 1), 0)
+                        btn:SetPoint("LEFT", bar.BarFrame, "LEFT", self.IconWidth * (cbIndex - 1), 0)
                     end
                 end
                 btn:RegisterForClicks("AnyDown", "AnyUp")
@@ -238,47 +296,8 @@ function ElementFrame:Update()
 end
 
 function ElementFrame:InitialWindow()
-    local barNum = #self.Cbss
-    for _, _ in ipairs(self.Cbss) do
-        ---@type Bar
-        local bar = {TabBtn = nil, BarFrame = nil, BarBtns = {}}
-        table.insert(self.Bars, bar)
-    end
-
+    self.Window = CreateFrame("Frame", ("HtWindow-%s"):format(self.Config.id), UIParent)
     self.Window:SetFrameStrata("BACKGROUND")
-
-    if self:IsHorizontal() then
-        self.Window:SetHeight(self.IconHeight)
-        self.Window:SetWidth(self.IconWidth * barNum)
-    else
-        self.Window:SetHeight(self.IconHeight * barNum)
-        self.Window:SetWidth(self.IconWidth)
-    end
-
-    -- 将窗口定位到初始位置
-    local x = self.Config.posX or 0
-    local y = self.Config.posY or 0
-
-    if self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM then
-        self.Window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
-    elseif self.Config.elesGrowth == const.GROWTH.RIGHT_TOP then
-        self.Window:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
-    elseif self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
-        self.Window:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", x, y)
-    elseif self.Config.elesGrowth == const.GROWTH.LEFT_TOP then
-        self.Window:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", x, y)
-    elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT then
-        self.Window:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", x, y)
-    elseif self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
-        self.Window:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
-    elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT then
-        self.Window:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", x, y)
-    elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
-        self.Window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
-    else
-        -- 默认右下
-        self.Window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
-    end
     self.Window:SetMovable(true)
     self.Window:EnableMouse(true)
     self.Window:RegisterForDrag("LeftButton")
@@ -365,74 +384,117 @@ function ElementFrame:InitialWindow()
             self.IsMouseInside = false
         end
     end)
-
 end
 
-function ElementFrame:InitialCateMenuFrame()
-    self.CateMenuFrame = CreateFrame("Frame", ("HtCateMenuFrame-%s"), self.Window)
-    self.CateMenuFrame:SetHeight(self.Window:GetHeight())
-    self.CateMenuFrame:SetWidth(self.Window:GetWidth())
+function ElementFrame:UpdateWindow()
+    local barNum = #self.Cbss
 
+    if self:IsHorizontal() then
+        self.Window:SetHeight(self.IconHeight)
+        self.Window:SetWidth(self.IconWidth * barNum)
+    else
+        self.Window:SetHeight(self.IconHeight * barNum)
+        self.Window:SetWidth(self.IconWidth)
+    end
+
+    -- 将窗口定位到初始位置
+    local x = self.Config.posX or 0
+    local y = self.Config.posY or 0
+
+    self.Window:ClearAllPoints()
     if self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM then
-        self.CateMenuFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
+        self.Window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
     elseif self.Config.elesGrowth == const.GROWTH.RIGHT_TOP then
-        self.CateMenuFrame:SetPoint("BOTTOMLEFT", self.Window, "BOTTOMLEFT", 0, 0)
+        self.Window:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
     elseif self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
-        self.CateMenuFrame:SetPoint("TOPRIGHT", self.Window, "TOPRIGHT", 0, 0)
+        self.Window:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", x, y)
     elseif self.Config.elesGrowth == const.GROWTH.LEFT_TOP then
-        self.CateMenuFrame:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
+        self.Window:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", x, y)
     elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT then
-        self.CateMenuFrame:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
+        self.Window:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", x, y)
     elseif self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
-        self.CateMenuFrame:SetPoint("BOTTOMLEFT", self.Window, "BOTTOMLEFT", 0, 0)
+        self.Window:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
     elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT then
-        self.CateMenuFrame:SetPoint("TOPRIGHT", self.Window, "TOPRIGHT", 0, 0)
+        self.Window:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", x, y)
     elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
-        self.CateMenuFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
+        self.Window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
     else
         -- 默认右下
-        self.CateMenuFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
-    end
-    for index, bar in ipairs(self.Bars) do
-        local TabBtn = CreateFrame("Button", ("tab-%s"):format(index), self.CateMenuFrame, "UIPanelButtonTemplate")
-        local icon =  self.Config.icon
-        if icon then
-            local iconNumber = tonumber(icon)
-            if iconNumber then
-                TabBtn:SetNormalTexture(iconNumber)
-            else
-                TabBtn:SetNormalTexture(icon)
-            end
-        else
-            TabBtn:SetNormalTexture(134400)
-        end
-        TabBtn:SetSize(self.IconWidth, self.IconHeight)
-        if self.Config.elesGrowth == const.GROWTH.LEFT_TOP or self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
-            TabBtn:SetPoint("RIGHT", self.CateMenuFrame, "RIGHT", -(index - 1) * self.IconWidth, 0)
-        elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT or self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
-            TabBtn:SetPoint("BOTTOM", self.CateMenuFrame, "BOTTOM", 0, (index - 1) * self.IconHeight)
-        elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT or self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
-            TabBtn:SetPoint("TOP", self.CateMenuFrame, "TOP", 0, -(index - 1) * self.IconHeight)
-        else
-            TabBtn:SetPoint("LEFT", self.CateMenuFrame, "LEFT", (index - 1) * self.IconWidth, 0)
-        end
-        TabBtn:SetScript("OnEnter", function (_)
-            local highlightTexture = TabBtn:CreateTexture()
-            highlightTexture:SetColorTexture(255, 255, 255, 0.2)
-            TabBtn:SetHighlightTexture(highlightTexture)
-            self:ShowBarFrame(index)
-        end)
-        TabBtn:SetScript("OnClick", function(_, _)
-            self:ToggleBarFrame(index)
-        end)
-        bar.TabBtn = TabBtn
+        self.Window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
     end
 end
 
-function ElementFrame:InitialBarFrame()
-    for index, bar in ipairs(self.Bars) do
-        local barFrame = CreateFrame("Frame", ("HtBarFrame-%s"):format(index), self.Window)
+function ElementFrame:UpdateBarMenuFrame()
+    --- 只有BarGroup才需要处理BarMenu和TabBtn
+    if self.Config.type ~= const.ELEMENT_TYPE.BAR_GROUP then
+        return
+    end
+    if self.BarMenuFrame == nil then
+        self.BarMenuFrame = CreateFrame("Frame", ("HtBarMenuFrame-%s"), self.Window)
+    end
+    self.BarMenuFrame:SetHeight(self.Window:GetHeight())
+    self.BarMenuFrame:SetWidth(self.Window:GetWidth())
+    self.BarMenuFrame:ClearAllPoints()
+    if self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM then
+        self.BarMenuFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.RIGHT_TOP then
+        self.BarMenuFrame:SetPoint("BOTTOMLEFT", self.Window, "BOTTOMLEFT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
+        self.BarMenuFrame:SetPoint("TOPRIGHT", self.Window, "TOPRIGHT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.LEFT_TOP then
+        self.BarMenuFrame:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT then
+        self.BarMenuFrame:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
+        self.BarMenuFrame:SetPoint("BOTTOMLEFT", self.Window, "BOTTOMLEFT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT then
+        self.BarMenuFrame:SetPoint("TOPRIGHT", self.Window, "TOPRIGHT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
+        self.BarMenuFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
+    else
+        -- 默认右下
+        self.BarMenuFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
+    end
+end
 
+function ElementFrame:UpdateBarFrame()
+    for index, bar in ipairs(self.Bars) do
+        if self.Config.type == const.ELEMENT_TYPE.BAR_GROUP then
+            local TabBtn = CreateFrame("Button", ("tab-%s"):format(index), self.BarMenuFrame, "UIPanelButtonTemplate")
+            local icon = bar.Icon
+            if icon then
+                local iconNumber = tonumber(icon)
+                if iconNumber then
+                    TabBtn:SetNormalTexture(iconNumber)
+                else
+                    TabBtn:SetNormalTexture(icon)
+                end
+            else
+                TabBtn:SetNormalTexture(134400)
+            end
+            TabBtn:SetSize(self.IconWidth, self.IconHeight)
+            TabBtn:ClearAllPoints()
+            if self.Config.elesGrowth == const.GROWTH.LEFT_TOP or self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
+                TabBtn:SetPoint("RIGHT", self.BarMenuFrame, "RIGHT", -(index - 1) * self.IconWidth, 0)
+            elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT or self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
+                TabBtn:SetPoint("BOTTOM", self.BarMenuFrame, "BOTTOM", 0, (index - 1) * self.IconHeight)
+            elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT or self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
+                TabBtn:SetPoint("TOP", self.BarMenuFrame, "TOP", 0, -(index - 1) * self.IconHeight)
+            else
+                TabBtn:SetPoint("LEFT", self.BarMenuFrame, "LEFT", (index - 1) * self.IconWidth, 0)
+            end
+            TabBtn:SetScript("OnEnter", function(_)
+                local highlightTexture = TabBtn:CreateTexture()
+                highlightTexture:SetColorTexture(255, 255, 255, 0.2)
+                TabBtn:SetHighlightTexture(highlightTexture)
+                self:ShowBarFrame(index)
+            end)
+            TabBtn:SetScript("OnClick", function(_, _)
+                self:ToggleBarFrame(index)
+            end)
+            bar.TabBtn = TabBtn
+        end
+        local barFrame = CreateFrame("Frame", ("HtBarFrame-%s"):format(index), self.Window)
         if self:IsBarGroup() then
             if self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM or self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
                 barFrame:SetPoint("TOP", bar.TabBtn, "BOTTOM", 0, 0)
@@ -482,7 +544,7 @@ function ElementFrame:CreateEditModeFrame()
     self.EditModeBg = self.Window:CreateTexture(nil, "BACKGROUND")
     self.EditModeBg:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
     self.EditModeBg:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
-    self.EditModeBg:SetColorTexture(0, 0, 1,0.5)  -- 蓝色半透明背景
+    self.EditModeBg:SetColorTexture(0, 0, 1, 0.5) -- 蓝色半透明背景
     self.EditModeBg:Hide()
 end
 
@@ -522,8 +584,8 @@ end
 
 -- 将bargroup类型设置成隐藏
 function ElementFrame:SetBarGroupHidden()
-    if self.CateMenuFrame then
-        self.CateMenuFrame:Hide()
+    if self.BarMenuFrame then
+        self.BarMenuFrame:Hide()
     end
     self.IsOpen = false
     for _, bar in ipairs(self.Bars) do
@@ -534,8 +596,8 @@ end
 
 -- 将bargroup类型设置成显示
 function ElementFrame:SetBarGroupShow()
-    if self.CateMenuFrame then
-        self.CateMenuFrame:Show()
+    if self.BarMenuFrame then
+        self.BarMenuFrame:Show()
     end
     self.IsOpen = true
     self.CurrentBarIndex = nil
@@ -555,7 +617,6 @@ function ElementFrame:SetBarNonTransparency()
     end
 end
 
-
 --- 将单个Bar类型设置成隐藏
 function ElementFrame:SetBarHidden()
     if self.Bars and #self.Bars > 0 then
@@ -569,7 +630,6 @@ function ElementFrame:SetBarShow()
         self.Bars[1].BarFrame:Show()
     end
 end
-
 
 -- 更新pool的宏文案
 function ElementFrame:SetPoolMacro(btn)
@@ -597,11 +657,9 @@ function ElementFrame:SetPoolMacro(btn)
     elseif r.item.type == const.ITEM_TYPE.PET then
         macroText = "/SummonPet " .. r.item.name
     end
-    -- 宏命令附加更新冷却计时
-    macroText = macroText .. "\r" .. ("/setHappyActionBarguicooldown %s %s %s"):format(self.Index, btn.barIndex, btn.cbIndex)
     -- 宏命令附加关闭窗口
     if r.closeGUIAfterClick == nil or r.closeGUIAfterClick == true then
-        macroText = macroText .. "\r" .. "/closehtmainframe"
+        macroText = macroText .. "\r" .. "/SETCLOSEEFRAME" .. " " .. self.Config.id
     end
     btn:SetAttribute("macrotext", macroText)
 end
@@ -618,44 +676,32 @@ function ElementFrame:SetPoolCooldown(btn)
     if btn.cooldown == nil then
         -- 创建冷却效果
         btn.cooldown = CreateFrame("Cooldown", nil, btn, "CooldownFrameTemplate")
-        btn.cooldown:SetAllPoints(btn)  -- 设置冷却效果覆盖整个按钮
-        btn.cooldown:SetDrawEdge(true)  -- 显示边缘
-        btn.cooldown:SetHideCountdownNumbers(true)  -- 隐藏倒计时数字
+        btn.cooldown:SetAllPoints(btn)             -- 设置冷却效果覆盖整个按钮
+        btn.cooldown:SetDrawEdge(true)             -- 显示边缘
+        btn.cooldown:SetHideCountdownNumbers(true) -- 隐藏倒计时数字
     end
     local item = r.item
-    -- 更新冷却倒计时
-    if item.type == const.ITEM_TYPE.ITEM then
-        local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(item.id)
-        if enableCooldownTimer and durationSeconds > 0 then
-            btn.cooldown:SetCooldown(startTimeSeconds, durationSeconds)
-        else
-            btn.cooldown:Clear()
-        end
-    elseif item.type == const.ITEM_TYPE.TOY then
-        local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(item.id)
-        if enableCooldownTimer and durationSeconds > 0 then
-            btn.cooldown:SetCooldown(startTimeSeconds, durationSeconds)
-        else
-            btn.cooldown:Clear()
-        end
-    elseif item.type == const.ITEM_TYPE.SPELL then
-        local spellCooldownInfo = C_Spell.GetSpellCooldown(item.id)
-        if spellCooldownInfo and spellCooldownInfo.isEnabled == true and spellCooldownInfo.duration > 0 then
-            btn.cooldown:SetCooldown(spellCooldownInfo.startTime, spellCooldownInfo.duration)
-        else
-            btn.cooldown:Clear()
-        end
-    elseif item.type == const.ITEM_TYPE.PET then
-        local speciesId, petGUID = C_PetJournal.FindPetIDByName(item.name)
-        if petGUID then
-            local start, duration, isEnabled = C_PetJournal.GetPetCooldownByGUID(petGUID)
-            if isEnabled and duration > 0 then
-                btn.cooldown:SetCooldown(start, duration)
-            else
-                btn.cooldown:Clear()
+    btn:SetScript("OnUpdate", function (frame)
+        -- 更新冷却倒计时
+        if item.type == const.ITEM_TYPE.ITEM then
+            local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(item.id)
+            CooldownFrame_Set(frame.cooldown, startTimeSeconds, durationSeconds, enableCooldownTimer)
+        elseif item.type == const.ITEM_TYPE.TOY then
+            local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(item.id)
+            CooldownFrame_Set(frame.cooldown, startTimeSeconds, durationSeconds, enableCooldownTimer)
+        elseif item.type == const.ITEM_TYPE.SPELL then
+            local spellCooldownInfo = C_Spell.GetSpellCooldown(item.id)
+            if spellCooldownInfo then
+                CooldownFrame_Set(frame.cooldown, spellCooldownInfo.startTime, spellCooldownInfo.duration, spellCooldownInfo.isEnabled)
+            end
+        elseif item.type == const.ITEM_TYPE.PET then
+            local speciesId, petGUID = C_PetJournal.FindPetIDByName(item.name)
+            if petGUID then
+                local start, duration, isEnabled = C_PetJournal.GetPetCooldownByGUID(petGUID)
+                CooldownFrame_Set(frame.cooldown, start, duration, isEnabled)
             end
         end
-    end
+    end)
 end
 
 -- 设置脚本模式的点击事件
@@ -710,13 +756,15 @@ function ElementFrame:SetPoolLearnable(btn)
             hasThisThing = true
         end
     elseif item.type == const.ITEM_TYPE.MOUNT then
-        local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight = C_MountJournal.GetMountInfoByID(item.id)
+        local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight =
+            C_MountJournal.GetMountInfoByID(item.id)
         if isCollected then
             hasThisThing = true
         end
     elseif item.type == const.ITEM_TYPE.PET then
         for petIndex = 1, C_PetJournal.GetNumPets() do
-            local _, speciesID, owned, customName, level, favorite, isRevoked, speciesName, icon, petType, companionID, tooltip, description, isWild, canBattle, isTradeable, isUnique, obtainable = C_PetJournal.GetPetInfoByIndex(petIndex)
+            local _, speciesID, owned, customName, level, favorite, isRevoked, speciesName, icon, petType, companionID, tooltip, description, isWild, canBattle, isTradeable, isUnique, obtainable =
+                C_PetJournal.GetPetInfoByIndex(petIndex)
             if speciesID == item.id then
                 hasThisThing = true
                 break
@@ -768,10 +816,12 @@ function ElementFrame:SetShowGameTooltip(btn)
     elseif item.type == const.ITEM_TYPE.SPELL then
         GameTooltip:SetSpellByID(item.id)
     elseif item.type == const.ITEM_TYPE.MOUNT then
-        local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight = C_MountJournal.GetMountInfoByID(item.id)
+        local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight =
+            C_MountJournal.GetMountInfoByID(item.id)
         GameTooltip:SetMountBySpellID(spellID)
     elseif item.type == const.ITEM_TYPE.PET then
-        local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID = C_PetJournal.GetPetInfoBySpeciesID(item.id)
+        local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID =
+            C_PetJournal.GetPetInfoBySpeciesID(item.id)
         local speciesId, petGUID = C_PetJournal.FindPetIDByName(speciesName)
         GameTooltip:SetCompanionPet(petGUID)
     end
@@ -785,7 +835,7 @@ function ElementFrame:SetButtonMouseEvent(btn)
     btn:SetScript("OnLeave", function(_)
         GameTooltip:Hide() -- 隐藏提示
     end)
-    btn:SetScript("OnEnter", function (_)
+    btn:SetScript("OnEnter", function(_)
         self:SetShowGameTooltip(btn)
         -- 设置鼠标移入时候的高亮效果为白色半透明效果
         local highlightTexture = btn:CreateTexture()
@@ -794,13 +844,19 @@ function ElementFrame:SetButtonMouseEvent(btn)
     end)
 end
 
-
 -- 设置窗口宽度：窗口会遮挡视图，会减少鼠标可点击范围，因此窗口宽度尽可能小
 function ElementFrame:SetWindowSize()
     local buttonNum = 1
     if self:IsBarGroup() then
         if self.CurrentBarIndex ~= nil then
-            buttonNum = (#self.Bars[self.CurrentBarIndex].BarBtns) + 1
+            -- 初始创建的barGroup没有Bar，需要判断非空
+            if #self.Bars ~= 0 then
+                local currentBar = self.Bars[self.CurrentBarIndex]
+                if currentBar then
+                    local barBtns = currentBar.BarBtns
+                    buttonNum = (#barBtns) + 1
+                end
+            end
         end
         if self:IsHorizontal() then
             self.Window:SetWidth(self.IconWidth * #self.Bars)
@@ -810,7 +866,9 @@ function ElementFrame:SetWindowSize()
             self.Window:SetHeight(self.IconHeight * #self.Bars)
         end
     else
-        buttonNum = #self.Bars[1].BarBtns
+        if self.Bars and #self.Bars > 0 then
+            buttonNum = #self.Bars[1].BarBtns
+        end
         if self:IsHorizontal() then
             self.Window:SetWidth(self.IconWidth * buttonNum)
             self.Window:SetHeight(self.IconHeight)
@@ -860,4 +918,11 @@ function ElementFrame:CloseEditMode()
             self:SetBarShow()
         end
     end
+end
+
+-- 卸载框体
+function ElementFrame:Delete()
+    self.Window:Hide()
+    self.Window:ClearAllPoints()
+    self.Window = nil
 end

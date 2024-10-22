@@ -15,6 +15,8 @@
 ---@field script string | nil  -- 原始脚本文件
 
 ---@class ElementConfig
+---@field id string
+---@field isLoad boolean -- 是否启用
 ---@field iconWidth number | nil
 ---@field iconHeight number | nil
 ---@field title string

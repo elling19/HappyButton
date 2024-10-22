@@ -1,6 +1,6 @@
-local L = LibStub("AceLocale-3.0"):NewLocale("HappyActionBar", "enUS", true)
+local L = LibStub("AceLocale-3.0"):NewLocale("HappyButton", "enUS", true)
 
-L["Welcome to use HappyActionBar."] = true
+L["Welcome to use HappyButton."] = true
 L["Can not register Bar: must be a callback function."] = true
 L["You cannot use this in combat."] = true
 L["Teleport"] = true
@@ -90,6 +90,7 @@ L["Vertical"] = true
 L["Icon Width"] = true
 L["Icon Height"] = true
 L["Display Rule"] = true
+L["Load"] = true
 L["Load Rule"] = true
 L["Add Child Elements"] = true
 L["TOP_LEFT"] = true

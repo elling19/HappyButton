@@ -1,17 +1,17 @@
 local addonName, _ = ...  ---@type string, table
 
----@class HappyActionBar: AceAddon
+---@class HappyButton: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
 ---@class CONST: AceModule
 local const = addon:GetModule('CONST')
 
----@class HtFrame: AceModule
-local HtFrame = addon:GetModule("HtFrame")
+---@class HbFrame: AceModule
+local HbFrame = addon:GetModule("HbFrame")
 
 -- 主窗口右键事件
 addon:RegisterMessage(const.EVENT.EXIT_EDIT_MODE, function()
     addon.G.IsEditMode = false
-    HtFrame:CloseEditMode()
+    HbFrame:CloseEditMode()
 end)
 

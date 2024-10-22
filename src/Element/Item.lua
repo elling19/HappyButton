@@ -1,7 +1,7 @@
 local addonName, _ = ...
 
 
----@class HappyActionBar: AceAddon
+---@class HappyButton: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
 local E = addon:GetModule("Element", true)
