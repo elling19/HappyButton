@@ -107,3 +107,16 @@ L["Load when out of combat"] = true
 L["Load when in combat"] = true
 L["BarGroup only load when out of combat"] = true
 L["Localize the name of items"] = true
+
+
+-- 依附框体
+L["UIParent"] = true  -- 主屏幕
+L["GameMenuFrame"] = true  -- 游戏菜单
+L["Minimap"] = true  -- 小地图
+L["ProfessionsBookFrame"] = true  -- 专业
+L["WorldMapFrame"] = true  -- 世界地图
+L["CollectionsJournal"] = true  -- 收集箱
+L["PVEFrame"] = true -- 地下城和团队副本
+
+L["Position"] = true
+L["AttachFrame"] = true

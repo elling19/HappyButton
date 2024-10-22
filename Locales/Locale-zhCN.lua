@@ -108,3 +108,16 @@ L["Load when out of combat"] = "战斗外加载"
 L["Load when in combat"] = "战斗中加载"
 L["BarGroup only load when out of combat"] = "物品条组仅在战斗外加载"
 L["Localize the name of items"] = "物品名称本地化"
+
+-- 依附框体
+L["UIParent"] = "主屏幕"
+L["GameMenuFrame"] = "游戏菜单"
+L["Minimap"] = "小地图"
+L["ProfessionsBookFrame"] = "专业"
+L["WorldMapFrame"] = "世界地图"
+L["CollectionsJournal"] = "收集箱"
+L["PVEFrame"] = "地下城和团队副本"
+
+
+L["Position"] = "位置"
+L["AttachFrame"] = "依附框体"

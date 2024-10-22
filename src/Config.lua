@@ -375,8 +375,45 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 HbFrame:ReloadEframeUI(updateFrameConfig)
             end
         }
+        if isTopElement then
+            args.sapcePosition = { order = order, type = 'description', name = "\n" }
+            order = order + 1
+            args.positionHeader = {
+                order = order,
+                type = 'header',
+                name = L["Position"]
+            }
+            order = order + 1
+            args.attachFrame = {
+                order = order,
+                type = 'input',
+                name = L["AttachFrame"],
+                set = function(_, val)
+                    ele.attachFrame = val
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end,
+                get = function()
+                    return ele.attachFrame
+                end
+            }
+            order = order + 1
+            args.attachFrameOptions = {
+                order = order,
+                type = 'select',
+                name = "",
+                values = const.AttachFrameOptions,
+                set = function(_, val)
+                    ele.attachFrame = val
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end,
+                get = function()
+                    return ele.attachFrame
+                end
+            }
+            order = order + 1
+        end
         order = order + 1
-        args.sapce1 = { order = order, type = 'description', name = "\n" }
+        args.sapceElement = { order = order, type = 'description', name = "\n" }
         order = order + 1
         args.elementHeader = {
             order = order,

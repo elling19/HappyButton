@@ -35,7 +35,6 @@ local ECB = addon:GetModule('ElementCallback')
 ---@field Window Frame
 ---@field BarMenuFrame Frame
 ---@field Bars Bar[]
----@field IsOpen boolean  -- 是否处理打开状态
 ---@field IsMouseInside boolean  -- 鼠标是否处在框体内
 ---@field IconHeight number
 ---@field IconWidth number
@@ -70,7 +69,6 @@ function ElementFrame:New(element)
     local obj = setmetatable({}, { __index = self })
     obj.Config = element
     ElementFrame.InitialWindow(obj)
-    obj.IsOpen = false
     obj.IsMouseInside = false
     obj.IconHeight = obj.Config.iconHeight or addon.G.iconHeight
     obj.IconWidth = obj.Config.iconWidth or addon.G.iconWidth
@@ -402,6 +400,15 @@ function ElementFrame:UpdateWindow()
     local y = self.Config.posY or 0
 
     self.Window:ClearAllPoints()
+    -- 设置Window框体挂载目标
+    local parentFrame = UIParent
+    if self.Config.attachFrame and self.Config.attachFrame ~= const.ATTACH_FRAME.UIParent then
+        local frame = _G[self.Config.attachFrame]
+        if frame then
+            parentFrame = frame
+        end
+    end
+    self.Window:SetParent(parentFrame)
     if self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM then
         self.Window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
     elseif self.Config.elesGrowth == const.GROWTH.RIGHT_TOP then
@@ -587,7 +594,6 @@ function ElementFrame:SetBarGroupHidden()
     if self.BarMenuFrame then
         self.BarMenuFrame:Hide()
     end
-    self.IsOpen = false
     for _, bar in ipairs(self.Bars) do
         bar.BarFrame:Hide()
     end
@@ -599,7 +605,6 @@ function ElementFrame:SetBarGroupShow()
     if self.BarMenuFrame then
         self.BarMenuFrame:Show()
     end
-    self.IsOpen = true
     self.CurrentBarIndex = nil
 end
 
@@ -881,18 +886,12 @@ end
 
 -- 隐藏窗口
 function ElementFrame:HideWindow()
-    if self.IsOpen == true then
-        self.Window:Hide()
-        self.IsOpen = false
-    end
+    self.Window:Hide()
 end
 
 -- 显示窗口
 function ElementFrame:ShowWindow()
-    if self.IsOpen == false then
-        self.Window:Show()
-        self.IsOpen = true
-    end
+    self.Window:Show()
 end
 
 -- 开启编辑模式

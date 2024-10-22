@@ -146,6 +146,24 @@ const.CombatLoadCondOptions = {
     [const.COMBAT_LOAD_COND.IN_COMBAT_LOAD] = L["Load when in combat"],
 }
 
+---@enum AttachFrame
+const.ATTACH_FRAME = {
+    UIParent = "UIParent"
+}
+
+-- 常见依附框体
+---@class AttachFrameOptions
+---@type table<number, string>
+const.AttachFrameOptions = {
+    ["UIParent"] = L["UIParent"],
+    ["GameMenuFrame"] = L["GameMenuFrame"],
+    ["Minimap"] = L["Minimap"],
+    ["ProfessionsBookFrame"] = L["ProfessionsBookFrame"],
+    ["WorldMapFrame"] = L["WorldMapFrame"],
+    ["PVEFrame"] = L["PVEFrame"],
+    ["CollectionsJournal"] = L["CollectionsJournal"]
+}
+
 
 --[[
 -- 事件常量
