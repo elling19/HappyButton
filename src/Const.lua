@@ -78,8 +78,8 @@ const.ITEMS_GROUP_MODE = {
 ---@class ItemsGroupModeOptions
 ---@type table<number, string>
 const.ItemsGroupModeOptions = {
-    [const.ITEMS_GROUP_MODE.RANDOM] = L["Display only one item, randomly selected."] ,
-    [const.ITEMS_GROUP_MODE.SEQ] = L["Display only one item, selected sequentially."],
+    [const.ITEMS_GROUP_MODE.RANDOM] = L["Display one item, randomly selected."],
+    [const.ITEMS_GROUP_MODE.SEQ] = L["Display one item, selected sequentially."],
 }
 
 --[[
