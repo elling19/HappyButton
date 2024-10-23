@@ -43,7 +43,10 @@ function E:New(title, type)
         elements = {},
         isDisplayMouseEnter = false,
         isDisplayText = false,
-        elesGrowth = const.GROWTH.RIGHT_BOTTOM,
+        elesGrowth = const.GROWTH.RIGHTBOTTOM,
+        attachFrame = const.ATTACH_FRAME.UIParent,
+        anchorPos = const.ANCHOR_POS.TOPLEFT,
+        attachFrameAnchorPos = const.ANCHOR_POS.TOPLEFT,
         combatLoadCond = const.COMBAT_LOAD_COND.OUT_COMBAT_LOAD,
     }
     return config

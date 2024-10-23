@@ -24,9 +24,9 @@
 ---@field extraAttr any | nil
 ---@field elements ElementConfig[]
 ---@field icon string | number | nil
----@field anchorPos string | nil --锚点位置
----@field attachFrame string | nil --依附框体
----@field attachFrameAnchorPos string | nil -- 依附框体锚点位置
+---@field anchorPos string  --锚点位置
+---@field attachFrame string  --依附框体
+---@field attachFrameAnchorPos string -- 依附框体锚点位置
 ---@field posX number | nil -- X轴位置
 ---@field posY number | nil  -- Y轴位置
 ---@field elesGrowth string --子元素生长方向

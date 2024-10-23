@@ -332,10 +332,20 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             end
         end
         local iconPath = "|T" .. showIcon .. ":16|t"
+
         local args = {}
-        local order = 1
-        args.delete = {
-            order = order,
+        local baseSettingOrder = 1
+        local baseSettingArgs = {}
+        local baseSettingOptions = {
+            type = "group",
+            name = L["General"],
+            inline = true,
+            order = 2,
+            args = baseSettingArgs
+        }
+        args.baseSetting = baseSettingOptions
+        baseSettingArgs.delete = {
+            order = baseSettingOrder,
             width = 1,
             type = 'execute',
             name = L["Delete"],
@@ -350,9 +360,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 AceConfigDialog:SelectGroup(addonName, unpack(selectGroups))
             end
         }
-        order = order + 1
-        args.export = {
-            order = order,
+        baseSettingOrder = baseSettingOrder + 1
+        baseSettingArgs.export = {
+            order = baseSettingOrder,
             width = 1,
             type = 'execute',
             name = L['Export'],
@@ -364,9 +374,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 Config.ShowExportDialog(base64Encoded)
             end
         }
-        order = order + 1
-        args.localize = {
-            order = order,
+        baseSettingOrder = baseSettingOrder + 1
+        baseSettingArgs.localize = {
+            order = baseSettingOrder,
             width = 1,
             type = 'execute',
             name = L["Localize the name of items"],
@@ -375,54 +385,18 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 HbFrame:ReloadEframeUI(updateFrameConfig)
             end
         }
-        if isTopElement then
-            args.sapcePosition = { order = order, type = 'description', name = "\n" }
-            order = order + 1
-            args.positionHeader = {
-                order = order,
-                type = 'header',
-                name = L["Position"]
-            }
-            order = order + 1
-            args.attachFrame = {
-                order = order,
-                type = 'input',
-                name = L["AttachFrame"],
-                set = function(_, val)
-                    ele.attachFrame = val
-                    HbFrame:ReloadEframeUI(updateFrameConfig)
-                end,
-                get = function()
-                    return ele.attachFrame
-                end
-            }
-            order = order + 1
-            args.attachFrameOptions = {
-                order = order,
-                type = 'select',
-                name = "",
-                values = const.AttachFrameOptions,
-                set = function(_, val)
-                    ele.attachFrame = val
-                    HbFrame:ReloadEframeUI(updateFrameConfig)
-                end,
-                get = function()
-                    return ele.attachFrame
-                end
-            }
-            order = order + 1
-        end
-        order = order + 1
-        args.sapceElement = { order = order, type = 'description', name = "\n" }
-        order = order + 1
-        args.elementHeader = {
-            order = order,
-            type = 'header',
-            name = L["Element"]
+        local elementSettingOrder = 1
+        local elementSettingArgs = {}
+        local elementSettingOptions = {
+            type = "group",
+            name = L["Element"],
+            inline = true,
+            order = 3,
+            args = elementSettingArgs
         }
-        order = order + 1
-        args.title = {
-            order = order,
+        args.elementSetting = elementSettingOptions
+        elementSettingArgs.title = {
+            order = elementSettingOrder,
             width = 1,
             type = 'input',
             name = L['Element Title'],
@@ -441,9 +415,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 addon:UpdateOptions()
             end
         }
-        order = order + 1
-        args.icon = {
-            order = order,
+        elementSettingOrder = elementSettingOrder + 1
+        elementSettingArgs.icon = {
+            order = elementSettingOrder,
             width = 1,
             type = 'input',
             name = L["Element Icon ID or Path"],
@@ -454,11 +428,11 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 addon:UpdateOptions()
             end
         }
-        order = order + 1
+        elementSettingOrder = elementSettingOrder + 1
         if isTopElement then
-            args.iconWidth = {
+            elementSettingArgs.iconWidth = {
                 step = 1,
-                order = order,
+                order = elementSettingOrder,
                 width = 1,
                 type = 'range',
                 name = L["Icon Width"],
@@ -472,10 +446,10 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     HbFrame:ReloadEframeUI(updateFrameConfig)
                 end
             }
-            order = order + 1
-            args.iconHeight = {
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.iconHeight = {
                 step = 1,
-                order = order,
+                order = elementSettingOrder,
                 width = 1,
                 type = 'range',
                 name = L["Icon Height"],
@@ -489,14 +463,14 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     HbFrame:ReloadEframeUI(updateFrameConfig)
                 end
             }
-            order = order + 1
+            elementSettingOrder = elementSettingOrder + 1
         end
         if ele.type == const.ELEMENT_TYPE.ITEM then
             local item = E:ToItem(ele)
             local extraAttr = item.extraAttr
             if extraAttr.id == nil then
-                args.itemType = {
-                    order = order,
+                elementSettingArgs.itemType = {
+                    order = elementSettingOrder,
                     type = 'select',
                     name = L["Item Type"],
                     values = const.ItemTypeOptions,
@@ -507,9 +481,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         return addon.G.tmpNewItemType
                     end
                 }
-                order = order + 1
-                args.itemVal = {
-                    order = order,
+                elementSettingOrder = elementSettingOrder + 1
+                elementSettingArgs.itemVal = {
+                    order = elementSettingOrder,
                     type = 'input',
                     name = L["Item name or item id"],
                     validate = function(_, val)
@@ -533,10 +507,10 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         return addon.G.tmpNewItemVal
                     end
                 }
-                order = order + 1
+                elementSettingOrder = elementSettingOrder + 1
             else
-                args.id = {
-                    order = order,
+                elementSettingArgs.id = {
+                    order = elementSettingOrder,
                     width = 1,
                     type = 'input',
                     name = L["ID"],
@@ -545,18 +519,18 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         return tostring(extraAttr.id)
                     end
                 }
-                order = order + 1
-                args.name = {
-                    order = order,
+                elementSettingOrder = elementSettingOrder + 1
+                elementSettingArgs.name = {
+                    order = elementSettingOrder,
                     width = 1,
                     type = 'input',
                     name = L["Name"],
                     disabled = true,
                     get = function() return extraAttr.name end
                 }
-                order = order + 1
-                args.type = {
-                    order = order,
+                elementSettingOrder = elementSettingOrder + 1
+                elementSettingArgs.type = {
+                    order = elementSettingOrder,
                     width = 2,
                     type = 'select',
                     name = L["Type"],
@@ -564,16 +538,14 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     disabled = true,
                     get = function() return extraAttr.type end
                 }
-                order = order + 1
-                args.space = { order = order, type = 'description', name = "\n" }
-                order = order + 1
+                elementSettingOrder = elementSettingOrder + 1
             end
         end
         if isTopElement then
             if ele.type ~= const.ELEMENT_TYPE.ITEM and ele.type ~=
                 const.ELEMENT_TYPE.ITEM_GROUP then
-                args.elementsGrowth = {
-                    order = order,
+                elementSettingArgs.elementsGrowth = {
+                    order = elementSettingOrder,
                     width = 2,
                     type = 'select',
                     name = L["Direction of elements growth"],
@@ -584,13 +556,13 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     end,
                     get = function() return ele.elesGrowth end
                 }
-                order = order + 1
+                elementSettingOrder = elementSettingOrder + 1
             end
         end
         if ele.type == const.ELEMENT_TYPE.SCRIPT then
             local script = E:ToScript(ele)
-            args.edit = {
-                order = order,
+            elementSettingArgs.edit = {
+                order = elementSettingOrder,
                 type = 'input',
                 name = L["Script"],
                 multiline = 20,
@@ -619,18 +591,164 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 end,
                 get = function() return script.extraAttr.script end
             }
-            order = order + 1
+            elementSettingOrder = elementSettingOrder + 1
         end
-        args.sapce2 = { order = order, type = 'description', name = "\n" }
-        order = order + 1
-        args.displayHeader = {
-            order = order,
-            type = 'header',
-            name = L["Display Rule"]
+        if ele.type == const.ELEMENT_TYPE.ITEM_GROUP then
+            local itemGroup = E:ToItemGroup(ele)
+            elementSettingArgs.mode = {
+                order = elementSettingOrder,
+                width = 2,
+                type = 'select',
+                name = L["Mode"],
+                values = const.ItemsGroupModeOptions,
+                set = function(_, val)
+                    itemGroup.extraAttr.mode = val
+                    HbFrame:UpdateEframe(updateFrameConfig)
+                end,
+                get = function() return itemGroup.extraAttr.mode end
+            }
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.displayLearnedToggle = {
+                order = elementSettingOrder,
+                width = 2,
+                type = 'toggle',
+                name = L["Whether to display only learned or owned items."],
+                set = function(_, val)
+                    itemGroup.extraAttr.displayUnLearned = not val
+                    HbFrame:UpdateEframe(updateFrameConfig)
+                end,
+                get = function(_)
+                    return not itemGroup.extraAttr.displayUnLearned
+                end
+            }
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.replaceNameToggle = {
+                order = elementSettingOrder,
+                width = 2,
+                type = 'toggle',
+                name = L["Wheter to use element title to replace item name."],
+                set = function(_, val)
+                    itemGroup.extraAttr.replaceName = val
+                    HbFrame:UpdateEframe(updateFrameConfig)
+                end,
+                get = function(_)
+                    return itemGroup.extraAttr.replaceName == true
+                end
+            }
+        end
+        if isTopElement then
+            local positionSettingOrder = 1
+            local positionSettingArgs = {}
+            local positionSettingOptions = {
+                type = "group",
+                name = L["Position Settings"],
+                inline = true,
+                order = 3,
+                args = positionSettingArgs
+            }
+            args.positionSetting = positionSettingOptions
+            positionSettingArgs.attachFrame = {
+                order = positionSettingOrder,
+                type = 'input',
+                name = L["AttachFrame"],
+                set = function(_, val)
+                    ele.attachFrame = val
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end,
+                get = function()
+                    return ele.attachFrame
+                end
+            }
+            positionSettingOrder = positionSettingOrder + 1
+            positionSettingArgs.attachFrameOptions = {
+                order = positionSettingOrder,
+                type = 'select',
+                name = "",
+                width = 1,
+                values = const.AttachFrameOptions,
+                set = function(_, val)
+                    ele.attachFrame = val
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end,
+                get = function()
+                    return ele.attachFrame
+                end
+            }
+            positionSettingOrder = positionSettingOrder + 1
+            positionSettingArgs.AnchorPos = {
+                order = positionSettingOrder,
+                type = 'select',
+                name = L["Element Anchor Position"],
+                width = 1,
+                values = const.AnchorPosOptions,
+                set = function(_, val)
+                    ele.anchorPos = val
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end,
+                get = function()
+                    return ele.anchorPos
+                end
+            }
+            positionSettingOrder = positionSettingOrder + 1
+            positionSettingArgs.attachFrameAnchorPos = {
+                order = positionSettingOrder,
+                type = 'select',
+                name = L["AttachFrame Anchor Position"],
+                width = 1,
+                values = const.AnchorPosOptions,
+                set = function(_, val)
+                    ele.attachFrameAnchorPos = val
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end,
+                get = function()
+                    return ele.attachFrameAnchorPos
+                end
+            }
+            positionSettingOrder = positionSettingOrder + 1
+            positionSettingArgs.posX = {
+                type = "range",
+                name = L["Relative X-Offset"],
+                width = 1,
+                min = -addon.G.screenWidth,
+                max = addon.G.screenWidth,
+                step = 1,
+                get = function(_)
+                    return ele.posX
+                end,
+                set = function(_, val)
+                    ele.posX = val
+                    HbFrame:UpdateEframeWindow(updateFrameConfig)
+                end,
+            }
+            positionSettingOrder = positionSettingOrder + 1
+            positionSettingArgs.posY = {
+                type = "range",
+                name = L["Relative Y-Offset"],
+                width = 1,
+                min = -addon.G.screenHeight,
+                max = addon.G.screenHeight,
+                step = 1,
+                get = function(_)
+                    return ele.posY
+                end,
+                set = function(_, val)
+                    ele.posY = val
+                    HbFrame:UpdateEframeWindow(updateFrameConfig)
+                end,
+            }
+        end
+        local displaySettingOrder = 1
+        local displaySettingArgs = {}
+        local displaySettingOptions = {
+            type = "group",
+            name = L["Display Rule"],
+            inline = true,
+            order = 4,
+            args = displaySettingArgs
         }
-        order = order + 1
-        args.isLoadToggle = {
-            order = order,
+        args.displaySetting = displaySettingOptions
+        displaySettingArgs.isLoadToggle = {
+            order = displaySettingOrder,
             width = 2,
             type = 'toggle',
             name = L["Load"],
@@ -652,10 +770,10 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             end,
             get = function(_) return ele.isLoad end
         }
-        order = order + 1
+        displaySettingOrder = displaySettingOrder + 1
         if isTopElement then
-            args.isDisplayMouseEnter = {
-                order = order,
+            displaySettingArgs.isDisplayMouseEnter = {
+                order = displaySettingOrder,
                 width = 2,
                 type = 'toggle',
                 name = L["Whether to show the bar menu when the mouse enter."],
@@ -665,9 +783,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 end,
                 get = function(_) return ele.isDisplayMouseEnter end
             }
-            order = order + 1
-            args.isDisplayFontToggle = {
-                order = order,
+            displaySettingOrder = displaySettingOrder + 1
+            displaySettingArgs.isDisplayFontToggle = {
+                order = displaySettingOrder,
                 width = 2,
                 type = 'toggle',
                 name = L["Whether to display text."],
@@ -677,17 +795,17 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 end,
                 get = function(_) return ele.isDisplayText end
             }
-            order = order + 1
+            displaySettingOrder = displaySettingOrder + 1
             if ele.type == const.ELEMENT_TYPE.BAR_GROUP then
-                args.combatLoadCond = {
-                    order = order,
+                displaySettingArgs.combatLoadCond = {
+                    order = displaySettingOrder,
                     width = 2,
                     type = 'description',
                     name = L["BarGroup only load when out of combat"]
                 }
             else
-                args.combatLoadCond = {
-                    order = order,
+                displaySettingArgs.combatLoadCond = {
+                    order = displaySettingOrder,
                     width = 2,
                     type = 'select',
                     values = const.CombatLoadCondOptions,
@@ -701,12 +819,12 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     end
                 }
             end
-            order = order + 1
+            displaySettingOrder = displaySettingOrder + 1
             if ele.type == const.ELEMENT_TYPE.ITEM then
                 local item = E:ToItem(ele)
                 local extraAttr = item.extraAttr
-                args.replaceNameToggle = {
-                    order = order,
+                displaySettingArgs.replaceNameToggle = {
+                    order = displaySettingOrder,
                     width = 2,
                     type = 'toggle',
                     name = L["Wheter to use element title to replace item name."],
@@ -718,198 +836,150 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         return extraAttr.replaceName == true
                     end
                 }
-                order = order + 1
+                displaySettingOrder = displaySettingOrder + 1
             end
         end
-        if ele.type == const.ELEMENT_TYPE.BAR_GROUP then
-            args.sapceAddChild = {
-                order = order,
-                type = 'description',
-                name = "\n\n"
+        if ele.type == const.ELEMENT_TYPE.BAR_GROUP or ele.type == const.ELEMENT_TYPE.BAR or ele.type == const.ELEMENT_TYPE.ITEM_GROUP then
+            local childrenSettingOrder = 1
+            local childrenSettingArgs = {}
+            local childrenSettingOptions = {
+                type = "group",
+                name = L["Add Child Elements"],
+                inline = true,
+                order = 5,
+                args = childrenSettingArgs
             }
-            order = order + 1
-            args.addChildHeader = {
-                order = order,
-                type = 'header',
-                name = L["Add Child Elements"]
-            }
-            order = order + 1
-            args.addBar = {
-                order = order,
-                width = 1,
-                type = 'execute',
-                name = L["New Bar"],
-                func = function()
-                    local bar = E:New(Config.GetNewElementTitle(L["Bar"],
-                            ele.elements),
-                        const.ELEMENT_TYPE.BAR)
-                    table.insert(ele.elements, bar)
-                    HbFrame:ReloadEframeUI(updateFrameConfig)
-                    AceConfigDialog:SelectGroup(addonName, unpack(
-                        selectGroupsAfterAddItem))
-                end
-            }
-            order = order + 1
-        end
-        if ele.type == const.ELEMENT_TYPE.BAR then
-            args.sapceAddChild = {
-                order = order,
-                type = 'description',
-                name = "\n\n"
-            }
-            order = order + 1
-            args.addChildHeader = {
-                order = order,
-                type = 'header',
-                name = L["Add Child Elements"]
-            }
-            order = order + 1
-            args.addItemGroup = {
-                order = order,
-                width = 1,
-                type = 'execute',
-                name = L["New ItemGroup"],
-                func = function()
-                    local itemGroup = E:NewItemGroup(
-                        Config.GetNewElementTitle(
-                            L["ItemGroup"], ele.elements))
-                    table.insert(ele.elements, itemGroup)
-                    HbFrame:ReloadEframeUI(updateFrameConfig)
-                    AceConfigDialog:SelectGroup(addonName, unpack(
-                        selectGroupsAfterAddItem))
-                end
-            }
-            order = order + 1
-            args.addScript = {
-                order = order,
-                width = 1,
-                type = 'execute',
-                name = L["New Script"],
-                func = function()
-                    local script = E:New(
-                        Config.GetNewElementTitle(L["Script"],
-                            ele.elements),
-                        const.ELEMENT_TYPE.SCRIPT)
-                    table.insert(ele.elements, script)
-                    HbFrame:ReloadEframeUI(updateFrameConfig)
-                    AceConfigDialog:SelectGroup(addonName, unpack(
-                        selectGroupsAfterAddItem))
-                end
-            }
-            order = order + 1
-            args.addItem = {
-                order = order,
-                width = 1,
-                type = 'execute',
-                name = L["New Item"],
-                func = function()
-                    local item = E:New(Config.GetNewElementTitle(L["Item"],
-                            ele.elements),
-                        const.ELEMENT_TYPE.ITEM)
-                    table.insert(ele.elements, item)
-                    HbFrame:ReloadEframeUI(updateFrameConfig)
-                    AceConfigDialog:SelectGroup(addonName, unpack(
-                        selectGroupsAfterAddItem))
-                end
-            }
-            order = order + 1
-        end
-        if ele.type == const.ELEMENT_TYPE.ITEM_GROUP then
-            local itemGroup = E:ToItemGroup(ele)
-            args.mode = {
-                order = order,
-                width = 2,
-                type = 'select',
-                name = L["Mode"],
-                values = const.ItemsGroupModeOptions,
-                set = function(_, val)
-                    itemGroup.extraAttr.mode = val
-                    HbFrame:UpdateEframe(updateFrameConfig)
-                end,
-                get = function() return itemGroup.extraAttr.mode end
-            }
-            order = order + 1
-            args.displayLearnedToggle = {
-                order = order,
-                width = 2,
-                type = 'toggle',
-                name = L["Whether to display only learned or owned items."],
-                set = function(_, val)
-                    itemGroup.extraAttr.displayUnLearned = not val
-                    HbFrame:UpdateEframe(updateFrameConfig)
-                end,
-                get = function(_)
-                    return not itemGroup.extraAttr.displayUnLearned
-                end
-            }
-            order = order + 1
-            args.replaceNameToggle = {
-                order = order,
-                width = 2,
-                type = 'toggle',
-                name = L["Wheter to use element title to replace item name."],
-                set = function(_, val)
-                    itemGroup.extraAttr.replaceName = val
-                    HbFrame:UpdateEframe(updateFrameConfig)
-                end,
-                get = function(_)
-                    return itemGroup.extraAttr.replaceName == true
-                end
-            }
-            order = order + 1
-            args.sapceAddChild = {
-                order = order,
-                type = 'description',
-                name = "\n\n"
-            }
-            order = order + 1
-            args.itemHeading = {
-                order = order,
-                type = 'header',
-                name = L["Add Item"]
-            }
-            order = order + 1
-            args.itemType = {
-                order = order,
-                type = 'select',
-                name = L["Item Type"],
-                values = const.ItemTypeOptions,
-                set = function(_, val)
-                    addon.G.tmpNewItemType = val
-                end,
-                get = function() return addon.G.tmpNewItemType end
-            }
-            order = order + 1
-            args.itemVal = {
-                order = order,
-                type = 'input',
-                name = L["Item name or item id"],
-                validate = function(_, val)
-                    local r = Config.VerifyItemAttr(addon.G.tmpNewItemType, val)
-                    if r:is_err() then
-                        return r:unwrap_err()
-                    else
-                        addon.G.tmpNewItem = r:unwrap()
+            args.childrenSetting = childrenSettingOptions
+
+            if ele.type == const.ELEMENT_TYPE.BAR_GROUP then
+                childrenSettingArgs.addBar = {
+                    order = childrenSettingOrder,
+                    width = 1,
+                    type = 'execute',
+                    name = L["New Bar"],
+                    func = function()
+                        local bar = E:New(Config.GetNewElementTitle(L["Bar"],
+                                ele.elements),
+                            const.ELEMENT_TYPE.BAR)
+                        table.insert(ele.elements, bar)
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
+                        AceConfigDialog:SelectGroup(addonName, unpack(
+                            selectGroupsAfterAddItem))
                     end
-                    return true
-                end,
-                set = function(_, _)
-                    local newElement = E:New(
-                        Config.GetNewElementTitle(L["Item"],
-                            ele.elements),
-                        const.ELEMENT_TYPE.ITEM)
-                    local item = E:ToItem(newElement)
-                    item.extraAttr = U.Table.DeepCopyDict(addon.G.tmpNewItem)
-                    table.insert(ele.elements, item)
-                    HbFrame:ReloadEframeUI(updateFrameConfig)
-                    AceConfigDialog:SelectGroup(addonName, unpack(
-                        selectGroupsAfterAddItem))
-                    addon.G.tmpNewItemVal = nil
-                    addon.G.tmpNewItem = {}
-                end,
-                get = function() return addon.G.tmpNewItemVal end
-            }
-            order = order + 1
+                }
+                childrenSettingOrder = childrenSettingOrder + 1
+            end
+            if ele.type == const.ELEMENT_TYPE.BAR then
+                childrenSettingArgs.addBar = {
+                    order = childrenSettingOrder,
+                    width = 1,
+                    type = 'execute',
+                    name = L["New Bar"],
+                    func = function()
+                        local bar = E:New(Config.GetNewElementTitle(L["Bar"],
+                                ele.elements),
+                            const.ELEMENT_TYPE.BAR)
+                        table.insert(ele.elements, bar)
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
+                        AceConfigDialog:SelectGroup(addonName, unpack(
+                            selectGroupsAfterAddItem))
+                    end
+                }
+                childrenSettingOrder = childrenSettingOrder + 1
+                childrenSettingArgs.addItemGroup = {
+                    order = childrenSettingOrder,
+                    width = 1,
+                    type = 'execute',
+                    name = L["New ItemGroup"],
+                    func = function()
+                        local itemGroup = E:NewItemGroup(
+                            Config.GetNewElementTitle(
+                                L["ItemGroup"], ele.elements))
+                        table.insert(ele.elements, itemGroup)
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
+                        AceConfigDialog:SelectGroup(addonName, unpack(
+                            selectGroupsAfterAddItem))
+                    end
+                }
+                childrenSettingOrder = childrenSettingOrder + 1
+                childrenSettingArgs.addScript = {
+                    order = childrenSettingOrder,
+                    width = 1,
+                    type = 'execute',
+                    name = L["New Script"],
+                    func = function()
+                        local script = E:New(
+                            Config.GetNewElementTitle(L["Script"],
+                                ele.elements),
+                            const.ELEMENT_TYPE.SCRIPT)
+                        table.insert(ele.elements, script)
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
+                        AceConfigDialog:SelectGroup(addonName, unpack(
+                            selectGroupsAfterAddItem))
+                    end
+                }
+                childrenSettingOrder = childrenSettingOrder + 1
+                childrenSettingArgs.addItem = {
+                    order = childrenSettingOrder,
+                    width = 1,
+                    type = 'execute',
+                    name = L["New Item"],
+                    func = function()
+                        local item = E:New(Config.GetNewElementTitle(L["Item"],
+                                ele.elements),
+                            const.ELEMENT_TYPE.ITEM)
+                        table.insert(ele.elements, item)
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
+                        AceConfigDialog:SelectGroup(addonName, unpack(
+                            selectGroupsAfterAddItem))
+                    end
+                }
+                childrenSettingOrder = childrenSettingOrder + 1
+            end
+            if ele.type == const.ELEMENT_TYPE.ITEM_GROUP then
+                childrenSettingOrder = childrenSettingOrder + 1
+                childrenSettingArgs.itemType = {
+                    order = childrenSettingOrder,
+                    type = 'select',
+                    name = L["Item Type"],
+                    values = const.ItemTypeOptions,
+                    set = function(_, val)
+                        addon.G.tmpNewItemType = val
+                    end,
+                    get = function() return addon.G.tmpNewItemType end
+                }
+                childrenSettingOrder = childrenSettingOrder + 1
+                childrenSettingArgs.itemVal = {
+                    order = childrenSettingOrder,
+                    type = 'input',
+                    name = L["Item name or item id"],
+                    validate = function(_, val)
+                        local r = Config.VerifyItemAttr(addon.G.tmpNewItemType, val)
+                        if r:is_err() then
+                            return r:unwrap_err()
+                        else
+                            addon.G.tmpNewItem = r:unwrap()
+                        end
+                        return true
+                    end,
+                    set = function(_, _)
+                        local newElement = E:New(
+                            Config.GetNewElementTitle(L["Item"],
+                                ele.elements),
+                            const.ELEMENT_TYPE.ITEM)
+                        local item = E:ToItem(newElement)
+                        item.extraAttr = U.Table.DeepCopyDict(addon.G.tmpNewItem)
+                        table.insert(ele.elements, item)
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
+                        AceConfigDialog:SelectGroup(addonName, unpack(
+                            selectGroupsAfterAddItem))
+                        addon.G.tmpNewItemVal = nil
+                        addon.G.tmpNewItem = {}
+                    end,
+                    get = function() return addon.G.tmpNewItemVal end
+                }
+                childrenSettingOrder = childrenSettingOrder + 1
+            end
         end
         if ele.elements and #ele.elements then
             local tmpArgs = GetElementOptions(ele.elements, topEleConfig or ele,
@@ -1084,7 +1154,6 @@ function ConfigOptions.ElementsOptions()
                     end
                     local rightType = false
                     for _, v in pairs(const.ELEMENT_TYPE) do
-                        print(_, v)
                         if v == eleConfig.type then
                             rightType = true
                             break
@@ -1265,6 +1334,8 @@ function addon:OnInitialize()
     -- 全局变量
     ---@class GlobalValue
     self.G = {
+        screenWidth = math.floor(GetScreenWidth()),  -- 屏幕宽度
+        screenHeight = math.floor(GetScreenHeight()),  -- 屏幕高度
         iconWidth = 32,
         iconHeight = 32,
         IsEditMode = false,

@@ -93,22 +93,22 @@ L["Display Rule"] = true
 L["Load"] = true
 L["Load Rule"] = true
 L["Add Child Elements"] = true
-L["TOP_LEFT"] = true
-L["TOP_RIGHT"] = true
-L["BOTTOM_LEFT"] = true
-L["BOTTOM_RIGHT"] = true
-L["LEFT_TOP"] = true
-L["LEFT_BOTTOM"] = true
-L["RIGHT_TOP"] = true
-L["RIGHT_BOTTOM"] = true
-L["Combat Load Condition"] = true
-L["Always load"] = true
-L["Load when out of combat"] = true
-L["Load when in combat"] = true
-L["BarGroup only load when out of combat"] = true
-L["Localize the name of items"] = true
-
-
+-- 位置
+L["TOPLEFT"] = true
+L["TOPRIGHT"] = true
+L["BOTTOMLEFT"] = true
+L["BOTTOMRIGHT"] = true
+L["LEFTTOP"] = true
+L["LEFTBOTTOM"] = true
+L["RIGHTTOP"] = true
+L["RIGHTBOTTOM"] = true
+L["TOP"] = true
+L["BOTTOM"] = true
+L["LEFT"] = true
+L["RIGHT"] = true
+L["CENTER"] = true
+L["Relative X-Offset"] = true
+L["Relative Y-Offset"] = true
 -- 依附框体
 L["UIParent"] = true  -- 主屏幕
 L["GameMenuFrame"] = true  -- 游戏菜单
@@ -118,5 +118,16 @@ L["WorldMapFrame"] = true  -- 世界地图
 L["CollectionsJournal"] = true  -- 收集箱
 L["PVEFrame"] = true -- 地下城和团队副本
 
-L["Position"] = true
+
+L["Position Settings"] = true
+L["Element Anchor Position"] = true
 L["AttachFrame"] = true
+L["AttachFrame Anchor Position"] = true
+
+
+L["Combat Load Condition"] = true
+L["Always load"] = true
+L["Load when out of combat"] = true
+L["Load when in combat"] = true
+L["BarGroup only load when out of combat"] = true
+L["Localize the name of items"] = true

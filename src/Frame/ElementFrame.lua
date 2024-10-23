@@ -50,10 +50,10 @@ end
 -- 判断是否水平方向展示
 function ElementFrame:IsHorizontal()
     return
-        self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM
-        or self.Config.elesGrowth == const.GROWTH.LEFT_TOP
-        or self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM
-        or self.Config.elesGrowth == const.GROWTH.RIGHT_TOP
+        self.Config.elesGrowth == const.GROWTH.LEFTBOTTOM
+        or self.Config.elesGrowth == const.GROWTH.LEFTTOP
+        or self.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM
+        or self.Config.elesGrowth == const.GROWTH.RIGHTTOP
 end
 
 -- 判断图标列表横向展示
@@ -209,26 +209,26 @@ function ElementFrame:Update()
                 btn:SetNormalTexture(134400)
                 btn:SetSize(self.IconWidth, self.IconHeight)
                 if self.Config.type == const.ELEMENT_TYPE.BAR_GROUP then
-                    if self.Config.elesGrowth == const.GROWTH.LEFT_TOP or self.Config.elesGrowth == const.GROWTH.RIGHT_TOP then
+                    if self.Config.elesGrowth == const.GROWTH.LEFTTOP or self.Config.elesGrowth == const.GROWTH.RIGHTTOP then
                         btn:SetPoint("BOTTOM", bar.BarFrame, "BOTTOM", 0, self.IconHeight * (cbIndex - 1))
-                    elseif self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM or self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM then
+                    elseif self.Config.elesGrowth == const.GROWTH.LEFTBOTTOM or self.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM then
                         btn:SetPoint("TOP", bar.BarFrame, "TOP", 0, -self.IconHeight * (cbIndex - 1))
-                    elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT or self.Config.elesGrowth == const.GROWTH.TOP_LEFT then
+                    elseif self.Config.elesGrowth == const.GROWTH.BOTTOMLEFT or self.Config.elesGrowth == const.GROWTH.TOPLEFT then
                         btn:SetPoint("RIGHT", bar.BarFrame, "RIGHT", -self.IconWidth * (cbIndex - 1), 0)
-                    elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT or self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
+                    elseif self.Config.elesGrowth == const.GROWTH.BOTTOMRIGHT or self.Config.elesGrowth == const.GROWTH.TOPRIGHT then
                         btn:SetPoint("LEFT", bar.BarFrame, "LEFT", self.IconWidth * (cbIndex - 1), 0)
                     else
                         -- 默认右下
                         btn:SetPoint("TOP", bar.BarFrame, "TOP", 0, -self.IconHeight * (cbIndex - 1))
                     end
                 else
-                    if self.Config.elesGrowth == const.GROWTH.LEFT_TOP or self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
+                    if self.Config.elesGrowth == const.GROWTH.LEFTTOP or self.Config.elesGrowth == const.GROWTH.LEFTBOTTOM then
                         btn:SetPoint("RIGHT", bar.BarFrame, "RIGHT", -self.IconWidth * (cbIndex - 1), 0)
-                    elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT or self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
+                    elseif self.Config.elesGrowth == const.GROWTH.TOPLEFT or self.Config.elesGrowth == const.GROWTH.TOPRIGHT then
                         btn:SetPoint("BOTTOM", bar.BarFrame, "BOTTOM", 0, self.IconHeight * (cbIndex - 1))
-                    elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT or self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
+                    elseif self.Config.elesGrowth == const.GROWTH.BOTTOMLEFT or self.Config.elesGrowth == const.GROWTH.BOTTOMRIGHT then
                         btn:SetPoint("TOP", bar.BarFrame, "TOP", 0, -self.IconHeight * (cbIndex - 1))
-                    elseif self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM or self.Config.elesGrowth == const.GROWTH.RIGHT_TOP then
+                    elseif self.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM or self.Config.elesGrowth == const.GROWTH.RIGHTTOP then
                         btn:SetPoint("LEFT", bar.BarFrame, "LEFT", self.IconWidth * (cbIndex - 1), 0)
                     else
                         -- 默认右下
@@ -320,28 +320,28 @@ function ElementFrame:InitialWindow()
     self.Window:SetScript("OnDragStop", function(frame)
         frame:StopMovingOrSizing()
         local newX, newY
-        if self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM then
+        if self.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM then
             newX = frame:GetLeft()
             newY = frame:GetTop() - UIParent:GetHeight()
-        elseif self.Config.elesGrowth == const.GROWTH.RIGHT_TOP then
+        elseif self.Config.elesGrowth == const.GROWTH.RIGHTTOP then
             newX = frame:GetLeft()
             newY = frame:GetTop()
-        elseif self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
+        elseif self.Config.elesGrowth == const.GROWTH.LEFTBOTTOM then
             newX = frame:GetLeft() - UIParent:GetWidth()
             newY = frame:GetTop() - UIParent:GetHeight()
-        elseif self.Config.elesGrowth == const.GROWTH.LEFT_TOP then
+        elseif self.Config.elesGrowth == const.GROWTH.LEFTTOP then
             newX = frame:GetLeft() - UIParent:GetWidth()
             newY = frame:GetTop()
-        elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT then
+        elseif self.Config.elesGrowth == const.GROWTH.TOPLEFT then
             newX = frame:GetLeft() - UIParent:GetWidth()
             newY = frame:GetTop()
-        elseif self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
+        elseif self.Config.elesGrowth == const.GROWTH.TOPRIGHT then
             newX = frame:GetLeft()
             newY = frame:GetTop()
-        elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT then
+        elseif self.Config.elesGrowth == const.GROWTH.BOTTOMLEFT then
             newX = frame:GetLeft() - UIParent:GetWidth()
             newY = frame:GetTop() - UIParent:GetHeight()
-        elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
+        elseif self.Config.elesGrowth == const.GROWTH.BOTTOMRIGHT then
             newX = frame:GetLeft()
             newY = frame:GetTop() - UIParent:GetHeight()
         else
@@ -401,34 +401,18 @@ function ElementFrame:UpdateWindow()
 
     self.Window:ClearAllPoints()
     -- 设置Window框体挂载目标
-    local parentFrame = UIParent
+    local attachFrame = UIParent
     if self.Config.attachFrame and self.Config.attachFrame ~= const.ATTACH_FRAME.UIParent then
         local frame = _G[self.Config.attachFrame]
         if frame then
-            parentFrame = frame
+            attachFrame = frame
         end
     end
-    self.Window:SetParent(parentFrame)
-    if self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM then
-        self.Window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
-    elseif self.Config.elesGrowth == const.GROWTH.RIGHT_TOP then
-        self.Window:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
-    elseif self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
-        self.Window:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", x, y)
-    elseif self.Config.elesGrowth == const.GROWTH.LEFT_TOP then
-        self.Window:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", x, y)
-    elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT then
-        self.Window:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", x, y)
-    elseif self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
-        self.Window:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", x, y)
-    elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT then
-        self.Window:SetPoint("TOPRIGHT", UIParent, "TOPRIGHT", x, y)
-    elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
-        self.Window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
-    else
-        -- 默认右下
-        self.Window:SetPoint("TOPLEFT", UIParent, "TOPLEFT", x, y)
-    end
+    self.Window:SetParent(attachFrame)
+    -- 设置锚点位置
+    local frameAnchorPos = self.Config.anchorPos or const.ANCHOR_POS.TOPLEFT
+    local attachFrameAnchorPos = self.Config.attachFrameAnchorPos or const.ANCHOR_POS.TOPLEFT
+    self.Window:SetPoint(frameAnchorPos, attachFrame, attachFrameAnchorPos, x, y)
 end
 
 function ElementFrame:UpdateBarMenuFrame()
@@ -442,21 +426,21 @@ function ElementFrame:UpdateBarMenuFrame()
     self.BarMenuFrame:SetHeight(self.Window:GetHeight())
     self.BarMenuFrame:SetWidth(self.Window:GetWidth())
     self.BarMenuFrame:ClearAllPoints()
-    if self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM then
+    if self.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM then
         self.BarMenuFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
-    elseif self.Config.elesGrowth == const.GROWTH.RIGHT_TOP then
+    elseif self.Config.elesGrowth == const.GROWTH.RIGHTTOP then
         self.BarMenuFrame:SetPoint("BOTTOMLEFT", self.Window, "BOTTOMLEFT", 0, 0)
-    elseif self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
+    elseif self.Config.elesGrowth == const.GROWTH.LEFTBOTTOM then
         self.BarMenuFrame:SetPoint("TOPRIGHT", self.Window, "TOPRIGHT", 0, 0)
-    elseif self.Config.elesGrowth == const.GROWTH.LEFT_TOP then
+    elseif self.Config.elesGrowth == const.GROWTH.LEFTTOP then
         self.BarMenuFrame:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
-    elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT then
+    elseif self.Config.elesGrowth == const.GROWTH.TOPLEFT then
         self.BarMenuFrame:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
-    elseif self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
+    elseif self.Config.elesGrowth == const.GROWTH.TOPRIGHT then
         self.BarMenuFrame:SetPoint("BOTTOMLEFT", self.Window, "BOTTOMLEFT", 0, 0)
-    elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT then
+    elseif self.Config.elesGrowth == const.GROWTH.BOTTOMLEFT then
         self.BarMenuFrame:SetPoint("TOPRIGHT", self.Window, "TOPRIGHT", 0, 0)
-    elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
+    elseif self.Config.elesGrowth == const.GROWTH.BOTTOMRIGHT then
         self.BarMenuFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
     else
         -- 默认右下
@@ -481,11 +465,11 @@ function ElementFrame:UpdateBarFrame()
             end
             TabBtn:SetSize(self.IconWidth, self.IconHeight)
             TabBtn:ClearAllPoints()
-            if self.Config.elesGrowth == const.GROWTH.LEFT_TOP or self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
+            if self.Config.elesGrowth == const.GROWTH.LEFTTOP or self.Config.elesGrowth == const.GROWTH.LEFTBOTTOM then
                 TabBtn:SetPoint("RIGHT", self.BarMenuFrame, "RIGHT", -(index - 1) * self.IconWidth, 0)
-            elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT or self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
+            elseif self.Config.elesGrowth == const.GROWTH.TOPLEFT or self.Config.elesGrowth == const.GROWTH.TOPRIGHT then
                 TabBtn:SetPoint("BOTTOM", self.BarMenuFrame, "BOTTOM", 0, (index - 1) * self.IconHeight)
-            elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT or self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
+            elseif self.Config.elesGrowth == const.GROWTH.BOTTOMLEFT or self.Config.elesGrowth == const.GROWTH.BOTTOMRIGHT then
                 TabBtn:SetPoint("TOP", self.BarMenuFrame, "TOP", 0, -(index - 1) * self.IconHeight)
             else
                 TabBtn:SetPoint("LEFT", self.BarMenuFrame, "LEFT", (index - 1) * self.IconWidth, 0)
@@ -503,34 +487,34 @@ function ElementFrame:UpdateBarFrame()
         end
         local barFrame = CreateFrame("Frame", ("HtBarFrame-%s"):format(index), self.Window)
         if self:IsBarGroup() then
-            if self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM or self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
+            if self.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM or self.Config.elesGrowth == const.GROWTH.LEFTBOTTOM then
                 barFrame:SetPoint("TOP", bar.TabBtn, "BOTTOM", 0, 0)
-            elseif self.Config.elesGrowth == const.GROWTH.RIGHT_TOP or self.Config.elesGrowth == const.GROWTH.LEFT_TOP then
+            elseif self.Config.elesGrowth == const.GROWTH.RIGHTTOP or self.Config.elesGrowth == const.GROWTH.LEFTTOP then
                 barFrame:SetPoint("BOTTOM", bar.TabBtn, "TOP", 0, 0)
-            elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT or self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT then
+            elseif self.Config.elesGrowth == const.GROWTH.TOPLEFT or self.Config.elesGrowth == const.GROWTH.BOTTOMLEFT then
                 barFrame:SetPoint("RIGHT", bar.TabBtn, "LEFT", 0, 0)
-            elseif self.Config.elesGrowth == const.GROWTH.TOP_RIGHT or self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
+            elseif self.Config.elesGrowth == const.GROWTH.TOPRIGHT or self.Config.elesGrowth == const.GROWTH.BOTTOMRIGHT then
                 barFrame:SetPoint("LEFT", bar.TabBtn, "RIGHT", 0, 0)
             else
                 -- 默认右下
                 barFrame:SetPoint("LEFT", bar.TabBtn, "RIGHT", 0, 0)
             end
         else
-            if self.Config.elesGrowth == const.GROWTH.RIGHT_BOTTOM then
+            if self.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM then
                 barFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
-            elseif self.Config.elesGrowth == const.GROWTH.RIGHT_TOP then
+            elseif self.Config.elesGrowth == const.GROWTH.RIGHTTOP then
                 barFrame:SetPoint("BOTTOMLEFT", self.Window, "BOTTOMLEFT", 0, 0)
-            elseif self.Config.elesGrowth == const.GROWTH.LEFT_BOTTOM then
+            elseif self.Config.elesGrowth == const.GROWTH.LEFTBOTTOM then
                 barFrame:SetPoint("TOPRIGHT", self.Window, "TOPRIGHT", 0, 0)
-            elseif self.Config.elesGrowth == const.GROWTH.LEFT_TOP then
+            elseif self.Config.elesGrowth == const.GROWTH.LEFTTOP then
                 barFrame:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
-            elseif self.Config.elesGrowth == const.GROWTH.TOP_LEFT then
+            elseif self.Config.elesGrowth == const.GROWTH.TOPLEFT then
                 barFrame:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
-            elseif self.Config.elesGrowth == const.GROWTH.TOP_RIGHT then
+            elseif self.Config.elesGrowth == const.GROWTH.TOPRIGHT then
                 barFrame:SetPoint("BOTTOMLEFT", self.Window, "BOTTOMLEFT", 0, 0)
-            elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_LEFT then
+            elseif self.Config.elesGrowth == const.GROWTH.BOTTOMLEFT then
                 barFrame:SetPoint("TOPRIGHT", self.Window, "TOPRIGHT", 0, 0)
-            elseif self.Config.elesGrowth == const.GROWTH.BOTTOM_RIGHT then
+            elseif self.Config.elesGrowth == const.GROWTH.BOTTOMRIGHT then
                 barFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
             else
                 -- 默认右下

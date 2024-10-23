@@ -104,30 +104,61 @@ const.ArrangeOptions = {
 ]]
 ---@enum Growth
 const.GROWTH = {
-    TOP_LEFT = "TOP_LEFT",
-    TOP_RIGHT = "TOP_RIGHT",
-    BOTTOM_LEFT = "BOTTOM_LEFT",
-    BOTTOM_RIGHT = "BOTTOM_RIGHT",
-    LEFT_TOP = "LEFT_TOP",
-    LEFT_BOTTOM = "LEFT_BOTTOM",
-    RIGHT_TOP = "RIGHT_TOP",
-    RIGHT_BOTTOM = "RIGHT_BOTTOM"
+    TOPLEFT = "TOPLEFT",
+    TOPRIGHT = "TOPRIGHT",
+    BOTTOMLEFT = "BOTTOMLEFT",
+    BOTTOMRIGHT = "BOTTOMRIGHT",
+    LEFTTOP = "LEFTTOP",
+    LEFTBOTTOM = "LEFTBOTTOM",
+    RIGHTTOP = "RIGHTTOP",
+    RIGHTBOTTOM = "RIGHTBOTTOM"
 }
 
 -- 生长方向类型选项
 ---@class ArrangeOptions
 ---@type table<number, string>
 const.GrowthOptions = {
-    [const.GROWTH.TOP_LEFT] = L["TOP_LEFT"] ,
-    [const.GROWTH.TOP_RIGHT] = L["TOP_RIGHT"],
-    [const.GROWTH.BOTTOM_LEFT] = L["BOTTOM_LEFT"],
-    [const.GROWTH.BOTTOM_RIGHT] = L["BOTTOM_RIGHT"],
-    [const.GROWTH.LEFT_TOP] = L["LEFT_TOP"] ,
-    [const.GROWTH.LEFT_BOTTOM] = L["LEFT_BOTTOM"],
-    [const.GROWTH.RIGHT_TOP] = L["RIGHT_TOP"],
-    [const.GROWTH.RIGHT_BOTTOM] = L["RIGHT_BOTTOM"],
+    [const.GROWTH.TOPLEFT] = L["TOPLEFT"] ,
+    [const.GROWTH.TOPRIGHT] = L["TOPRIGHT"],
+    [const.GROWTH.BOTTOMLEFT] = L["BOTTOMLEFT"],
+    [const.GROWTH.BOTTOMRIGHT] = L["BOTTOMRIGHT"],
+    [const.GROWTH.LEFTTOP] = L["LEFTTOP"] ,
+    [const.GROWTH.LEFTBOTTOM] = L["LEFTBOTTOM"],
+    [const.GROWTH.RIGHTTOP] = L["RIGHTTOP"],
+    [const.GROWTH.RIGHTBOTTOM] = L["RIGHTBOTTOM"],
 }
 
+-- 依附锚点位置
+---@enum AnchorPos
+const.ANCHOR_POS = {
+    TOPLEFT = "TOPLEFT",
+    TOPRIGHT = "TOPRIGHT",
+    BOTTOMLEFT = "BOTTOMLEFT",
+    BOTTOMRIGHT = "BOTTOMRIGHT",
+    TOP = "TOP",
+    BOTTOM = "BOTTOM",
+    LEFT = "LEFT",
+    RIGHT = "RIGHT",
+    CENTER = "CENTER"
+}
+
+-- 依附锚点位置选项
+---@class AnchorPosOptions
+---@type table<number, string>
+const.AnchorPosOptions = {
+    [const.ANCHOR_POS.TOPLEFT] = L["TOPLEFT"] ,
+    [const.ANCHOR_POS.TOPRIGHT] = L["TOPRIGHT"],
+    [const.ANCHOR_POS.BOTTOMLEFT] = L["BOTTOMLEFT"],
+    [const.ANCHOR_POS.BOTTOMRIGHT] = L["BOTTOMRIGHT"],
+    [const.ANCHOR_POS.TOP] = L["TOP"] ,
+    [const.ANCHOR_POS.BOTTOM] = L["BOTTOM"],
+    [const.ANCHOR_POS.LEFT] = L["LEFT"],
+    [const.ANCHOR_POS.RIGHT] = L["RIGHT"],
+    [const.ANCHOR_POS.CENTER] = L["CENTER"],
+}
+
+
+---
 --[[
 战斗状态加载条件
 ]]

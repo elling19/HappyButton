@@ -60,6 +60,16 @@ function HbFrame:ReloadEframeUI(eleConfig)
     eFrame:ReLoadUI()
 end
 
+-- 重载Window框体位置
+---@param eleConfig ElementConfig
+function HbFrame:UpdateEframeWindow(eleConfig)
+    if self.EFrames[eleConfig.id] == nil then
+        return
+    end
+    local eFrame = self.EFrames[eleConfig.id]
+    eFrame:UpdateWindow()
+end
+
 -- 更新
 ---@param eleConfig ElementConfig
 function HbFrame:UpdateEframe(eleConfig)
