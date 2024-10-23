@@ -1,4 +1,4 @@
-local addonName, _ = ...  ---@type string, table
+local addonName, _ = ... ---@type string, table
 ---@class HappyButton: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
@@ -11,18 +11,17 @@ local Result = addon:NewModule("Result")
 ---@param value any
 ---@return Result<any>
 function Result:Ok(value)
-    local obj = setmetatable({}, {__index = self})
+    local obj = setmetatable({}, { __index = self })
     obj._value = value
     obj._error = nil
     return obj
 end
 
-
 -- 定义 Result 的 Err 构造函数
 ---@param err string
 ---@return Result
 function Result:Err(err)
-    local obj = setmetatable({}, {__index = self})
+    local obj = setmetatable({}, { __index = self })
     if err == nil then
         error("err must not be nil.")
     end

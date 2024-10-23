@@ -678,7 +678,7 @@ function ElementFrame:SetBtnCooldown(btn)
         btn.cooldown:SetHideCountdownNumbers(true) -- 隐藏倒计时数字
     end
     local item = r.item
-    btn:SetScript("OnUpdate", function (frame)
+    btn:SetScript("OnUpdate", function(frame)
         -- 更新冷却倒计时
         if item.type == const.ITEM_TYPE.ITEM then
             local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(item.id)
@@ -692,7 +692,8 @@ function ElementFrame:SetBtnCooldown(btn)
         elseif item.type == const.ITEM_TYPE.SPELL then
             local spellCooldownInfo = C_Spell.GetSpellCooldown(item.id)
             if spellCooldownInfo then
-                CooldownFrame_Set(frame.cooldown, spellCooldownInfo.startTime, spellCooldownInfo.duration, spellCooldownInfo.isEnabled)
+                CooldownFrame_Set(frame.cooldown, spellCooldownInfo.startTime, spellCooldownInfo.duration,
+                    spellCooldownInfo.isEnabled)
             end
         elseif item.type == const.ITEM_TYPE.PET then
             local speciesId, petGUID = C_PetJournal.FindPetIDByName(item.name)

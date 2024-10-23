@@ -338,7 +338,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
         local baseSettingArgs = {}
         local baseSettingOptions = {
             type = "group",
-            name = L["General"],
+            name = L["General Settings"],
             inline = true,
             order = 2,
             args = baseSettingArgs
@@ -389,7 +389,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
         local elementSettingArgs = {}
         local elementSettingOptions = {
             type = "group",
-            name = L["Element"],
+            name = L["Element Settings"],
             inline = true,
             order = 3,
             args = elementSettingArgs
@@ -1003,7 +1003,7 @@ end
 function ConfigOptions.ElementsOptions()
     local options = {
         type = 'group',
-        name = L["Element"],
+        name = L["Element Settings"],
         order = 2,
         args = {
             addBarGroup = {
@@ -1230,17 +1230,20 @@ function ConfigOptions.Options()
             general = {
                 order = 1,
                 type = 'group',
-                name = L["General"],
+                name = L["General Settings"],
                 args = {
                     editFrame = {
                         order = 1,
                         width = 2,
                         type = "execute",
-                        name = L["Edit Mode"],
+                        name = L["Toggle Edit Mode"],
                         func = function()
                             if addon.G.IsEditMode == false then
                                 addon.G.IsEditMode = true
                                 HbFrame:OpenEditMode()
+                            else
+                                addon.G.IsEditMode = false
+                                HbFrame:CloseEditMode()
                             end
                         end
                     },
@@ -1334,8 +1337,8 @@ function addon:OnInitialize()
     -- 全局变量
     ---@class GlobalValue
     self.G = {
-        screenWidth = math.floor(GetScreenWidth()),  -- 屏幕宽度
-        screenHeight = math.floor(GetScreenHeight()),  -- 屏幕高度
+        screenWidth = math.floor(GetScreenWidth()),   -- 屏幕宽度
+        screenHeight = math.floor(GetScreenHeight()), -- 屏幕高度
         iconWidth = 32,
         iconHeight = 32,
         IsEditMode = false,

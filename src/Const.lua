@@ -1,4 +1,4 @@
-local addonName, _ = ...  ---@type string, table
+local addonName, _ = ... ---@type string, table
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 
@@ -27,7 +27,7 @@ const.ElementTypeOptions = {
 
 ---@enum BarDisplayMode
 const.BAR_DISPLAY_MODE = {
-    Hidden = 0,  -- 隐藏
+    Hidden = 0, -- 隐藏
     Alone = 1,  -- 独立的
     Mount = 2,  -- 挂载
 }
@@ -57,12 +57,12 @@ const.ITEM_TYPE = {
 ---@class ItemTypeptions
 ---@type table<number, string>
 const.ItemTypeOptions = {
-    [const.ITEM_TYPE.ITEM]=L["Item"],
-    [const.ITEM_TYPE.EQUIPMENT]=L["Equipment"],
-    [const.ITEM_TYPE.TOY]=L["Toy"],
-    [const.ITEM_TYPE.SPELL]=L["Spell"],
-    [const.ITEM_TYPE.MOUNT]=L["Mount"],
-    [const.ITEM_TYPE.PET]=L["Pet"],
+    [const.ITEM_TYPE.ITEM] = L["Item"],
+    [const.ITEM_TYPE.EQUIPMENT] = L["Equipment"],
+    [const.ITEM_TYPE.TOY] = L["Toy"],
+    [const.ITEM_TYPE.SPELL] = L["Spell"],
+    [const.ITEM_TYPE.MOUNT] = L["Mount"],
+    [const.ITEM_TYPE.PET] = L["Pet"],
 }
 
 -- 物品组分类
@@ -87,15 +87,15 @@ const.ItemsGroupModeOptions = {
 ]]
 ---@enum Arrange
 const.ARRANGE = {
-    HORIZONTAL = 1,  -- 水平
-    VERTICAL = 2,  -- 垂直
+    HORIZONTAL = 1, -- 水平
+    VERTICAL = 2,   -- 垂直
 }
 
 -- 排列方向类型选项
 ---@class ArrangeOptions
 ---@type table<number, string>
 const.ArrangeOptions = {
-    [const.ARRANGE.HORIZONTAL] = L["Horizontal"] ,
+    [const.ARRANGE.HORIZONTAL] = L["Horizontal"],
     [const.ARRANGE.VERTICAL] = L["Vertical"],
 }
 
@@ -118,11 +118,11 @@ const.GROWTH = {
 ---@class ArrangeOptions
 ---@type table<number, string>
 const.GrowthOptions = {
-    [const.GROWTH.TOPLEFT] = L["TOPLEFT"] ,
+    [const.GROWTH.TOPLEFT] = L["TOPLEFT"],
     [const.GROWTH.TOPRIGHT] = L["TOPRIGHT"],
     [const.GROWTH.BOTTOMLEFT] = L["BOTTOMLEFT"],
     [const.GROWTH.BOTTOMRIGHT] = L["BOTTOMRIGHT"],
-    [const.GROWTH.LEFTTOP] = L["LEFTTOP"] ,
+    [const.GROWTH.LEFTTOP] = L["LEFTTOP"],
     [const.GROWTH.LEFTBOTTOM] = L["LEFTBOTTOM"],
     [const.GROWTH.RIGHTTOP] = L["RIGHTTOP"],
     [const.GROWTH.RIGHTBOTTOM] = L["RIGHTBOTTOM"],
@@ -146,11 +146,11 @@ const.ANCHOR_POS = {
 ---@class AnchorPosOptions
 ---@type table<number, string>
 const.AnchorPosOptions = {
-    [const.ANCHOR_POS.TOPLEFT] = L["TOPLEFT"] ,
+    [const.ANCHOR_POS.TOPLEFT] = L["TOPLEFT"],
     [const.ANCHOR_POS.TOPRIGHT] = L["TOPRIGHT"],
     [const.ANCHOR_POS.BOTTOMLEFT] = L["BOTTOMLEFT"],
     [const.ANCHOR_POS.BOTTOMRIGHT] = L["BOTTOMRIGHT"],
-    [const.ANCHOR_POS.TOP] = L["TOP"] ,
+    [const.ANCHOR_POS.TOP] = L["TOP"],
     [const.ANCHOR_POS.BOTTOM] = L["BOTTOM"],
     [const.ANCHOR_POS.LEFT] = L["LEFT"],
     [const.ANCHOR_POS.RIGHT] = L["RIGHT"],
@@ -164,9 +164,9 @@ const.AnchorPosOptions = {
 ]]
 ---@enum CombatLoadCond
 const.COMBAT_LOAD_COND = {
-    ALWAYS_LOAD = 1,  -- 总是显示
-    OUT_COMBAT_LOAD = 2,  -- 战斗外显示
-    IN_COMBAT_LOAD = 3  -- 战斗中显示
+    ALWAYS_LOAD = 1,     -- 总是显示
+    OUT_COMBAT_LOAD = 2, -- 战斗外显示
+    IN_COMBAT_LOAD = 3   -- 战斗中显示
 }
 
 
@@ -200,5 +200,5 @@ const.AttachFrameOptions = {
 -- 事件常量
 ]]
 const.EVENT = {
-    EXIT_EDIT_MODE = "EXIT_EDIT_MODE",  -- 退出编辑模式
+    EXIT_EDIT_MODE = "EXIT_EDIT_MODE", -- 退出编辑模式
 }

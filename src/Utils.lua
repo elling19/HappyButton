@@ -1,4 +1,4 @@
-local addonName, _ = ...  ---@type string, table
+local addonName, _ = ... ---@type string, table
 
 ---@class HappyButton: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
@@ -82,7 +82,6 @@ function UtilsTable.DeepCopyDict(original)
     return copy
 end
 
-
 -- 深度复制列表
 function UtilsTable.DeepCopyList(original)
     local copy = {}
@@ -96,9 +95,10 @@ function UtilsTable.DeepCopyList(original)
     return copy
 end
 
-
 -- 修改全局打印方法，在打印信息前加上插件名称
-function UtilsPrint.Print(...) _G.print("|cfffff700H|r|cffeeaf7aa|r|cffe38483pp|r|cffd966a6y|r|cffc84dcaT|r|cffb539e6o|r|cff9f2bffo|r|cffa636f3l|r|cffbb4ed2k|r|cffe38280i|r|cffffad75t|r" .. "|cfffff700:|r", ...) end
+function UtilsPrint.Print(...) _G.print(
+    "|cfffff700H|r|cffeeaf7aa|r|cffe38483pp|r|cffd966a6y|r|cffc84dcaT|r|cffb539e6o|r|cff9f2bffo|r|cffa636f3l|r|cffbb4ed2k|r|cffe38280i|r|cffffad75t|r" ..
+    "|cfffff700:|r", ...) end
 
 -- 打印彩色字体
 function UtilsPrint.PrintColoredText(text, color)
@@ -175,7 +175,6 @@ function UtilsPrint.PrintDictType(tbl, indent)
     end
 end
 
-
 -- 函数：将 UTF-8 字符串拆分为单个字符表
 local function Utf8ToTable(str)
     local charTable = {}
@@ -186,13 +185,13 @@ local function Utf8ToTable(str)
         local byte = string.byte(str, i)
         local charLength
 
-        if byte >= 240 then       -- 4字节字符 (例如 emoji)
+        if byte >= 240 then     -- 4字节字符 (例如 emoji)
             charLength = 4
-        elseif byte >= 224 then   -- 3字节字符 (中文、韩文等)
+        elseif byte >= 224 then -- 3字节字符 (中文、韩文等)
             charLength = 3
-        elseif byte >= 192 then   -- 2字节字符 (部分拉丁字母等)
+        elseif byte >= 192 then -- 2字节字符 (部分拉丁字母等)
             charLength = 2
-        else                      -- 1字节字符 (ASCII)
+        else                    -- 1字节字符 (ASCII)
             charLength = 1
         end
 
@@ -216,4 +215,3 @@ function UtilsString.ToVertical(str)
     end
     return verticalStr
 end
-

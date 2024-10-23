@@ -1,4 +1,4 @@
-local addonName, _ = ...  ---@type string, table
+local addonName, _ = ... ---@type string, table
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
 ---@class E: AceModule
@@ -48,17 +48,17 @@ function ECB.CallbackOfRandomMode(element)
         local randomIndex = math.random(1, #usableItemList)
         local selectedItem = cooldownItemList[randomIndex]
         cb = ECB:CallbackByItemConfig(selectedItem)
-    elseif #usableItemList > 0  then
+    elseif #usableItemList > 0 then
         -- 没有没有冷却可用，则选择可用
         cb = ECB:CallbackByItemConfig(usableItemList[1])
     elseif #element.elements > 0 then
-         -- 没有可用的item时返回第一个
-         local item = E:ToItem(element.elements[1])
-         cb = ECB:CallbackByItemConfig(item)
+        -- 没有可用的item时返回第一个
+        local item = E:ToItem(element.elements[1])
+        cb = ECB:CallbackByItemConfig(item)
     else
         cb = ECB:NilCallback()
     end
-    return {cb, }
+    return { cb, }
 end
 
 -- 顺序选择callback
@@ -86,7 +86,7 @@ function ECB.CallbackOfSeqMode(element)
             cb = ECB:NilCallback()
         end
     end
-    return {cb, }
+    return { cb, }
 end
 
 -- 单个展示模式
@@ -95,7 +95,7 @@ end
 ---@return CbResult[]
 function ECB.CallbackOfSingleMode(element)
     local cb = ECB:CallbackByItemConfig(element)
-    return {cb, }
+    return { cb, }
 end
 
 -- 脚本模式

@@ -1,4 +1,4 @@
-local addonName, _ = ...  ---@type string, table
+local addonName, _ = ... ---@type string, table
 
 ---@class HappyButton: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)

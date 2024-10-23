@@ -1,4 +1,4 @@
-local addonName, _ = ...  ---@type string, table
+local addonName, _ = ... ---@type string, table
 
 ---@class HappyButton: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
@@ -7,4 +7,3 @@ local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 local BarCore = addon:GetModule("BarCore")
 
 BarCore:Start()
-

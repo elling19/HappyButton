@@ -1,4 +1,3 @@
-
 ---@class ItemAttr
 ---@field type integer | nil
 ---@field id integer | nil

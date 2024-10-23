@@ -1,4 +1,4 @@
-local addonName, _ = ...  ---@type string, table
+local addonName, _ = ... ---@type string, table
 
 ---@class HappyButton: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
@@ -14,4 +14,3 @@ addon:RegisterMessage(const.EVENT.EXIT_EDIT_MODE, function()
     addon.G.IsEditMode = false
     HbFrame:CloseEditMode()
 end)
-

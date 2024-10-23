@@ -21,7 +21,7 @@ function Item:IsLearned(itemID, itemType)
         return false
     end
     if itemType == const.ITEM_TYPE.ITEM then
-        local bagCount = C_Item.GetItemCount(itemID, false)  -- 检查背包中是否拥有
+        local bagCount = C_Item.GetItemCount(itemID, false) -- 检查背包中是否拥有
         if bagCount > 0 then
             return true
         end
@@ -38,13 +38,15 @@ function Item:IsLearned(itemID, itemType)
             return true
         end
     elseif itemType == const.ITEM_TYPE.MOUNT then
-        local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight = C_MountJournal.GetMountInfoByID(itemID)
+        local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight =
+        C_MountJournal.GetMountInfoByID(itemID)
         if isCollected then
             return true
         end
     elseif itemType == const.ITEM_TYPE.PET then
         for petIndex = 1, C_PetJournal.GetNumPets() do
-            local _, speciesID, owned, customName, level, favorite, isRevoked, speciesName, icon, petType, companionID, tooltip, description, isWild, canBattle, isTradeable, isUnique, obtainable = C_PetJournal.GetPetInfoByIndex(petIndex)
+            local _, speciesID, owned, customName, level, favorite, isRevoked, speciesName, icon, petType, companionID, tooltip, description, isWild, canBattle, isTradeable, isUnique, obtainable =
+            C_PetJournal.GetPetInfoByIndex(petIndex)
             if speciesID == itemID then
                 return true
             end
@@ -65,7 +67,7 @@ function Item:IsLearnedAndUsable(item)
         return false
     end
     if itemType == const.ITEM_TYPE.ITEM then
-        local usable, _ = C_Item.IsUsableItem(itemID)  -- 检查是否可用
+        local usable, _ = C_Item.IsUsableItem(itemID) -- 检查是否可用
         if usable == true then
             return true
         end
@@ -82,7 +84,6 @@ function Item:IsLearnedAndUsable(item)
     return false
 end
 
-
 -- 确认物品是否可以使用并且不在冷却中
 -- 判断物品是否可用
 ---@param item ItemConfig
@@ -95,7 +96,7 @@ function Item:IsUseableAndCooldown(item)
         return false
     end
     if item.extraAttr.type == const.ITEM_TYPE.ITEM then
-        local _, duration, _ = C_Item.GetItemCooldown(item.extraAttr.id)  -- 检查是否冷却中
+        local _, duration, _ = C_Item.GetItemCooldown(item.extraAttr.id) -- 检查是否冷却中
         if not duration == 0 then
             return false
         end
@@ -121,7 +122,7 @@ end
 ---@param itemId number
 ---@return boolean
 function Item:IsEquipped(itemId)
-    -- 检查物品是否已装备 
+    -- 检查物品是否已装备
     -- 检查所有装备槽: https://warcraft.wiki.gg/wiki/InventorySlotID
     local isEquipped = false
     for i = 1, 30 do

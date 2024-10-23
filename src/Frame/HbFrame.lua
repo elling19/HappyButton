@@ -23,7 +23,7 @@ local HbFrame = addon:NewModule("HbFrame")
 -- 初始化UI模块
 function HbFrame:Initial()
     local elementsConfig = addon.db.profile.elements ---@type ElementConfig[]
-    local eFrames = {}  ---@type table<string, ElementFrame>
+    local eFrames = {} ---@type table<string, ElementFrame>
     for _, eleConfig in ipairs(elementsConfig) do
         eFrames[eleConfig.id] = ElementFrame:New(eleConfig)
     end
@@ -122,7 +122,7 @@ function HbFrame:OutCombatEvent()
         if eFrame:IsBarGroup() then
             eFrame:ShowWindow()
         else
-            if eFrame.Config.combatLoadCond == const.COMBAT_LOAD_COND.IN_COMBAT_LOAD  then
+            if eFrame.Config.combatLoadCond == const.COMBAT_LOAD_COND.IN_COMBAT_LOAD then
                 eFrame:HideWindow()
             else
                 eFrame:ShowWindow()
