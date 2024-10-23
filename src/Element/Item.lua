@@ -34,7 +34,7 @@ function Item:IsLearned(itemID, itemType)
             return true
         end
     elseif itemType == const.ITEM_TYPE.SPELL then
-        if IsSpellKnown(itemID) then
+        if IsSpellKnownOrOverridesKnown(itemID) then
             return true
         end
     elseif itemType == const.ITEM_TYPE.MOUNT then
