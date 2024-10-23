@@ -13,18 +13,22 @@ local const = addon:GetModule('CONST')
 local Item = addon:NewModule("Item", E)
 
 -- 判断玩家是否拥有/学习某个物品
----@param item ItemConfig
+---@param itemID number
+---@param itemType ItemType
 ---@return boolean
-function Item:IsLearned(item)
-    local itemID, itemType = item.extraAttr.id, item.extraAttr.type
+function Item:IsLearned(itemID, itemType)
     if itemID == nil then
         return false
     end
     if itemType == const.ITEM_TYPE.ITEM then
-        local count = C_Item.GetItemCount(itemID, false)  -- 检查背包中是否拥有
-        if count > 0 then
+        local bagCount = C_Item.GetItemCount(itemID, false)  -- 检查背包中是否拥有
+        if bagCount > 0 then
             return true
         end
+    elseif itemType == const.ITEM_TYPE.EQUIPMENT then
+        local bagCount = C_Item.GetItemCount(itemID, false)
+        local isEquipped = self:IsEquipped(itemID)
+        return bagCount > 0 or isEquipped == true
     elseif itemType == const.ITEM_TYPE.TOY then
         if PlayerHasToy(itemID) then
             return true
@@ -54,10 +58,10 @@ end
 ---@return boolean
 function Item:IsLearnedAndUsable(item)
     local itemID, itemType = item.extraAttr.id, item.extraAttr.type
-    if itemID == nil then
+    if itemID == nil or itemType == nil then
         return false
     end
-    if not self:IsLearned(item) then
+    if not self:IsLearned(itemID, itemType) then
         return false
     end
     if itemType == const.ITEM_TYPE.ITEM then
@@ -111,4 +115,21 @@ function Item:IsUseableAndCooldown(item)
     else
         return false
     end
+end
+
+-- 判断物品是否被装备
+---@param itemId number
+---@return boolean
+function Item:IsEquipped(itemId)
+    -- 检查物品是否已装备 
+    -- 检查所有装备槽: https://warcraft.wiki.gg/wiki/InventorySlotID
+    local isEquipped = false
+    for i = 1, 30 do
+        local equippedItemID = GetInventoryItemID("player", i)
+        if equippedItemID == itemId then
+            isEquipped = true
+            break
+        end
+    end
+    return isEquipped
 end

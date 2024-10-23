@@ -246,12 +246,12 @@ function ElementFrame:Update()
             -- 如果回调函数返回的是item模式
             if r.item ~= nil then
                 -- 更新图标宏
-                self:SetPoolMacro(btn)
+                self:SetBtnMacro(btn)
                 -- 更新冷却计时
-                self:SetPoolCooldown(btn)
+                self:SetBtnCooldown(btn)
                 -- 更新鼠标移入移出事件
                 self:SetButtonMouseEvent(btn)
-                self:SetPoolLearnable(btn)
+                self:SetBtnLearnable(btn)
             else
                 self:SetScriptEvent(btn)
             end
@@ -620,8 +620,9 @@ function ElementFrame:SetBarShow()
     end
 end
 
--- 更新pool的宏文案
-function ElementFrame:SetPoolMacro(btn)
+-- 更新按钮的宏文案
+function ElementFrame:SetBtnMacro(btn)
+    ---@type CbResult
     local r = btn.r
     if r == nil or r.item == nil then
         return
@@ -637,6 +638,13 @@ function ElementFrame:SetPoolMacro(btn)
     local macroText = ""
     if r.item.type == const.ITEM_TYPE.ITEM then
         macroText = "/use item:" .. r.item.id
+    elseif r.item.type == const.ITEM_TYPE.EQUIPMENT then
+        local isEquipped = Item:IsEquipped(r.item.id)
+        if isEquipped then
+            macroText = "/use item:" .. r.item.id
+        else
+            macroText = "/equip " .. r.item.name
+        end
     elseif r.item.type == const.ITEM_TYPE.TOY then
         macroText = "/use item:" .. r.item.id
     elseif r.item.type == const.ITEM_TYPE.SPELL then
@@ -653,8 +661,8 @@ function ElementFrame:SetPoolMacro(btn)
     btn:SetAttribute("macrotext", macroText)
 end
 
--- 设置pool的冷却
-function ElementFrame:SetPoolCooldown(btn)
+-- 设置按钮冷却
+function ElementFrame:SetBtnCooldown(btn)
     if btn == nil then
         return
     end
@@ -673,6 +681,9 @@ function ElementFrame:SetPoolCooldown(btn)
     btn:SetScript("OnUpdate", function (frame)
         -- 更新冷却倒计时
         if item.type == const.ITEM_TYPE.ITEM then
+            local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(item.id)
+            CooldownFrame_Set(frame.cooldown, startTimeSeconds, durationSeconds, enableCooldownTimer)
+        elseif item.type == const.ITEM_TYPE.EQUIPMENT then
             local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(item.id)
             CooldownFrame_Set(frame.cooldown, startTimeSeconds, durationSeconds, enableCooldownTimer)
         elseif item.type == const.ITEM_TYPE.TOY then
@@ -720,48 +731,19 @@ function ElementFrame:SetScriptEvent(btn)
     end
 end
 
--- 当pool上的技能没有学习的时候，置为灰色
-function ElementFrame:SetPoolLearnable(btn)
+-- 当按钮上的技能没有学习的时候，置为灰色
+function ElementFrame:SetBtnLearnable(btn)
     if btn == nil then
         return
     end
+    ---@type CbResult
     local r = btn.r
     if r == nil or r.item == nil then
         return
     end
-    local item = r.item
-    local hasThisThing = false
-    if item.type == const.ITEM_TYPE.ITEM then
-        local count = C_Item.GetItemCount(item.id, false)
-        if not (count == 0) then
-            hasThisThing = true
-        end
-    elseif item.type == const.ITEM_TYPE.TOY then
-        if PlayerHasToy(item.id) then
-            hasThisThing = true
-        end
-    elseif item.type == const.ITEM_TYPE.SPELL then
-        if IsSpellKnown(item.id) then
-            hasThisThing = true
-        end
-    elseif item.type == const.ITEM_TYPE.MOUNT then
-        local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight =
-            C_MountJournal.GetMountInfoByID(item.id)
-        if isCollected then
-            hasThisThing = true
-        end
-    elseif item.type == const.ITEM_TYPE.PET then
-        for petIndex = 1, C_PetJournal.GetNumPets() do
-            local _, speciesID, owned, customName, level, favorite, isRevoked, speciesName, icon, petType, companionID, tooltip, description, isWild, canBattle, isTradeable, isUnique, obtainable =
-                C_PetJournal.GetPetInfoByIndex(petIndex)
-            if speciesID == item.id then
-                hasThisThing = true
-                break
-            end
-        end
-    end
+    local isLearned = Item:IsLearned(r.item.id, r.item.type)
     -- 如果没有学习这个技能，则将图标和文字改成灰色半透明
-    if hasThisThing == false then
+    if isLearned == false then
         if btn then
             btn:SetEnabled(false)
             btn:SetAlpha(0.5)
@@ -799,6 +781,8 @@ function ElementFrame:SetShowGameTooltip(btn)
     local item = r.item
     GameTooltip:SetOwner(btn, "ANCHOR_RIGHT") -- 设置提示显示的位置
     if item.type == const.ITEM_TYPE.ITEM then
+        GameTooltip:SetItemByID(item.id)
+    elseif item.type == const.ITEM_TYPE.EQUIPMENT then
         GameTooltip:SetItemByID(item.id)
     elseif item.type == const.ITEM_TYPE.TOY then
         GameTooltip:SetToyByItemID(item.id)

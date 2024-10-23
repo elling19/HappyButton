@@ -25,6 +25,8 @@ function BarCore:Start()
     BarCore.Frame:RegisterEvent("SPELL_UPDATE_COOLDOWN")  -- 触发冷却
     BarCore.Frame:RegisterEvent("PLAYER_REGEN_DISABLED")  -- 进入战斗事件
     BarCore.Frame:RegisterEvent("PLAYER_REGEN_ENABLED")  -- 退出战斗事件
+    BarCore.Frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED")  -- 装备改变
+
     BarCore.Frame:SetScript("OnEvent", function(self, event, arg1)
         if event == "PLAYER_LOGIN" then
             BarCore:Initial()
@@ -32,6 +34,10 @@ function BarCore:Start()
         if event == "ADDON_LOADED" and arg1 == addonName then
         end
         if event == "SPELL_UPDATE_COOLDOWN" then
+            HbFrame:UpdateAllEframes()
+        end
+        if event == "PLAYER_EQUIPMENT_CHANGED" then
+            HbFrame:UpdateAllEframes()
         end
         if event == "PLAYER_REGEN_DISABLED" then
             HbFrame:OnCombatEvent()
