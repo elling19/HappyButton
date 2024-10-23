@@ -82,8 +82,10 @@ end
 
 -- 全部更新
 function HbFrame:UpdateAllEframes()
-    for _, eFrame in pairs(self.EFrames) do
-        eFrame:Update()
+    if self.EFrames then
+        for _, eFrame in pairs(self.EFrames) do
+            eFrame:Update()
+        end
     end
 end
 

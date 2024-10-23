@@ -26,6 +26,8 @@ function BarCore:Start()
     BarCore.Frame:RegisterEvent("PLAYER_REGEN_DISABLED")    -- 进入战斗事件
     BarCore.Frame:RegisterEvent("PLAYER_REGEN_ENABLED")     -- 退出战斗事件
     BarCore.Frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED") -- 装备改变
+    BarCore.Frame:RegisterEvent("SPELLS_CHANGED")           -- 技能改变
+    BarCore.Frame:RegisterEvent("PLAYER_TALENT_UPDATE")     -- 天赋改变
 
     BarCore.Frame:SetScript("OnEvent", function(self, event, arg1)
         if event == "PLAYER_LOGIN" then
@@ -37,6 +39,12 @@ function BarCore:Start()
             HbFrame:UpdateAllEframes()
         end
         if event == "PLAYER_EQUIPMENT_CHANGED" then
+            HbFrame:UpdateAllEframes()
+        end
+        if event == "SPELLS_CHANGED" then
+            HbFrame:UpdateAllEframes()
+        end
+        if event == "PLAYER_TALENT_UPDATE" then
             HbFrame:UpdateAllEframes()
         end
         if event == "PLAYER_REGEN_DISABLED" then
