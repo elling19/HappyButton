@@ -1361,6 +1361,7 @@ function addon:OnInitialize()
     self.optionsFrame = AceConfigDialog:AddToBlizOptions(addonName, addonName)
     -- 输入 /HappyButton 打开配置
     self:RegisterChatCommand(addonName, "OpenConfig")
+    self:RegisterChatCommand("hb", "OpenConfig")
 end
 
 function addon:OpenConfig() AceConfigDialog:Open(addonName) end

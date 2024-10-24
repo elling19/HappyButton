@@ -18,6 +18,7 @@ Welcome to the **HappyButton** plugin! This is a dedicated addon for **World of 
 
 ## Usage
 
+- use command `/hb` or click the settings menu to open the addon setting frame.
 - Customize your extra action bars through the settings menu.
 - Add items, skills, pets, mounts, and toys as needed.
 - Use the script import feature to quickly apply preset configurations.
