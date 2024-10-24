@@ -237,12 +237,12 @@ function ElementFrame:Update()
                 end
                 btn:RegisterForClicks("AnyDown", "AnyUp")
                 btn:SetAttribute("macrotext", "")
-                btn.r = r
                 btn.barIndex = barIndex
                 btn.cbIndex = cbIndex
                 table.insert(bar.BarBtns, btn)
             end
             local btn = bar.BarBtns[cbIndex]
+            btn.r = r
             -- 如果回调函数返回的是item模式
             if r.item ~= nil then
                 -- 更新图标宏
@@ -286,6 +286,9 @@ function ElementFrame:Update()
         -- 如果按钮过多，删除冗余按钮
         if #cbResults < #bar.BarBtns then
             for i = #bar.BarBtns, #cbResults + 1, -1 do
+                bar.BarBtns[i]:Hide()
+                bar.BarBtns[i]:ClearAllPoints()
+                bar.BarBtns[i] = nil
                 table.remove(bar.BarBtns, i)
             end
         end

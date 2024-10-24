@@ -28,23 +28,19 @@ function BarCore:Start()
     BarCore.Frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED") -- 装备改变
     BarCore.Frame:RegisterEvent("SPELLS_CHANGED")           -- 技能改变
     BarCore.Frame:RegisterEvent("PLAYER_TALENT_UPDATE")     -- 天赋改变
-
+    BarCore.Frame:RegisterEvent("UNIT_AURA")                -- 目标buff或者defbuff改变
+    BarCore.Frame:RegisterEvent("PLAYER_TARGET_CHANGED")    -- 目标改变
     BarCore.Frame:SetScript("OnEvent", function(self, event, arg1)
         if event == "PLAYER_LOGIN" then
             BarCore:Initial()
         end
-        if event == "ADDON_LOADED" and arg1 == addonName then
-        end
-        if event == "SPELL_UPDATE_COOLDOWN" then
-            HbFrame:UpdateAllEframes()
-        end
-        if event == "PLAYER_EQUIPMENT_CHANGED" then
-            HbFrame:UpdateAllEframes()
-        end
-        if event == "SPELLS_CHANGED" then
-            HbFrame:UpdateAllEframes()
-        end
-        if event == "PLAYER_TALENT_UPDATE" then
+        if event == "SPELL_UPDATE_COOLDOWN" or
+            event == "PLAYER_EQUIPMENT_CHANGED" or
+            event == "SPELLS_CHANGED" or
+            event == "PLAYER_TALENT_UPDATE" or
+            event == "UNIT_AURA" or
+            event == "PLAYER_TARGET_CHANGED"
+        then
             HbFrame:UpdateAllEframes()
         end
         if event == "PLAYER_REGEN_DISABLED" then
