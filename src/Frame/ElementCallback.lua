@@ -104,7 +104,7 @@ end
 function ECB.CallbackOfScriptMode(element)
     local script = E:ToScript(element)
     local cbResults = {} ---@type CbResult[]
-    local func, loadstringErr = loadstring("return " .. script.extraAttr.script)
+    local func, loadstringErr = loadstring(script.extraAttr.script)
     if not func then
         local errMsg = L["Illegal script."] .. " " .. loadstringErr
         U.Print.PrintErrorText(errMsg)

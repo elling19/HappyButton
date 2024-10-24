@@ -568,7 +568,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 multiline = 20,
                 width = "full",
                 validate = function(_, val)
-                    local func, loadstringErr = loadstring("return " .. val)
+                    local func, loadstringErr = loadstring(val)
                     if not func then
                         local errMsg = L["Illegal script."] .. " " ..
                             loadstringErr
