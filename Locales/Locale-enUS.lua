@@ -1,5 +1,6 @@
 local L = LibStub("AceLocale-3.0"):NewLocale("HappyButton", "enUS", true)
 
+L["Version"] = true
 L["Welcome to use HappyButton."] = true
 L["Can not register Bar: must be a callback function."] = true
 L["You cannot use this in combat."] = true

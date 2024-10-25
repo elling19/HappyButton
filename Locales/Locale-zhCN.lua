@@ -1,6 +1,7 @@
 local L = LibStub("AceLocale-3.0"):NewLocale("HappyButton", "zhCN")
 if not L then return end
 
+L["Version"] = "版本"
 L["Welcome to use HappyButton."] = "欢迎使用插件HappyButton。"
 L["Can not register Bar: must be a callback function."] = "无法注册：必须是回调函数。"
 L["You cannot use this in combat."] = "你无法在战斗中使用。"

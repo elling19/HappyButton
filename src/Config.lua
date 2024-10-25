@@ -1260,6 +1260,18 @@ function ConfigOptions.Options()
                         width = 2,
                         type = "description",
                         name = L["Left-click to drag and move, right-click to exit edit mode."]
+                    },
+                    versionSpace = {
+                        order = 3,
+                        width = 2,
+                        type = "description",
+                        name = "\n\n\n"
+                    },
+                    versionDesc = {
+                        order = 4,
+                        width = 2,
+                        type = "description",
+                        name = L["Version"] .. ": " .. "0.0.3"
                     }
                 }
             },
