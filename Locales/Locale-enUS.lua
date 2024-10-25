@@ -93,6 +93,8 @@ L["Display Rule"] = true
 L["Load"] = true
 L["Load Rule"] = true
 L["Add Child Elements"] = true
+L["Edit Child Elements"] = true
+L["Select Item"] = true
 -- 位置
 L["TOPLEFT"] = true
 L["TOPRIGHT"] = true

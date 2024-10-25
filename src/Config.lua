@@ -599,6 +599,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     return itemGroup.extraAttr.replaceName == true
                 end
             }
+
         end
         if isTopElement then
             local positionSettingOrder = 1
@@ -803,21 +804,22 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 displaySettingOrder = displaySettingOrder + 1
             end
         end
+        -- 物品条组、物品条、物品组添加子元素
         if ele.type == const.ELEMENT_TYPE.BAR_GROUP or ele.type == const.ELEMENT_TYPE.BAR or ele.type == const.ELEMENT_TYPE.ITEM_GROUP then
-            local childrenSettingOrder = 1
-            local childrenSettingArgs = {}
-            local childrenSettingOptions = {
+            local addChildrenSettingOrder = 1
+            local addChildrenSettingArgs = {}
+            local addChildrenSettingOptions = {
                 type = "group",
                 name = L["Add Child Elements"],
                 inline = true,
                 order = 5,
-                args = childrenSettingArgs
+                args = addChildrenSettingArgs
             }
-            args.childrenSetting = childrenSettingOptions
+            args.addChildrenSetting = addChildrenSettingOptions
 
             if ele.type == const.ELEMENT_TYPE.BAR_GROUP then
-                childrenSettingArgs.addBar = {
-                    order = childrenSettingOrder,
+                addChildrenSettingArgs.addBar = {
+                    order = addChildrenSettingOrder,
                     width = 1,
                     type = 'execute',
                     name = L["New Bar"],
@@ -831,11 +833,11 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                             selectGroupsAfterAddItem))
                     end
                 }
-                childrenSettingOrder = childrenSettingOrder + 1
+                addChildrenSettingOrder = addChildrenSettingOrder + 1
             end
             if ele.type == const.ELEMENT_TYPE.BAR then
-                childrenSettingArgs.addBar = {
-                    order = childrenSettingOrder,
+                addChildrenSettingArgs.addBar = {
+                    order = addChildrenSettingOrder,
                     width = 1,
                     type = 'execute',
                     name = L["New Bar"],
@@ -849,9 +851,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                             selectGroupsAfterAddItem))
                     end
                 }
-                childrenSettingOrder = childrenSettingOrder + 1
-                childrenSettingArgs.addItemGroup = {
-                    order = childrenSettingOrder,
+                addChildrenSettingOrder = addChildrenSettingOrder + 1
+                addChildrenSettingArgs.addItemGroup = {
+                    order = addChildrenSettingOrder,
                     width = 1,
                     type = 'execute',
                     name = L["New ItemGroup"],
@@ -865,9 +867,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                             selectGroupsAfterAddItem))
                     end
                 }
-                childrenSettingOrder = childrenSettingOrder + 1
-                childrenSettingArgs.addScript = {
-                    order = childrenSettingOrder,
+                addChildrenSettingOrder = addChildrenSettingOrder + 1
+                addChildrenSettingArgs.addScript = {
+                    order = addChildrenSettingOrder,
                     width = 1,
                     type = 'execute',
                     name = L["New Script"],
@@ -882,9 +884,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                             selectGroupsAfterAddItem))
                     end
                 }
-                childrenSettingOrder = childrenSettingOrder + 1
-                childrenSettingArgs.addItem = {
-                    order = childrenSettingOrder,
+                addChildrenSettingOrder = addChildrenSettingOrder + 1
+                addChildrenSettingArgs.addItem = {
+                    order = addChildrenSettingOrder,
                     width = 1,
                     type = 'execute',
                     name = L["New Item"],
@@ -898,12 +900,13 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                             selectGroupsAfterAddItem))
                     end
                 }
-                childrenSettingOrder = childrenSettingOrder + 1
+                addChildrenSettingOrder = addChildrenSettingOrder + 1
             end
             if ele.type == const.ELEMENT_TYPE.ITEM_GROUP then
-                childrenSettingOrder = childrenSettingOrder + 1
-                childrenSettingArgs.itemType = {
-                    order = childrenSettingOrder,
+                local itemGroup = E:ToItemGroup(ele)
+                addChildrenSettingOrder = addChildrenSettingOrder + 1
+                addChildrenSettingArgs.itemType = {
+                    order = addChildrenSettingOrder,
                     type = 'select',
                     name = L["Item Type"],
                     values = const.ItemTypeOptions,
@@ -912,9 +915,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     end,
                     get = function() return addon.G.tmpNewItemType end
                 }
-                childrenSettingOrder = childrenSettingOrder + 1
-                childrenSettingArgs.itemVal = {
-                    order = childrenSettingOrder,
+                addChildrenSettingOrder = addChildrenSettingOrder + 1
+                addChildrenSettingArgs.itemVal = {
+                    order = addChildrenSettingOrder,
                     type = 'input',
                     name = L["Item name or item id"],
                     validate = function(_, val)
@@ -935,20 +938,70 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         item.extraAttr = U.Table.DeepCopyDict(addon.G.tmpNewItem)
                         table.insert(ele.elements, item)
                         HbFrame:ReloadEframeUI(updateFrameConfig)
-                        AceConfigDialog:SelectGroup(addonName, unpack(
-                            selectGroupsAfterAddItem))
+                        itemGroup.extraAttr.configSelectedItemIndex = #itemGroup.elements
                         addon.G.tmpNewItemVal = nil
                         addon.G.tmpNewItem = {}
                     end,
                     get = function() return addon.G.tmpNewItemVal end
                 }
-                childrenSettingOrder = childrenSettingOrder + 1
+                addChildrenSettingOrder = addChildrenSettingOrder + 1
             end
         end
-        if ele.elements and #ele.elements then
-            local tmpArgs = GetElementOptions(ele.elements, topEleConfig or ele,
-                copySelectGroups)
-            for k, v in pairs(tmpArgs) do args[k] = v end
+        -- 物品组查看/编辑/删除物品
+        if ele.type == const.ELEMENT_TYPE.ITEM_GROUP then
+            local itemGroup = E:ToItemGroup(ele)
+            local editChildrenSettingOrder = 1
+            local editChildrenSettingArgs = {}
+            local editChildrenSettingOptions = {
+                type = "group",
+                name = L["Edit Child Elements"],
+                inline = true,
+                order = 5,
+                args = editChildrenSettingArgs
+            }
+            args.editChildrenSetting = editChildrenSettingOptions
+            local itemsOptions = {}  ---@type table<number, ItemConfig>
+            if ele.elements then
+                for _, _item in ipairs(ele.elements) do
+                    local item = E:ToItem(_item)
+                    local optionTitle = item.extraAttr.name or item.title or ""
+                    local optionIcon = item.extraAttr.icon or item.icon or ""
+                    table.insert(itemsOptions, "|T" .. optionIcon .. ":16|t" .. optionTitle)
+                end
+            end
+            editChildrenSettingArgs.selectChildren = {
+                order = editChildrenSettingOrder,
+                width = 1,
+                type = "select",
+                name = L["Select Item"],
+                values = itemsOptions,
+                set = function (_, val)
+                    itemGroup.extraAttr.configSelectedItemIndex = val
+                end,
+                get = function() return itemGroup.extraAttr.configSelectedItemIndex end
+            }
+            editChildrenSettingOrder = editChildrenSettingOrder + 1
+            editChildrenSettingArgs.deleteChildren = {
+                order = editChildrenSettingOrder,
+                width = 1,
+                type = "execute",
+                name = L["Delete"],
+                confirm = true,
+                func = function()
+                    table.remove(itemGroup.elements, itemGroup.extraAttr.configSelectedItemIndex)
+                    if itemGroup.extraAttr.configSelectedItemIndex > #itemGroup.elements then
+                        itemGroup.extraAttr.configSelectedItemIndex = #itemGroup.elements
+                    end
+                end
+            }
+        end
+        -- 物品条和物品条组递归查看子元素
+        if ele.type == const.ELEMENT_TYPE.BAR_GROUP or ele.type == const.ELEMENT_TYPE.BAR then
+            if ele.elements and #ele.elements then
+                local tmpArgs = GetElementOptions(ele.elements, topEleConfig or ele,
+                    copySelectGroups)
+                for k, v in pairs(tmpArgs) do args[k] = v end
+            end
         end
         local menuName = iconPath .. showTitle
         if not isTopElement then

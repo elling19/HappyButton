@@ -9,6 +9,7 @@
 ---@field mode ItemsGroupMode
 ---@field displayUnLearned boolean
 ---@field replaceName string | nil
+---@field configSelectedItemIndex number 编辑子元素的时候选中的下标
 
 ---@class ScriptAttr
 ---@field script string | nil  -- 原始脚本文件

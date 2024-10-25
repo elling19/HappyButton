@@ -94,6 +94,8 @@ L["Display Rule"] = "展示规则"
 L["Load"] = "启用"
 L["Load Rule"] = "载入规则"
 L["Add Child Elements"] = "添加子元素"
+L["Edit Child Elements"] = "编辑子元素"
+L["Select Item"] = "选择物品"
 -- 位置
 L["TOPLEFT"] = "上左"
 L["TOPRIGHT"] = "上右"

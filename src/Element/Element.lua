@@ -87,6 +87,7 @@ function E:NewItemGroup(title)
     e = E:ToItemGroup(e)
     e.extraAttr.mode = const.ITEMS_GROUP_MODE.RANDOM
     e.extraAttr.displayUnLearned = false
+    e.extraAttr.configSelectedItemIndex = 1
     return e
 end
 
