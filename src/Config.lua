@@ -22,46 +22,10 @@ local U = addon:GetModule('Utils')
 
 local AceConfig = LibStub("AceConfig-3.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
-local AceDBOptions = LibStub("AceDBOptions-3.0")
 local AceSerializer = LibStub("AceSerializer-3.0")
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
 local AceGUI = LibStub("AceGUI-3.0")
 
----@class ProfileConfig.ConfigTable
----@field name string
----@field profile table
-
----@class ProfileConfig
-local ProfileConfig = {}
-
--- 创建新的全局配置名称
----@param title  string
----@return string
-function ProfileConfig.GenerateNewProfileName(title)
-    local index = 1
-    while addon.db.profiles[title .. "[" .. index .. "]"] do
-        index = index + 1
-    end
-    return title .. "[" .. index .. "]"
-end
-
--- 导入配置后是否重载界面
----@param profileName string
-function ProfileConfig.ShowLoadConfirmation(profileName)
-    StaticPopupDialogs["LOAD_NEW_PROFILE"] = {
-        text = L["Configuration imported. Would you like to switch to the new configuration?"],
-        button1 = L["Yes"],
-        button2 = L["No"],
-        OnAccept = function()
-            addon.db:SetProfile(profileName)
-            ReloadUI()
-        end,
-        timeout = 0,
-        whileDead = true,
-        hideOnEscape = true
-    }
-    StaticPopup_Show("LOAD_NEW_PROFILE")
-end
 
 ---@class Config
 local Config = {}
@@ -1211,15 +1175,6 @@ function ConfigOptions.ElementsOptions()
     return options
 end
 
-function ConfigOptions.ConfigOptions()
-    local profiles = AceDBOptions:GetOptionsTable(addon.db)
-    -- 重写ace3dbconfig的设置配置文件方法，增加是否重载输入框
-    profiles.args.choose.set = function(_, val)
-        addon.db:SetProfile(val)
-        ProfileConfig.ShowLoadConfirmation(val)
-    end
-    return profiles
-end
 
 function ConfigOptions.Options()
     local options = {
@@ -1252,82 +1207,10 @@ function ConfigOptions.Options()
                         width = 2,
                         type = "description",
                         name = L["Left-click to drag and move, right-click to exit edit mode."]
-                    },
-                    sapceExport = { order = 3, type = 'description', name = "\n" },
-                    exportHeader = {
-                        order = 4,
-                        type = 'header',
-                        name = L["Import/Export Configuration"]
-                    },
-                    export = {
-                        order = 5,
-                        width = 2,
-                        type = "execute",
-                        name = L["Export"],
-                        func = function()
-                            ---@type ProfileConfig.ConfigTable
-                            local configTable = {
-                                name = addon.db:GetCurrentProfile() or
-                                    L["Default"],
-                                profile = addon.db.profile
-                            }
-                            local serializedData =
-                                AceSerializer:Serialize(configTable)
-                            local compressedData =
-                                LibDeflate:CompressDeflate(serializedData)
-                            addon.G.tmpConfigString =
-                                LibDeflate:EncodeForPrint(compressedData)
-                        end
-                    },
-                    import = {
-                        order = 6,
-                        type = 'input',
-                        name = L["Configuration String Edit Box"],
-                        multiline = 20,
-                        width = "full",
-                        get = function()
-                            return addon.G.tmpConfigString
-                        end,
-                        set = function(_, val)
-                            if val == nil or val == "" then
-                                print(
-                                    L["Import failed: Invalid configuration string."])
-                                return
-                            end
-                            local decodedData = LibDeflate:DecodeForPrint(val)
-                            if decodedData == nil then
-                                print(
-                                    L["Import failed: Invalid configuration string."])
-                                return
-                            end
-                            local decompressedData =
-                                LibDeflate:DecompressDeflate(decodedData)
-                            if decompressedData == nil then
-                                print(
-                                    L["Import failed: Invalid configuration string."])
-                                return
-                            end
-                            ---@type boolean, ProfileConfig.ConfigTable
-                            local success, configTable =
-                                AceSerializer:Deserialize(decompressedData)
-                            if not success then
-                                print(
-                                    L["Import failed: Invalid configuration string."])
-                                return
-                            end
-                            local newProfileName =
-                                ProfileConfig.GenerateNewProfileName(
-                                    configTable.name or L["Default"])
-                            addon.db.profiles[newProfileName] =
-                                configTable.profile
-                            addon.G.tmpImportElementConfigString = nil
-                            ProfileConfig.ShowLoadConfirmation(newProfileName)
-                        end
                     }
                 }
             },
-            element = ConfigOptions.ElementsOptions(),
-            profiles = ConfigOptions.ConfigOptions()
+            element = ConfigOptions.ElementsOptions()
         }
     }
     return options

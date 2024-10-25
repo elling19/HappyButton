@@ -23,9 +23,8 @@ Welcome to the **HappyButton** plugin! This is a **World of Warcraft** plugin th
 Use the command `/hb` to open the settings interface, or click on the game menu -> AddOns -> `HappyButton` to open the settings interface.
 ### Settings
 Once the settings interface is open, you will see three settings menus in the left sidebar:
-- **Basic Settings**: Includes `Edit Mode` and import/export for `Plugin Configuration Strings`.
+- **Basic Settings**: Includes `Edit Mode`.
 - **Element Settings**: Includes settings for `BarGroup`, `Bar`, `ItemGroup`, `Item`, and `Script`.
-- **Profiles**: Used for switching configurations.
 
 ## Special Note
 Due to Blizzard API limitations, the plugin cannot automatically update/create/delete/move item buttons during combat. Therefore, when combat begins, the plugin will automatically hide the `BarGroup` and disable automatic updates for all items.
