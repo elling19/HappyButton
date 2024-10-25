@@ -45,8 +45,8 @@ function E:New(title, type)
         isDisplayText = false,
         elesGrowth = const.GROWTH.RIGHTBOTTOM,
         attachFrame = const.ATTACH_FRAME.UIParent,
-        anchorPos = const.ANCHOR_POS.TOPLEFT,
-        attachFrameAnchorPos = const.ANCHOR_POS.TOPLEFT,
+        anchorPos = const.ANCHOR_POS.CENTER,
+        attachFrameAnchorPos = const.ANCHOR_POS.CENTER,
         combatLoadCond = const.COMBAT_LOAD_COND.OUT_COMBAT_LOAD,
     }
     return config

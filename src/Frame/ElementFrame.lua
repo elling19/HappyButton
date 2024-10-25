@@ -413,8 +413,8 @@ function ElementFrame:UpdateWindow()
     end
     self.Window:SetParent(attachFrame)
     -- 设置锚点位置
-    local frameAnchorPos = self.Config.anchorPos or const.ANCHOR_POS.TOPLEFT
-    local attachFrameAnchorPos = self.Config.attachFrameAnchorPos or const.ANCHOR_POS.TOPLEFT
+    local frameAnchorPos = self.Config.anchorPos or const.ANCHOR_POS.CENTER
+    local attachFrameAnchorPos = self.Config.attachFrameAnchorPos or const.ANCHOR_POS.CENTER
     self.Window:SetPoint(frameAnchorPos, attachFrame, attachFrameAnchorPos, x, y)
 end
 
