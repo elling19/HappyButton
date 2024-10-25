@@ -25,15 +25,28 @@ local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 local CbResult = {}
 
 -- 随机选择callback
+-- 函数永远只能返回包含一个CbResult的列表
 ---@param element ItemGroupConfig
+---@param lastCbResults CbResult[] 上一次更新的结果
 ---@return CbResult[]
-function ECB.CallbackOfRandomMode(element)
+function ECB.CallbackOfRandomMode(element, lastCbResults)
+    -- 如果上一次结果可用，则继续使用上一次的结果
+    if lastCbResults and #lastCbResults then
+        local r = lastCbResults[1]
+        if r then
+            local isUsable = Item:IsLearnedAndUsable(r.item.id, r.item.type)
+            local isCooldown = Item:IsUseableAndCooldown(r.item.id, r.item.type)
+            if isUsable and isCooldown then
+                return lastCbResults
+            end
+        end
+    end
     local usableItemList = {} ---@type ItemConfig[]
     local cooldownItemList = {} ---@type ItemConfig[]
     for _, ele in ipairs(element.elements) do
         local item = E:ToItem(ele)
-        local isUsable = Item:IsLearnedAndUsable(item)
-        local isCooldown = Item:IsUseableAndCooldown(item)
+        local isUsable = Item:IsLearnedAndUsable(item.extraAttr.id, item.extraAttr.type)
+        local isCooldown = Item:IsUseableAndCooldown(item.extraAttr.id, item.extraAttr.type)
         if isUsable then
             table.insert(usableItemList, item)
         end
@@ -45,7 +58,7 @@ function ECB.CallbackOfRandomMode(element)
     local cb
     -- 如果有冷却可用的item，随机选择一个
     if #cooldownItemList > 0 then
-        local randomIndex = math.random(1, #usableItemList)
+        local randomIndex = math.random(1, #cooldownItemList)
         local selectedItem = cooldownItemList[randomIndex]
         cb = ECB:CallbackByItemConfig(selectedItem)
     elseif #usableItemList > 0 then
@@ -62,16 +75,29 @@ function ECB.CallbackOfRandomMode(element)
 end
 
 -- 顺序选择callback
+-- 函数永远只能返回包含一个CbResult的列表
 ---@param element ItemGroupConfig
+---@param lastCbResults CbResult[] 上一次更新的结果
 ---@return CbResult[]
-function ECB.CallbackOfSeqMode(element)
+function ECB.CallbackOfSeqMode(element, lastCbResults)
+    -- 如果上一次结果可用，则继续使用上一次的结果
+    if lastCbResults and #lastCbResults then
+        local r = lastCbResults[1]
+        if r then
+            local isUsable = Item:IsLearnedAndUsable(r.item.id, r.item.type)
+            local isCooldown = Item:IsUseableAndCooldown(r.item.id, r.item.type)
+            if isUsable and isCooldown then
+                return lastCbResults
+            end
+        end
+    end
     ---@type CbResult
     local cb
     for _, ele in ipairs(element.elements) do
         local item = E:ToItem(ele)
-        local isUsable = Item:IsLearnedAndUsable(item)
+        local isUsable = Item:IsLearnedAndUsable(item.extraAttr.id, item.extraAttr.type)
         if isUsable == true then
-            local isCooldown = Item:IsUseableAndCooldown(item)
+            local isCooldown = Item:IsUseableAndCooldown(item.extraAttr.id, item.extraAttr.type)
             if isCooldown then
                 cb = ECB:CallbackByItemConfig(item)
                 break
@@ -89,19 +115,21 @@ function ECB.CallbackOfSeqMode(element)
     return { cb, }
 end
 
--- 单个展示模式
--- 顺序选择callback
+-- 单个展示模式callback
+-- 函数永远只能返回包含一个CbResult的列表
 ---@param element ItemConfig
+---@param _ CbResult[]
 ---@return CbResult[]
-function ECB.CallbackOfSingleMode(element)
+function ECB.CallbackOfSingleMode(element, _)
     local cb = ECB:CallbackByItemConfig(element)
     return { cb, }
 end
 
 -- 脚本模式
 ---@param element ScriptConfig
+---@param _ CbResult[]
 ---@return CbResult[]
-function ECB.CallbackOfScriptMode(element)
+function ECB.CallbackOfScriptMode(element, _)
     local script = E:ToScript(element)
     local cbResults = {} ---@type CbResult[]
     local func, loadstringErr = loadstring(script.extraAttr.script)

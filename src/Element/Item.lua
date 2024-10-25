@@ -56,10 +56,10 @@ function Item:IsLearned(itemID, itemType)
 end
 
 -- 判断物品是否可用
----@param item ItemConfig
+---@param itemID number
+---@param itemType ItemType
 ---@return boolean
-function Item:IsLearnedAndUsable(item)
-    local itemID, itemType = item.extraAttr.id, item.extraAttr.type
+function Item:IsLearnedAndUsable(itemID, itemType)
     if itemID == nil or itemType == nil then
         return false
     end
@@ -86,30 +86,31 @@ end
 
 -- 确认物品是否可以使用并且不在冷却中
 -- 判断物品是否可用
----@param item ItemConfig
+---@param itemID number
+---@param itemType ItemType
 ---@return boolean
-function Item:IsUseableAndCooldown(item)
-    if not self:IsLearnedAndUsable(item) then
+function Item:IsUseableAndCooldown(itemID, itemType)
+    if not self:IsLearnedAndUsable(itemID, itemType) then
         return false
     end
-    if item.extraAttr.id == nil then
+    if itemID == nil then
         return false
     end
-    if item.extraAttr.type == const.ITEM_TYPE.ITEM then
-        local _, duration, _ = C_Item.GetItemCooldown(item.extraAttr.id) -- 检查是否冷却中
-        if not duration == 0 then
+    if itemType == const.ITEM_TYPE.ITEM then
+        local _, duration, _ = C_Item.GetItemCooldown(itemID) -- 检查是否冷却中
+        if duration ~= 0 then
             return false
         end
         return true
-    elseif item.extraAttr.type == const.ITEM_TYPE.TOY then
-        local _, duration, _ = C_Container.GetItemCooldown(item.extraAttr.id)
-        if not duration == 0 then
+    elseif itemType == const.ITEM_TYPE.TOY then
+        local _, duration, _ = C_Item.GetItemCooldown(itemID)
+        if duration ~= 0 then
             return false
         end
         return true
-    elseif item.extraAttr.type == const.ITEM_TYPE.SPELL then
-        local spellCooldownInfo = C_Spell.GetSpellCooldown(item.extraAttr.id)
-        if not spellCooldownInfo.duration == 0 then
+    elseif itemType == const.ITEM_TYPE.SPELL then
+        local spellCooldownInfo = C_Spell.GetSpellCooldown(itemID)
+        if spellCooldownInfo.duration ~= 0 then
             return false
         end
         return true

@@ -19,7 +19,7 @@ local U = addon:GetModule('Utils')
 local ECB = addon:GetModule('ElementCallback')
 
 ---@class ElementCbInfo
----@field f fun(ele: ElementConfig): CbResult | CbResult[]  -- f: function
+---@field f fun(ele: ElementConfig, lastCbResults: CbResult[]): CbResult[]  -- f: function
 ---@field p ElementConfig -- p: params
 ---@field r CbResult[]
 
@@ -195,7 +195,7 @@ function ElementFrame:Update()
         local cbResults = {} ---@type CbResult[]
         if self.Cbss[barIndex] then
             for _, cb in ipairs(self.Cbss[barIndex]) do
-                cb.r = cb.f(cb.p)
+                cb.r = cb.f(cb.p, cb.r)
                 for _, r in ipairs(cb.r) do
                     table.insert(cbResults, r)
                 end
@@ -286,10 +286,16 @@ function ElementFrame:Update()
         -- 如果按钮过多，删除冗余按钮
         if #cbResults < #bar.BarBtns then
             for i = #bar.BarBtns, #cbResults + 1, -1 do
-                bar.BarBtns[i]:Hide()
-                bar.BarBtns[i]:ClearAllPoints()
+                local btn = bar.BarBtns[i]
+                if btn.text then
+                    btn.text = nil
+                end
+                if btn.cooldown then
+                    btn.cooldown = nil
+                end
+                btn:Hide()
+                btn:ClearAllPoints()
                 bar.BarBtns[i] = nil
-                table.remove(bar.BarBtns, i)
             end
         end
     end

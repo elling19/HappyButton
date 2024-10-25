@@ -1,5 +1,5 @@
 ---@class ItemAttr
----@field type integer | nil
+---@field type ItemType | nil
 ---@field id integer | nil
 ---@field icon integer | string | nil
 ---@field name string | nil
