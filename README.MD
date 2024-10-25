@@ -15,7 +15,7 @@ Welcome to the **HappyButton** plugin! This is a **World of Warcraft** plugin th
 
 ## Installation
 1. Download the plugin files.
-2. Extract them to the AddOns directory: `Interface/AddOns`.
+2. Extract them to the Addons directory: `Interface/Addons`.
 3. Reload the game.
 
 ## Usage
