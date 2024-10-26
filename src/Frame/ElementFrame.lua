@@ -18,6 +18,9 @@ local U = addon:GetModule('Utils')
 ---@class ElementCallback: AceModule
 local ECB = addon:GetModule('ElementCallback')
 
+---@class Btn: AceModule
+local Btn = addon:GetModule("Btn")
+
 ---@class ElementCbInfo
 ---@field f fun(ele: ElementConfig, lastCbResults: CbResult[]): CbResult[]  -- f: function
 ---@field p ElementConfig -- p: params
@@ -26,7 +29,7 @@ local ECB = addon:GetModule('ElementCallback')
 ---@class Bar
 ---@field TabBtn nil|table|Button
 ---@field BarFrame nil|table|Button
----@field BarBtns (table|Button)[]
+---@field BarBtns (table|Btn)[]
 ---@field Icon string | number | nil
 
 ---@class ElementFrame: AceModule
@@ -182,9 +185,9 @@ function ElementFrame:RemoveBars()
         end
         for _, btn in ipairs(bar.BarBtns) do
             if btn then
-                btn:Hide()
-                btn:ClearAllPoints()
-                btn = {}
+                btn:Delete()
+                ---@diagnostic disable-next-line: cast-local-type
+                btn = nil
             end
         end
     end
@@ -204,97 +207,17 @@ function ElementFrame:Update()
         for cbIndex, r in ipairs(cbResults) do
             -- 如果图标不足，补全图标
             if cbIndex > #bar.BarBtns then
-                local btn = CreateFrame("Button", ("Button-%s-%s-%s"):format(self.Config.id, barIndex, cbIndex),
-                    bar.BarFrame, "SecureActionButtonTemplate, UIPanelButtonTemplate")
-                btn:SetNormalTexture(134400)
-                btn:SetSize(self.IconWidth, self.IconHeight)
-                if self.Config.type == const.ELEMENT_TYPE.BAR_GROUP then
-                    if self.Config.elesGrowth == const.GROWTH.LEFTTOP or self.Config.elesGrowth == const.GROWTH.RIGHTTOP then
-                        btn:SetPoint("BOTTOM", bar.BarFrame, "BOTTOM", 0, self.IconHeight * (cbIndex - 1))
-                    elseif self.Config.elesGrowth == const.GROWTH.LEFTBOTTOM or self.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM then
-                        btn:SetPoint("TOP", bar.BarFrame, "TOP", 0, -self.IconHeight * (cbIndex - 1))
-                    elseif self.Config.elesGrowth == const.GROWTH.BOTTOMLEFT or self.Config.elesGrowth == const.GROWTH.TOPLEFT then
-                        btn:SetPoint("RIGHT", bar.BarFrame, "RIGHT", -self.IconWidth * (cbIndex - 1), 0)
-                    elseif self.Config.elesGrowth == const.GROWTH.BOTTOMRIGHT or self.Config.elesGrowth == const.GROWTH.TOPRIGHT then
-                        btn:SetPoint("LEFT", bar.BarFrame, "LEFT", self.IconWidth * (cbIndex - 1), 0)
-                    else
-                        -- 默认右下
-                        btn:SetPoint("TOP", bar.BarFrame, "TOP", 0, -self.IconHeight * (cbIndex - 1))
-                    end
-                else
-                    if self.Config.elesGrowth == const.GROWTH.LEFTTOP or self.Config.elesGrowth == const.GROWTH.LEFTBOTTOM then
-                        btn:SetPoint("RIGHT", bar.BarFrame, "RIGHT", -self.IconWidth * (cbIndex - 1), 0)
-                    elseif self.Config.elesGrowth == const.GROWTH.TOPLEFT or self.Config.elesGrowth == const.GROWTH.TOPRIGHT then
-                        btn:SetPoint("BOTTOM", bar.BarFrame, "BOTTOM", 0, self.IconHeight * (cbIndex - 1))
-                    elseif self.Config.elesGrowth == const.GROWTH.BOTTOMLEFT or self.Config.elesGrowth == const.GROWTH.BOTTOMRIGHT then
-                        btn:SetPoint("TOP", bar.BarFrame, "TOP", 0, -self.IconHeight * (cbIndex - 1))
-                    elseif self.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM or self.Config.elesGrowth == const.GROWTH.RIGHTTOP then
-                        btn:SetPoint("LEFT", bar.BarFrame, "LEFT", self.IconWidth * (cbIndex - 1), 0)
-                    else
-                        -- 默认右下
-                        btn:SetPoint("LEFT", bar.BarFrame, "LEFT", self.IconWidth * (cbIndex - 1), 0)
-                    end
-                end
-                btn:RegisterForClicks("AnyDown", "AnyUp")
-                btn:SetAttribute("macrotext", "")
-                btn.barIndex = barIndex
-                btn.cbIndex = cbIndex
+                local btn = Btn:New(self, barIndex, cbIndex)
                 table.insert(bar.BarBtns, btn)
             end
             local btn = bar.BarBtns[cbIndex]
-            btn.r = r
-            -- 如果回调函数返回的是item模式
-            if r.item ~= nil then
-                -- 更新图标宏
-                self:SetBtnMacro(btn)
-                -- 更新冷却计时
-                self:SetBtnCooldown(btn)
-                -- 更新鼠标移入移出事件
-                self:SetButtonMouseEvent(btn)
-                self:SetBtnLearnable(btn)
-            else
-                self:SetScriptEvent(btn)
-            end
-            -- 隐藏/显示文字
-            if self.Config.isDisplayText == true then
-                if btn.text == nil then
-                    btn.text = btn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-                    if self:IsIconsHorizontal() then
-                        btn.text:SetWidth(self.IconWidth)
-                    else
-                        btn.text:SetHeight(self.IconHeight)
-                    end
-                    if self:IsIconsHorizontal() then
-                        btn.text:SetPoint("TOP", btn, "BOTTOM", 0, -5)
-                    else
-                        btn.text:SetPoint("LEFT", btn, "RIGHT", 5, 0)
-                    end
-                end
-                if r.text then
-                    if self:IsIconsHorizontal() then
-                        btn.text:SetText(U.String.ToVertical(r.text))
-                    else
-                        btn.text:SetText(r.text)
-                    end
-                end
-            else
-                if btn.text then
-                    btn.text:Hide()
-                end
-            end
+            btn:Update(r)
         end
         -- 如果按钮过多，删除冗余按钮
         if #cbResults < #bar.BarBtns then
             for i = #bar.BarBtns, #cbResults + 1, -1 do
                 local btn = bar.BarBtns[i]
-                if btn.text then
-                    btn.text = nil
-                end
-                if btn.cooldown then
-                    btn.cooldown = nil
-                end
-                btn:Hide()
-                btn:ClearAllPoints()
+                btn:Delete()
                 bar.BarBtns[i] = nil
             end
         end
@@ -627,204 +550,6 @@ function ElementFrame:SetBarShow()
     if self.Bars and #self.Bars > 0 then
         self.Bars[1].BarFrame:Show()
     end
-end
-
--- 更新按钮的宏文案
-function ElementFrame:SetBtnMacro(btn)
-    ---@type CbResult
-    local r = btn.r
-    if r == nil or r.item == nil then
-        return
-    end
-    if btn == nil then
-        return
-    end
-    -- 设置宏命令
-    btn:SetAttribute("type", "macro") -- 设置按钮为宏类型
-    if r.icon then
-        btn:SetNormalTexture(r.icon)
-    end
-    local macroText = ""
-    if r.item.type == const.ITEM_TYPE.ITEM then
-        macroText = "/use item:" .. r.item.id
-    elseif r.item.type == const.ITEM_TYPE.EQUIPMENT then
-        local isEquipped = Item:IsEquipped(r.item.id)
-        if isEquipped then
-            macroText = "/use item:" .. r.item.id
-        else
-            macroText = "/equip " .. r.item.name
-        end
-    elseif r.item.type == const.ITEM_TYPE.TOY then
-        macroText = "/use item:" .. r.item.id
-    elseif r.item.type == const.ITEM_TYPE.SPELL then
-        macroText = "/cast " .. r.item.name
-    elseif r.item.type == const.ITEM_TYPE.MOUNT then
-        macroText = "/cast " .. r.item.name
-    elseif r.item.type == const.ITEM_TYPE.PET then
-        macroText = "/SummonPet " .. r.item.name
-    end
-    -- 宏命令附加关闭窗口
-    if r.closeGUIAfterClick == nil or r.closeGUIAfterClick == true then
-        macroText = macroText .. "\r" .. "/SETCLOSEEFRAME" .. " " .. self.Config.id
-    end
-    btn:SetAttribute("macrotext", macroText)
-end
-
--- 设置按钮冷却
-function ElementFrame:SetBtnCooldown(btn)
-    if btn == nil then
-        return
-    end
-    local r = btn.r
-    if r == nil or r.item == nil then
-        return
-    end
-    if btn.cooldown == nil then
-        -- 创建冷却效果
-        btn.cooldown = CreateFrame("Cooldown", nil, btn, "CooldownFrameTemplate")
-        btn.cooldown:SetAllPoints(btn)             -- 设置冷却效果覆盖整个按钮
-        btn.cooldown:SetDrawEdge(true)             -- 显示边缘
-        btn.cooldown:SetHideCountdownNumbers(true) -- 隐藏倒计时数字
-    end
-    local item = r.item
-    btn:SetScript("OnUpdate", function(frame)
-        -- 更新冷却倒计时
-        if item.type == const.ITEM_TYPE.ITEM then
-            local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(item.id)
-            CooldownFrame_Set(frame.cooldown, startTimeSeconds, durationSeconds, enableCooldownTimer)
-        elseif item.type == const.ITEM_TYPE.EQUIPMENT then
-            local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(item.id)
-            CooldownFrame_Set(frame.cooldown, startTimeSeconds, durationSeconds, enableCooldownTimer)
-        elseif item.type == const.ITEM_TYPE.TOY then
-            local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(item.id)
-            CooldownFrame_Set(frame.cooldown, startTimeSeconds, durationSeconds, enableCooldownTimer)
-        elseif item.type == const.ITEM_TYPE.SPELL then
-            local spellCooldownInfo = C_Spell.GetSpellCooldown(item.id)
-            if spellCooldownInfo then
-                CooldownFrame_Set(frame.cooldown, spellCooldownInfo.startTime, spellCooldownInfo.duration,
-                    spellCooldownInfo.isEnabled)
-            end
-        elseif item.type == const.ITEM_TYPE.PET then
-            local speciesId, petGUID = C_PetJournal.FindPetIDByName(item.name)
-            if petGUID then
-                local start, duration, isEnabled = C_PetJournal.GetPetCooldownByGUID(petGUID)
-                CooldownFrame_Set(frame.cooldown, start, duration, isEnabled)
-            end
-        end
-    end)
-end
-
--- 设置脚本模式的点击事件
-function ElementFrame:SetScriptEvent(btn)
-    if btn == nil then
-        return
-    end
-    local r = btn.r
-    if r == nil then
-        return
-    end
-    if r.leftClickCallback then
-        btn:SetScript("OnClick", function()
-            r.leftClickCallback()
-        end)
-    elseif r.macro then
-        btn:SetAttribute("type", "macro")
-        local macroText = ""
-        macroText = macroText .. r.macro
-        if r.closeGUIAfterClick == nil or r.closeGUIAfterClick == true then
-            macroText = macroText .. "\r" .. "/closehtmainframe"
-        end
-        btn:SetAttribute("macrotext", macroText)
-    end
-    if r.icon then
-        btn:SetNormalTexture(r.icon)
-    end
-end
-
--- 当按钮上的技能没有学习的时候，置为灰色
-function ElementFrame:SetBtnLearnable(btn)
-    if btn == nil then
-        return
-    end
-    ---@type CbResult
-    local r = btn.r
-    if r == nil or r.item == nil then
-        return
-    end
-    local isLearned = Item:IsLearned(r.item.id, r.item.type)
-    -- 如果没有学习这个技能，则将图标和文字改成灰色半透明
-    if isLearned == false then
-        if btn then
-            btn:SetEnabled(false)
-            btn:SetAlpha(0.5)
-        end
-        if btn.text then
-            btn.text:SetTextColor(0.5, 0.5, 0.5)
-        end
-    else
-        if btn then
-            btn:SetEnabled(true)
-            btn:SetAlpha(1)
-        end
-        if btn.text then
-            btn.text:SetTextColor(1, 1, 1)
-        end
-    end
-end
-
--- 根据索引获取btn
-function ElementFrame:GetButtonByIndex(barIndex, buttonIndex)
-    local bar = self.Bars[barIndex]
-    if bar == nil then
-        return nil
-    end
-    local button = bar.BarBtns[buttonIndex]
-    return button
-end
-
--- 设置button鼠标移入事件
-function ElementFrame:SetShowGameTooltip(btn)
-    local r = btn.r
-    if r == nil or r.item == nil then
-        return
-    end
-    local item = r.item
-    GameTooltip:SetOwner(btn, "ANCHOR_RIGHT") -- 设置提示显示的位置
-    if item.type == const.ITEM_TYPE.ITEM then
-        GameTooltip:SetItemByID(item.id)
-    elseif item.type == const.ITEM_TYPE.EQUIPMENT then
-        GameTooltip:SetItemByID(item.id)
-    elseif item.type == const.ITEM_TYPE.TOY then
-        GameTooltip:SetToyByItemID(item.id)
-    elseif item.type == const.ITEM_TYPE.SPELL then
-        GameTooltip:SetSpellByID(item.id)
-    elseif item.type == const.ITEM_TYPE.MOUNT then
-        local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight =
-            C_MountJournal.GetMountInfoByID(item.id)
-        GameTooltip:SetMountBySpellID(spellID)
-    elseif item.type == const.ITEM_TYPE.PET then
-        local speciesName, speciesIcon, petType, companionID, tooltipSource, tooltipDescription, isWild, canBattle, isTradeable, isUnique, obtainable, creatureDisplayID =
-            C_PetJournal.GetPetInfoBySpeciesID(item.id)
-        local speciesId, petGUID = C_PetJournal.FindPetIDByName(speciesName)
-        GameTooltip:SetCompanionPet(petGUID)
-    end
-end
-
--- 设置button的鼠标移入移出事件
-function ElementFrame:SetButtonMouseEvent(btn)
-    if btn == nil then
-        return
-    end
-    btn:SetScript("OnLeave", function(_)
-        GameTooltip:Hide() -- 隐藏提示
-    end)
-    btn:SetScript("OnEnter", function(_)
-        self:SetShowGameTooltip(btn)
-        -- 设置鼠标移入时候的高亮效果为白色半透明效果
-        local highlightTexture = btn:CreateTexture()
-        highlightTexture:SetColorTexture(255, 255, 255, 0.2)
-        btn:SetHighlightTexture(highlightTexture)
-    end)
 end
 
 -- 设置窗口宽度：窗口会遮挡视图，会减少鼠标可点击范围，因此窗口宽度尽可能小

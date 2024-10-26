@@ -8,6 +8,7 @@
 ## IconTexture: 1418621
 ## IconTexture: Interface\AddOns\HappyButton\Media\Logo64.blp
 ## SavedVariables: HappyButtonDB
+## OptionalDeps: ElvUI
 
 # 引入Libs中的模块
 Libs\embeds.xml
@@ -27,6 +28,7 @@ Src\Element\Script.lua
 Src\Element\Bar.lua
 Src\Element\BarGroup.lua
 Src\Frame\ElementCallback.lua
+Src\Frame\Btn.lua
 Src\Frame\ElementFrame.lua
 Src\Frame\HbFrame.lua
 Src\Core.lua

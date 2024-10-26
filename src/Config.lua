@@ -1282,9 +1282,20 @@ function ConfigOptions.Options()
 end
 
 function addon:OnInitialize()
+    -- 检测是否安装了ElvUI
+    local ElvUI = nil
+    local ElvUISkins = nil
+    ---@diagnostic disable-next-line: undefined-field
+    if _G.ElvUI then
+        ---@diagnostic disable-next-line: undefined-field
+        ElvUI = unpack(_G.ElvUI) ---@type ElvUI
+        ElvUISkins = ElvUI:GetModule("Skins") ---@type ElvUISkins
+    end
     -- 全局变量
     ---@class GlobalValue
     self.G = {
+        ElvUI = ElvUI,
+        ElvUISkins = ElvUISkins,
         screenWidth = math.floor(GetScreenWidth()),   -- 屏幕宽度
         screenHeight = math.floor(GetScreenHeight()), -- 屏幕高度
         iconWidth = 32,
