@@ -109,9 +109,9 @@ function Btn:Update(cbResult)
                 self.Text:SetHeight(self.EFrame.IconHeight)
             end
             if self.EFrame:IsIconsHorizontal() then
-                self.Text:SetPoint("TOP", self, "BOTTOM", 0, -5)
+                self.Text:SetPoint("TOP", self.Button, "BOTTOM", 0, -5)
             else
-                self.Text:SetPoint("LEFT", self, "RIGHT", 5, 0)
+                self.Text:SetPoint("LEFT", self.Button, "RIGHT", 5, 0)
             end
         end
         if cbResult.text then
@@ -153,7 +153,7 @@ function Btn:CreateBorder()
             insets = { left = 0, right = 0, top = 0, bottom = 0 },
         })
         self.Border:SetBackdropColor(0, 0, 0, 0) -- 背景透明
-        -- self.Border:SetBackdropBorderColor(1, 0.5, 0, 1) -- 边框颜色（传说品质的橙色）
+        self.Border:SetBackdropBorderColor(1, 0.5, 0, 1) -- 边框颜色（传说品质的橙色）
     end
 
 end
