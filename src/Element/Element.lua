@@ -42,7 +42,6 @@ function E:New(title, type)
         icon = 134400,
         elements = {},
         isDisplayMouseEnter = false,
-        isDisplayText = false,
         elesGrowth = const.GROWTH.RIGHTBOTTOM,
         attachFrame = const.ATTACH_FRAME.UIParent,
         anchorPos = const.ANCHOR_POS.CENTER,
