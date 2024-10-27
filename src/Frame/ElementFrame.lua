@@ -195,25 +195,29 @@ end
 
 function ElementFrame:Update()
     for barIndex, bar in ipairs(self.Bars) do
-        local cbResults = {} ---@type CbResult[]
+        local cbInfos = {} ---@type ElementCbInfo[]
         if self.Cbss[barIndex] then
             for _, cb in ipairs(self.Cbss[barIndex]) do
                 cb.r = cb.f(cb.p, cb.r)
-                table.insert(cbResults, cb.r)
+                for _, r in ipairs(cb.r) do
+                    ---@type ElementCbInfo
+                    local cbInfo = {p = cb.p, f = cb.f, r = {r, }}
+                    table.insert(cbInfos, cbInfo)
+                end
             end
         end
-        for cbIndex, r in ipairs(cbResults) do
+        for cbIndex, cbInfo in ipairs(cbInfos) do
             -- 如果图标不足，补全图标
             if cbIndex > #bar.BarBtns then
                 local btn = Btn:New(self, barIndex, cbIndex)
                 table.insert(bar.BarBtns, btn)
             end
             local btn = bar.BarBtns[cbIndex]
-            btn:Update(r)
+            btn:Update(cbInfo.p, cbInfo.r[1])
         end
         -- 如果按钮过多，删除冗余按钮
-        if #cbResults < #bar.BarBtns then
-            for i = #bar.BarBtns, #cbResults + 1, -1 do
+        if #cbInfos < #bar.BarBtns then
+            for i = #bar.BarBtns, #cbInfos + 1, -1 do
                 local btn = bar.BarBtns[i]
                 btn:Delete()
                 bar.BarBtns[i] = nil

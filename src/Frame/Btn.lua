@@ -17,11 +17,12 @@ local Item = addon:GetModule("Item")
 ---@field Button table|Button|SecureActionButtonTemplate|UIPanelButtonTemplate
 ---@field EFrame ElementFrame
 ---@field Icon Texture  -- 图标纹理
----@field Text FontString -- 文字提示
+---@field Texts FontString[] -- 文字提示
 ---@diagnostic disable-next-line: undefined-doc-name
 ---@field Cooldown table|Cooldown|CooldownFrameTemplate  -- 冷却倒计时
 ---@field Border table | Frame -- 边框
 ---@field CbResult CbResult
+---@field Config ElementConfig
 local Btn = addon:NewModule("Btn")
 
 ---@param eFrame ElementFrame
@@ -121,11 +122,13 @@ function Btn:New(eFrame, barIndex, cbIndex)
     end
 
 
+---@param config ElementConfig
 ---@param cbResult CbResult
-function Btn:Update(cbResult)
+function Btn:Update(config, cbResult)
+    self.Config = config
     self.CbResult = cbResult
       -- 如果回调函数返回的是item模式
-    if cbResult.item ~= nil then
+    if self.CbResult.item ~= nil then
         self:SetIcon()
         self:SetMacro()
         self:SetCooldown()
@@ -175,6 +178,19 @@ function Btn:CreateIcon()
     end
 end
 
+
+-- 创建文本Text
+function Btn:ReCreateTexts()
+    if self.Texts == nil then
+        self.Texts = {}
+    else
+        for i = #self.Texts, 1, -1 do
+            table.remove(self.Texts, i)
+        end
+    end
+    -- todo: 更新文本
+    
+end
 
 -- 创建边框背景框架
 function Btn:CreateBorder()
