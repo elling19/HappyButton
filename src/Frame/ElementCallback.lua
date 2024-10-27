@@ -25,20 +25,16 @@ local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 local CbResult = {}
 
 -- 随机选择callback
--- 函数永远只能返回包含一个CbResult的列表
 ---@param element ItemGroupConfig
----@param lastCbResults CbResult[] 上一次更新的结果
----@return CbResult[]
-function ECB.CallbackOfRandomMode(element, lastCbResults)
+---@param lastCbResult CbResult 上一次更新的结果
+---@return CbResult
+function ECB.CallbackOfRandomMode(element, lastCbResult)
     -- 如果上一次结果可用，则继续使用上一次的结果
-    if lastCbResults and #lastCbResults then
-        local r = lastCbResults[1]
-        if r then
-            local isUsable = Item:IsLearnedAndUsable(r.item.id, r.item.type)
-            local isCooldown = Item:IsUseableAndCooldown(r.item.id, r.item.type)
-            if isUsable and isCooldown then
-                return lastCbResults
-            end
+    if lastCbResult and lastCbResult.item then
+        local isUsable = Item:IsLearnedAndUsable(lastCbResult.item.id, lastCbResult.item.type)
+        local isCooldown = Item:IsUseableAndCooldown(lastCbResult.item.id, lastCbResult.item.type)
+        if isUsable and isCooldown then
+            return lastCbResult
         end
     end
     local usableItemList = {} ---@type ItemConfig[]
@@ -71,24 +67,20 @@ function ECB.CallbackOfRandomMode(element, lastCbResults)
     else
         cb = ECB:NilCallback()
     end
-    return { cb, }
+    return cb
 end
 
 -- 顺序选择callback
--- 函数永远只能返回包含一个CbResult的列表
 ---@param element ItemGroupConfig
----@param lastCbResults CbResult[] 上一次更新的结果
----@return CbResult[]
-function ECB.CallbackOfSeqMode(element, lastCbResults)
+---@param lastCbResult CbResult 上一次更新的结果
+---@return CbResult
+function ECB.CallbackOfSeqMode(element, lastCbResult)
     -- 如果上一次结果可用，则继续使用上一次的结果
-    if lastCbResults and #lastCbResults then
-        local r = lastCbResults[1]
-        if r then
-            local isUsable = Item:IsLearnedAndUsable(r.item.id, r.item.type)
-            local isCooldown = Item:IsUseableAndCooldown(r.item.id, r.item.type)
-            if isUsable and isCooldown then
-                return lastCbResults
-            end
+    if lastCbResult and lastCbResult.item then
+        local isUsable = Item:IsLearnedAndUsable(lastCbResult.item.id, lastCbResult.item.type)
+        local isCooldown = Item:IsUseableAndCooldown(lastCbResult.item.id, lastCbResult.item.type)
+        if isUsable and isCooldown then
+            return lastCbResult
         end
     end
     ---@type CbResult
@@ -112,49 +104,42 @@ function ECB.CallbackOfSeqMode(element, lastCbResults)
             cb = ECB:NilCallback()
         end
     end
-    return { cb, }
+    return cb
 end
 
 -- 单个展示模式callback
--- 函数永远只能返回包含一个CbResult的列表
 ---@param element ItemConfig
----@param _ CbResult[]
----@return CbResult[]
+---@param _ CbResult
+---@return CbResult
 function ECB.CallbackOfSingleMode(element, _)
     local cb = ECB:CallbackByItemConfig(element)
-    return { cb, }
+    return cb
 end
 
 -- 脚本模式
 ---@param element ScriptConfig
----@param _ CbResult[]
----@return CbResult[]
+---@param _ CbResult
+---@return CbResult
 function ECB.CallbackOfScriptMode(element, _)
     local script = E:ToScript(element)
-    local cbResults = {} ---@type CbResult[]
     local func, loadstringErr = loadstring(script.extraAttr.script)
     if not func then
         local errMsg = L["Illegal script."] .. " " .. loadstringErr
         U.Print.PrintErrorText(errMsg)
-        return cbResults
+        return ECB:NilCallback()
     end
     local cbStatus, cbResult = pcall(func())
     if not cbStatus then
         local errMsg = L["Illegal script."] .. " " .. tostring(cbResult)
         U.Print.PrintErrorText(errMsg)
-        return cbResults
+        return ECB:NilCallback()
     end
     if not U.Table.IsArray(cbResult) then
-        local errMsg = L["Illegal script."] .. " " .. tostring(cbResult)
-        U.Print.PrintErrorText(errMsg)
-        return cbResults
+        return cbResult ---@type CbResult
+    else
+        -- 兼容旧版本脚本返回一个cbResult列表
+        return cbResult[1] ---@type CbResult
     end
-    for _, cb in ipairs(cbResult) do
-        if cb then
-            table.insert(cbResults, cb)
-        end
-    end
-    return cbResults
 end
 
 ---@param element ItemConfig

@@ -134,3 +134,11 @@ L["Load when out of combat"] = true
 L["Load when in combat"] = true
 L["BarGroup only load when out of combat"] = true
 L["Localize the name of items"] = true
+
+
+L["Text Settings"] = true
+L["Whether to use parent Element Settings"] = true
+L["Item Name"] = true
+L["Item Count"] = true
+L["Add Text"] = true
+L["Select Text"] = true

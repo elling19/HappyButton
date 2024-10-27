@@ -195,6 +195,21 @@ const.AttachFrameOptions = {
     ["CollectionsJournal"] = L["CollectionsJournal"]
 }
 
+-- 文字表达式
+--（参考wa文本名称） %n：名称， %s：堆叠数量，%c：自定义
+---@alias TextExpr
+--- | "%n"
+--- | "%s"
+--- | "%c"
+
+
+-- 文本表达式选项
+---@class TextOptions
+---@type table<TextExpr, string>
+const.TextOptions = {
+    ["%n"] = L["Item Name"],
+    ["%s"] = L["Item Count"],
+}
 
 --[[
 -- 事件常量

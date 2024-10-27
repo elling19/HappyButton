@@ -199,9 +199,7 @@ function ElementFrame:Update()
         if self.Cbss[barIndex] then
             for _, cb in ipairs(self.Cbss[barIndex]) do
                 cb.r = cb.f(cb.p, cb.r)
-                for _, r in ipairs(cb.r) do
-                    table.insert(cbResults, r)
-                end
+                table.insert(cbResults, cb.r)
             end
         end
         for cbIndex, r in ipairs(cbResults) do

@@ -31,8 +31,10 @@
 ---@field posY number | nil  -- Y轴位置
 ---@field elesGrowth string --子元素生长方向
 ---@field isDisplayMouseEnter boolean --是否鼠标移入显示
----@field isDisplayText boolean  -- 是否显示文字
 ---@field combatLoadCond CombatLoadCond  -- 战斗状态显示
+---@field texts TextConfig[]  -- 字体设置
+---@field useParentTexts boolean -- 是否使用父级元素的字体设置
+---@field configSelectedTextIndex number -- 编辑文本的时候选中的下标
 local ElementConfig = {}
 
 

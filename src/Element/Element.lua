@@ -48,6 +48,9 @@ function E:New(title, type)
         anchorPos = const.ANCHOR_POS.CENTER,
         attachFrameAnchorPos = const.ANCHOR_POS.CENTER,
         combatLoadCond = const.COMBAT_LOAD_COND.OUT_COMBAT_LOAD,
+        texts = {},
+        useParentTexts = false,
+        configSelectedTextIndex = 1,
     }
     return config
 end

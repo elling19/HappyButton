@@ -17,6 +17,9 @@ local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 ---@class E: AceModule
 local E = addon:GetModule("Element")
 
+---@class Text: AceModule
+local Text = addon:GetModule("Text")
+
 ---@class Utils: AceModule
 local U = addon:GetModule('Utils')
 
@@ -599,7 +602,6 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     return itemGroup.extraAttr.replaceName == true
                 end
             }
-
         end
         if isTopElement then
             local positionSettingOrder = 1
@@ -749,18 +751,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 get = function(_) return ele.isDisplayMouseEnter end
             }
             displaySettingOrder = displaySettingOrder + 1
-            displaySettingArgs.isDisplayFontToggle = {
-                order = displaySettingOrder,
-                width = 2,
-                type = 'toggle',
-                name = L["Whether to display text."],
-                set = function(_, val)
-                    ele.isDisplayText = val
-                    HbFrame:ReloadEframeUI(updateFrameConfig)
-                end,
-                get = function(_) return ele.isDisplayText end
-            }
-            displaySettingOrder = displaySettingOrder + 1
+        end
+        -- 顶部元素设置是否开启战斗支持
+        if isTopElement then
             if ele.type == const.ELEMENT_TYPE.BAR_GROUP then
                 displaySettingArgs.combatLoadCond = {
                     order = displaySettingOrder,
@@ -804,6 +797,85 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 displaySettingOrder = displaySettingOrder + 1
             end
         end
+
+        -- 文字设置
+        local textSettingOrder = 1
+        local textSettingArgs = {}
+        local textSettingOptions = {
+            type = "group",
+            name = L["Text Settings"],
+            inline = true,
+            order = 5,
+            args = textSettingArgs
+        }
+        args.textSetting = textSettingOptions
+        if not isTopElement then
+            textSettingArgs.useParentSettingToggle = {
+                order = textSettingOrder,
+                width = 2,
+                type = 'toggle',
+                name = L["Whether to use parent Element Settings"],
+                set = function(_, val)
+                    ele.useParentTexts = val
+                    HbFrame:UpdateEframe(updateFrameConfig)
+                end,
+                get = function(_)
+                    return ele.useParentTexts == true
+                end
+            }
+            textSettingOrder = textSettingOrder + 1
+        end
+        if isTopElement or ele.useParentTexts == false then
+            textSettingArgs.addText = {
+                order = textSettingOrder,
+                width = 2,
+                type = 'select',
+                name = L["Add Text"],
+                values = const.TextOptions,
+                set = function(_, val)
+                    addon.G.tmpNewText = val
+                    if ele.texts == nil then
+                        ele.texts = {}
+                    end
+                    table.insert(ele.texts, Text:New(val))
+                    ele.configSelectedTextIndex = #ele.texts
+                end,
+                get = function() return addon.G.tmpNewText end
+            }
+            textSettingOrder = textSettingOrder + 1
+            local selectTextOptions = {}
+            if ele.texts then
+                for textIndex, text in ipairs(ele.texts) do
+                    table.insert(selectTextOptions, Text:GetTextDesc(text.text))
+                end
+            end
+            textSettingArgs.selectText = {
+                order = textSettingOrder,
+                width = 1,
+                type = 'select',
+                name = L["Select Text"],
+                values = selectTextOptions,
+                set = function(_, val)
+                    ele.configSelectedTextIndex = val
+                end,
+                get = function() return ele.configSelectedTextIndex end
+            }
+            textSettingOrder = textSettingOrder + 1
+            textSettingArgs.deleteText = {
+                order = textSettingOrder,
+                width = 1,
+                type = "execute",
+                name = L["Delete"],
+                confirm = true,
+                func = function()
+                    table.remove(ele.texts, ele.configSelectedTextIndex)
+                    if ele.configSelectedTextIndex > #ele.texts then
+                        ele.configSelectedTextIndex = #ele.texts
+                    end
+                end
+            }
+            textSettingOrder = textSettingOrder + 1
+        end
         -- 物品条组、物品条、物品组添加子元素
         if ele.type == const.ELEMENT_TYPE.BAR_GROUP or ele.type == const.ELEMENT_TYPE.BAR or ele.type == const.ELEMENT_TYPE.ITEM_GROUP then
             local addChildrenSettingOrder = 1
@@ -812,7 +884,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 type = "group",
                 name = L["Add Child Elements"],
                 inline = true,
-                order = 5,
+                order = 6,
                 args = addChildrenSettingArgs
             }
             args.addChildrenSetting = addChildrenSettingOptions
@@ -960,7 +1032,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 args = editChildrenSettingArgs
             }
             args.editChildrenSetting = editChildrenSettingOptions
-            local itemsOptions = {}  ---@type table<number, ItemConfig>
+            local itemsOptions = {} ---@type table<number, ItemConfig>
             if ele.elements then
                 for _, _item in ipairs(ele.elements) do
                     local item = E:ToItem(_item)
@@ -975,7 +1047,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 type = "select",
                 name = L["Select Item"],
                 values = itemsOptions,
-                set = function (_, val)
+                set = function(_, val)
                     itemGroup.extraAttr.configSelectedItemIndex = val
                 end,
                 get = function() return itemGroup.extraAttr.configSelectedItemIndex end
@@ -1228,7 +1300,6 @@ function ConfigOptions.ElementsOptions()
     return options
 end
 
-
 function ConfigOptions.Options()
     local options = {
         name = "",
@@ -1306,7 +1377,8 @@ function addon:OnInitialize()
         tmpConfigString = nil,              -- 全局配置编辑字符串
         tmpNewItemType = nil,
         tmpNewItemVal = nil,
-        tmpNewItem = { type = nil, id = nil, icon = nil, name = nil } ---@type ItemAttr
+        tmpNewItem = { type = nil, id = nil, icon = nil, name = nil }, ---@type ItemAttr
+        tmpNewText = nil, -- 添加文本
     }
     -- 注册数据库，添加分类设置
     self.db = LibStub("AceDB-3.0"):New("HappyButtonDB", {

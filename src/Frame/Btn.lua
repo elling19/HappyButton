@@ -82,8 +82,43 @@ function Btn:New(eFrame, barIndex, cbIndex)
     end
     Btn.CreateIcon(obj)
     Btn.CreateBorder(obj)
+
+    -- local LCG = LibStub("LibCustomGlow-1.0")
+    -- obj.Button:SetScript("OnEnter", function(btn)
+    --     local glowColor = {0, 1, 0, 1}  -- 绿色
+    --     local glowFrequency = 0.5  -- 每秒发光频率
+    --     LCG.ButtonGlow_Start(btn, glowColor, glowFrequency)
+    -- end)
+
+    -- obj.Button:SetScript("OnLeave", function(btn)
+    --     LCG.ButtonGlow_Stop(btn)  -- 停止发光
+    -- end)
+
+    -- local function UpdateGlow(event)
+    --     if event == "PLAYER_REGEN_DISABLED" then
+    --         -- 战斗中，设置红色像素发光
+    --         print("战斗中，设置红色像素发光")
+    --         LCG.ButtonGlow_Start(obj.Button, {1, 0, 0, 1}, 0.25)  -- 绿色
+    --     end
+    --     if event == "PLAYER_REGEN_ENABLED" then
+    --         -- 战斗外，设置绿色动作条按钮发光
+    --         print("战斗外，设置绿色动作条按钮发光")
+    --         LCG.ButtonGlow_Start(obj.Button, {0, 1, 0, 1}, 0.25)  -- 绿色
+    --     end
+    -- end
+
+    -- obj.Button:RegisterEvent("PLAYER_REGEN_ENABLED")  -- 战斗结束
+    -- obj.Button:RegisterEvent("PLAYER_REGEN_DISABLED")  -- 开始战斗
+
+    -- obj.Button:SetScript("OnEvent", function(btn, event)
+    --     print("更新")
+    --     UpdateGlow(event)  -- 更新发光效果
+    -- end)
+
+    -- -- 初始化时检查一次
+    -- UpdateGlow()
     return obj ---@type Btn
-end
+    end
 
 
 ---@param cbResult CbResult
@@ -100,32 +135,32 @@ function Btn:Update(cbResult)
         self:SetScriptEvent()
     end
     -- 隐藏/显示文字
-    if self.EFrame.Config.isDisplayText == true then
-        if self.Text == nil then
-            self.Text = self.Button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            if self.EFrame:IsIconsHorizontal() then
-                self.Text:SetWidth(self.EFrame.IconWidth)
-            else
-                self.Text:SetHeight(self.EFrame.IconHeight)
-            end
-            if self.EFrame:IsIconsHorizontal() then
-                self.Text:SetPoint("TOP", self.Button, "BOTTOM", 0, -5)
-            else
-                self.Text:SetPoint("LEFT", self.Button, "RIGHT", 5, 0)
-            end
-        end
-        if cbResult.text then
-            if self.EFrame:IsIconsHorizontal() then
-                self.Text:SetText(U.String.ToVertical(cbResult.text))
-            else
-                self.Text:SetText(cbResult.text)
-            end
-        end
-    else
-        if self.Text then
-            self.Text:Hide()
-        end
-    end
+    -- if self.EFrame.Config.isDisplayText == true then
+    --     if self.Text == nil then
+    --         self.Text = self.Button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    --         if self.EFrame:IsIconsHorizontal() then
+    --             self.Text:SetWidth(self.EFrame.IconWidth)
+    --         else
+    --             self.Text:SetHeight(self.EFrame.IconHeight)
+    --         end
+    --         if self.EFrame:IsIconsHorizontal() then
+    --             self.Text:SetPoint("TOP", self.Button, "BOTTOM", 0, -5)
+    --         else
+    --             self.Text:SetPoint("LEFT", self.Button, "RIGHT", 5, 0)
+    --         end
+    --     end
+    --     if cbResult.text then
+    --         if self.EFrame:IsIconsHorizontal() then
+    --             self.Text:SetText(U.String.ToVertical(cbResult.text))
+    --         else
+    --             self.Text:SetText(cbResult.text)
+    --         end
+    --     end
+    -- else
+    --     if self.Text then
+    --         self.Text:Hide()
+    --     end
+    -- end
 end
 
 -- 创建图标Icon
@@ -133,29 +168,30 @@ function Btn:CreateIcon()
     if self.Icon == nil then
         self.Icon = self.Button:CreateTexture(nil, "ARTWORK")
         self.Icon:SetTexture(134400)
-        self.Icon:SetAllPoints()
+        self.Icon:SetSize(self.Button:GetWidth(), self.Button:GetHeight())
+        self.Icon:SetPoint("CENTER")
         self.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92) -- 裁剪图标
+        -- self.Icon:SetVertexColor(1, 0, 0, 1)
     end
 end
+
 
 -- 创建边框背景框架
 function Btn:CreateBorder()
     if self.Border == nil then
         self.Border = CreateFrame("Frame", nil, self.Button, "BackdropTemplate")
-        self.Border:SetSize(32, 32) -- 边框框架比按钮大
-        self.Border:SetPoint("CENTER") -- 与按钮中心对齐
-        self.Border:SetFrameLevel(self.Button:GetFrameLevel() + 1) -- 确保在按钮下方
-        -- 设置边框样式
+        self.Border:SetSize(self.EFrame.IconWidth, self.EFrame.IconHeight)
+        self.Border:SetPoint("CENTER")
+        self.Border:SetFrameLevel(self.Button:GetFrameLevel() + 1)
         self.Border:SetBackdrop({
             bgFile = "Interface\\Buttons\\WHITE8x8", -- 背景色
             edgeFile = "Interface\\Buttons\\WHITE8x8", -- 边框纹理
-            tile = false, tileSize = 0, edgeSize = 2, -- 边框大小
+            tile = false, tileSize = 0, edgeSize = 1, -- 边框大小
             insets = { left = 0, right = 0, top = 0, bottom = 0 },
         })
-        self.Border:SetBackdropColor(0, 0, 0, 0) -- 背景透明
-        self.Border:SetBackdropBorderColor(1, 0.5, 0, 1) -- 边框颜色（传说品质的橙色）
+        self.Border:SetBackdropColor(0, 0, 0, 0) -- 背景透明（灰色）
+        self.Border:SetBackdropBorderColor(0.5, 0.5, 0.5, 1)
     end
-
 end
 
 -- 创建冷却计时条
@@ -334,6 +370,8 @@ function Btn:SetMouseEvent()
 end
 
 function Btn:Delete()
+    self.Border:Hide()
+    self.Border:ClearAllPoints()
     self.Border = nil
     self.Icon = nil
     self.Text = nil
