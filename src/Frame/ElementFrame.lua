@@ -66,6 +66,47 @@ function ElementFrame:IsIconsHorizontal()
     return (self:IsBarGroup() and not self:IsHorizontal()) or (not self:IsBarGroup() and self:IsHorizontal())
 end
 
+-- 获取框体相对屏幕的位置
+---@param frame  Frame
+---@return number, number
+function ElementFrame:GetPosition(frame)
+    local frameLeft      = frame:GetLeft()
+    local frameRight     = frame:GetRight()
+    local frameBottom    = frame:GetBottom()
+    local frameTop       = frame:GetTop()
+    local frameX, frameY = frame:GetCenter()
+    local x, y           = frame:GetCenter()
+    if self.Config.attachFrameAnchorPos == const.ANCHOR_POS.TOPLEFT then
+        x = frameLeft
+        y = frameTop
+    elseif self.Config.attachFrameAnchorPos == const.ANCHOR_POS.TOPRIGHT then
+        x = frameRight
+        y = frameTop
+    elseif self.Config.attachFrameAnchorPos == const.ANCHOR_POS.BOTTOMLEFT then
+        x = frameLeft
+        y = frameBottom
+    elseif self.Config.attachFrameAnchorPos == const.ANCHOR_POS.BOTTOMRIGHT then
+        x = frameRight
+        y = frameBottom
+    elseif self.Config.attachFrameAnchorPos == const.ANCHOR_POS.TOP then
+        x = frameX
+        y = frameTop
+    elseif self.Config.attachFrameAnchorPos == const.ANCHOR_POS.BOTTOM then
+        x = frameX
+        y = frameBottom
+    elseif self.Config.attachFrameAnchorPos == const.ANCHOR_POS.LEFT then
+        x = frameLeft
+        y = frameY
+    elseif self.Config.attachFrameAnchorPos == const.ANCHOR_POS.RIGHT then
+        x = frameRight
+        y = frameY
+    elseif self.Config.attachFrameAnchorPos == const.ANCHOR_POS.CENTER then
+        x = frameX
+        y = frameY
+    end
+    return x, y
+end
+
 ---@param element ElementConfig
 ---@return ElementFrame
 function ElementFrame:New(element)
@@ -201,7 +242,7 @@ function ElementFrame:Update()
                 cb.r = cb.f(cb.p, cb.r)
                 for _, r in ipairs(cb.r) do
                     ---@type ElementCbInfo
-                    local cbInfo = {p = cb.p, f = cb.f, r = {r, }}
+                    local cbInfo = { p = cb.p, f = cb.f, r = { r, } }
                     table.insert(cbInfos, cbInfo)
                 end
             end
@@ -253,38 +294,12 @@ function ElementFrame:InitialWindow()
     -- 监听窗口的拖拽事件
     self.Window:SetScript("OnDragStop", function(frame)
         frame:StopMovingOrSizing()
-        local newX, newY
-        if self.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM then
-            newX = frame:GetLeft()
-            newY = frame:GetTop() - UIParent:GetHeight()
-        elseif self.Config.elesGrowth == const.GROWTH.RIGHTTOP then
-            newX = frame:GetLeft()
-            newY = frame:GetTop()
-        elseif self.Config.elesGrowth == const.GROWTH.LEFTBOTTOM then
-            newX = frame:GetLeft() - UIParent:GetWidth()
-            newY = frame:GetTop() - UIParent:GetHeight()
-        elseif self.Config.elesGrowth == const.GROWTH.LEFTTOP then
-            newX = frame:GetLeft() - UIParent:GetWidth()
-            newY = frame:GetTop()
-        elseif self.Config.elesGrowth == const.GROWTH.TOPLEFT then
-            newX = frame:GetLeft() - UIParent:GetWidth()
-            newY = frame:GetTop()
-        elseif self.Config.elesGrowth == const.GROWTH.TOPRIGHT then
-            newX = frame:GetLeft()
-            newY = frame:GetTop()
-        elseif self.Config.elesGrowth == const.GROWTH.BOTTOMLEFT then
-            newX = frame:GetLeft() - UIParent:GetWidth()
-            newY = frame:GetTop() - UIParent:GetHeight()
-        elseif self.Config.elesGrowth == const.GROWTH.BOTTOMRIGHT then
-            newX = frame:GetLeft()
-            newY = frame:GetTop() - UIParent:GetHeight()
-        else
-            -- 默认右下
-            newX = frame:GetLeft()
-            newY = frame:GetTop() - UIParent:GetHeight()
-        end
-        self.Config.posX = math.floor(newX)
-        self.Config.posY = math.floor(newY)
+        local parentX, parentY = self:GetPosition(frame:GetParent() or UIParent)
+        local frameX, frameY   = self:GetPosition(frame)
+        local newX             = frameX - parentX
+        local newY             = frameY - parentY
+        self.Config.posX       = math.floor(newX)
+        self.Config.posY       = math.floor(newY)
     end)
 
     self.Window:SetScript("OnUpdate", function(frame)
