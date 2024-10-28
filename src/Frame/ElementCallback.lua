@@ -15,11 +15,18 @@ local U = addon:GetModule('Utils')
 
 local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 
+---@class CONST: AceModule
+local const = addon:GetModule('CONST')
+
 ---@class CbResult
 ---@field closeGUIAfterClick boolean | nil
 ---@field icon string | number
 ---@field text string
----@field item ItemAttr
+---@field borderColor RGBAColor | nil
+---@field isLearnd boolean | nil 是否学习或者拥有
+---@field isUsable boolean | nil 是否可以使用
+---@field count number | nil 物品堆叠数量|技能充能次数
+---@field item ItemAttr | nil
 ---@field macro string | nil
 ---@field leftClickCallback function | nil
 local CbResult = {}
@@ -160,24 +167,74 @@ end
 ---@return CbResult
 function ECB:CallbackByItemConfig(element)
     local item = E:ToItem(element)
-    return {
-        closeGUIAfterClick = nil,
+       ---@type CbResult
+       local cbResult = {
         icon = item.extraAttr.icon,
         text = item.extraAttr.name or item.title,
         item = item.extraAttr,
+    }
+    return cbResult
+end
+
+---@return CbResult
+function ECB:NilCallback()
+    ---@type CbResult
+    return {
+        icon = 134400,
+        text = "",
+        isLearnd = false,
+        isUsable = false,
+        closeGUIAfterClick = nil,
+        count = 0,
+        item = nil,
         macro = nil,
         leftClickCallback = nil
     }
 end
 
----@return CbResult
-function ECB:NilCallback()
-    return {
-        closeGUIAfterClick = nil,
-        icon = nil,
-        text = nil,
-        item = nil,
-        macro = nil,
-        leftClickCallback = nil
-    }
+
+-- 对cbResult进行兼容处理，返回一个符合当前预期的cbResult
+---@param cbResult CbResult
+function ECB:Compatible(cbResult)
+    -- 更新物品是否已经学习
+    if cbResult.isLearnd == nil then
+        if cbResult.item then
+            cbResult.isLearnd = Item:IsLearned(cbResult.item.id, cbResult.item.type)
+        else
+            cbResult.isLearnd = false
+        end
+    end
+    -- 更新物品是否可以使用
+    if cbResult.isUsable == nil then
+        if cbResult.item then
+            cbResult.isUsable = Item:IsLearnedAndUsable(cbResult.item.id, cbResult.item.type)
+        else
+            cbResult.isUsable = false
+        end
+    end
+    if cbResult.item.type == const.ITEM_TYPE.ITEM then
+        cbResult.count = C_Item.GetItemCount(cbResult.item.id, false)
+    end
+    if cbResult.item.type == const.ITEM_TYPE.SPELL then
+        local chargeInfo = C_Spell.GetSpellCharges(cbResult.item.id)
+        cbResult.count = chargeInfo.currentCharges
+    end
+    -- 更新物品边框
+    if cbResult.borderColor == nil then
+        if cbResult.item then
+            if cbResult.item.type == const.ITEM_TYPE.ITEM or cbResult.item.type == const.ITEM_TYPE.TOY or cbResult.item.type == const.ITEM_TYPE.EQUIPMENT then
+                local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType, expansionID, setID, isCraftingReagent = C_Item.GetItemInfo(cbResult.item.id)
+                if itemQuality then
+                    cbResult.borderColor = const.ItemQualityColor[itemQuality]
+                end
+            elseif cbResult.item.type == const.ITEM_TYPE.MOUNT then
+                cbResult.borderColor = const.ItemQualityColor[Enum.ItemQuality.Epic]
+            elseif cbResult.item.type == const.ITEM_TYPE.PET then
+                cbResult.borderColor = const.ItemQualityColor[Enum.ItemQuality.Rare]
+            end
+        end
+        if cbResult.borderColor == nil then
+            cbResult.borderColor = const.DefaultItemColor
+        end
+    end
 end

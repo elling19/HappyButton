@@ -47,6 +47,7 @@ function E:New(title, type)
         anchorPos = const.ANCHOR_POS.CENTER,
         attachFrameAnchorPos = const.ANCHOR_POS.CENTER,
         combatLoadCond = const.COMBAT_LOAD_COND.OUT_COMBAT_LOAD,
+        isUseRootTexts = true,
         texts = {},
         configSelectedTextIndex = 1,
     }
@@ -102,4 +103,14 @@ end
 ---@return BarGroupConfig
 function E:ToBarGroup(config)
     return E:InitExtraAttr(config) ---@type BarGroupConfig
+end
+
+
+---@param config ElementConfig
+---@return boolean
+function E:IsLeaf(config)
+    if config.type == const.ELEMENT_TYPE.ITEM or config.type == const.ELEMENT_TYPE.ITEM_GROUP or config.type == const.ELEMENT_TYPE.SCRIPT then
+        return true
+    end
+    return false
 end

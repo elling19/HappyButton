@@ -47,9 +47,10 @@ function Config.VerifyItemAttr(itemType, val)
     -- 添加物品逻辑
     if item.type == const.ITEM_TYPE.ITEM or item.type ==
         const.ITEM_TYPE.EQUIPMENT or item.type == const.ITEM_TYPE.TOY then
-        local itemID = C_Item.GetItemIDForItemInfo(val)
+        local itemID, itemType, itemSubType, itemEquipLoc, icon, classID, subClassID = C_Item.GetItemInfoInstant(val)
         if itemID then
             item.id = itemID
+            item.icon = icon
         else
             return R:Err(L["Unable to get the id, please check the input."])
         end
@@ -58,12 +59,6 @@ function Config.VerifyItemAttr(itemType, val)
             item.name = itemName
         else
             return R:Err(L["Unable to get the name, please check the input."])
-        end
-        local itemIcon = C_Item.GetItemIconByID(item.id)
-        if itemIcon then
-            item.icon = itemIcon
-        else
-            return R:Err("Can not get the icon, please check your input.")
         end
     elseif item.type == const.ITEM_TYPE.SPELL then
         local spellID = C_Spell.GetSpellIDForSpellIdentifier(val)
@@ -272,7 +267,7 @@ local ConfigOptions = {}
 ---@param topEleConfig ElementConfig | nil 顶层的菜单，当为nil的时候，表示当前elements参数本身是顶层菜单
 ---@param selectGroups table  配置界面选项卡位置
 local function GetElementOptions(elements, topEleConfig, selectGroups)
-    local isTopElement = topEleConfig == nil
+    local isRoot = topEleConfig == nil
     local eleArgs = {}
     for i, ele in ipairs(elements) do
         -- 判断需要触发哪个菜单的更新事件
@@ -396,7 +391,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             end
         }
         elementSettingOrder = elementSettingOrder + 1
-        if isTopElement then
+        if isRoot then
             elementSettingArgs.iconWidth = {
                 step = 1,
                 order = elementSettingOrder,
@@ -508,7 +503,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 elementSettingOrder = elementSettingOrder + 1
             end
         end
-        if isTopElement then
+        if isRoot then
             if ele.type ~= const.ELEMENT_TYPE.ITEM and ele.type ~=
                 const.ELEMENT_TYPE.ITEM_GROUP then
                 elementSettingArgs.elementsGrowth = {
@@ -603,7 +598,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 end
             }
         end
-        if isTopElement then
+        if isRoot then
             local positionSettingOrder = 1
             local positionSettingArgs = {}
             local positionSettingOptions = {
@@ -722,13 +717,13 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             set = function(_, val)
                 ele.isLoad = val
                 if ele.isLoad == true then
-                    if isTopElement then
+                    if isRoot then
                         HbFrame:AddEframe(updateFrameConfig)
                     else
                         HbFrame:ReloadEframeUI(updateFrameConfig)
                     end
                 else
-                    if isTopElement then
+                    if isRoot then
                         HbFrame:DeleteEframe(updateFrameConfig)
                     else
                         HbFrame:ReloadEframeUI(updateFrameConfig)
@@ -738,7 +733,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             get = function(_) return ele.isLoad end
         }
         displaySettingOrder = displaySettingOrder + 1
-        if isTopElement then
+        if isRoot then
             displaySettingArgs.isDisplayMouseEnter = {
                 order = displaySettingOrder,
                 width = 2,
@@ -753,7 +748,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             displaySettingOrder = displaySettingOrder + 1
         end
         -- 顶部元素设置是否开启战斗支持
-        if isTopElement then
+        if isRoot then
             if ele.type == const.ELEMENT_TYPE.BAR_GROUP then
                 displaySettingArgs.combatLoadCond = {
                     order = displaySettingOrder,
@@ -798,83 +793,94 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             end
         end
 
-        -- 文字设置
-        local textSettingOrder = 1
-        local textSettingArgs = {}
-        local textSettingOptions = {
-            type = "group",
-            name = L["Text Settings"],
-            inline = true,
-            order = 5,
-            args = textSettingArgs
-        }
-        args.textSetting = textSettingOptions
-        if not isTopElement then
-            textSettingArgs.useParentSettingToggle = {
-                order = textSettingOrder,
-                width = 2,
-                type = 'toggle',
-                name = L["Whether to use parent Element Settings"],
-                set = function(_, val)
-                    ele.useParentTexts = val
-                    HbFrame:UpdateEframe(updateFrameConfig)
-                end,
-                get = function(_)
-                    return ele.useParentTexts == true
-                end
+        -- 文字设置：根元素或者叶子元素可以使用
+        if isRoot or E:IsLeaf(ele) then
+            local textSettingOrder = 1
+            local textSettingArgs = {}
+            local textSettingOptions = {
+                type = "group",
+                name = L["Text Settings"],
+                inline = true,
+                order = 5,
+                args = textSettingArgs
             }
-            textSettingOrder = textSettingOrder + 1
-        end
-        if isTopElement or ele.useParentTexts == false then
-            textSettingArgs.addText = {
-                order = textSettingOrder,
-                width = 2,
-                type = 'select',
-                name = L["Add Text"],
-                values = const.TextOptions,
-                set = function(_, val)
-                    addon.G.tmpNewText = val
-                    if ele.texts == nil then
-                        ele.texts = {}
+            args.textSetting = textSettingOptions
+            if (not isRoot) and E:IsLeaf(ele) then
+                textSettingArgs.useParentSettingToggle = {
+                    order = textSettingOrder,
+                    width = 2,
+                    type = 'toggle',
+                    name = L["Use root element settings"],
+                    set = function(_, val)
+                        ele.isUseRootTexts = val
+                        HbFrame:UpdateEframe(updateFrameConfig)
+                    end,
+                    get = function(_)
+                        return ele.isUseRootTexts == true
                     end
-                    table.insert(ele.texts, Text:New(val))
-                    ele.configSelectedTextIndex = #ele.texts
-                end,
-                get = function() return addon.G.tmpNewText end
-            }
-            textSettingOrder = textSettingOrder + 1
-            local selectTextOptions = {}
-            if ele.texts then
-                for textIndex, text in ipairs(ele.texts) do
-                    table.insert(selectTextOptions, Text:GetTextDesc(text.text))
-                end
+                }
+                textSettingOrder = textSettingOrder + 1
             end
-            textSettingArgs.selectText = {
-                order = textSettingOrder,
-                width = 1,
-                type = 'select',
-                name = L["Select Text"],
-                values = selectTextOptions,
-                set = function(_, val)
-                    ele.configSelectedTextIndex = val
-                end,
-                get = function() return ele.configSelectedTextIndex end
-            }
-            textSettingOrder = textSettingOrder + 1
-            textSettingArgs.deleteText = {
-                order = textSettingOrder,
-                width = 1,
-                type = "execute",
-                name = L["Delete"],
-                confirm = true,
-                func = function()
-                    table.remove(ele.texts, ele.configSelectedTextIndex)
-                    if ele.configSelectedTextIndex > #ele.texts then
-                        ele.configSelectedTextIndex = #ele.texts
+            if isRoot or (E:IsLeaf(ele) and ele.isUseRootTexts == false) then
+                textSettingArgs.TextOfNameToogle = {
+                    order = textSettingOrder,
+                    width = 1,
+                    type = 'toggle',
+                    name = L["Item Name"],
+                    set = function(_, _)
+                        for tIndex, text in ipairs(ele.texts) do
+                            if text.text == "%n" then
+                                table.remove(ele.texts, tIndex)
+                                HbFrame:UpdateEframe(updateFrameConfig)
+                                return
+                            end
+                        end
+                        table.insert(ele.texts, Text:New("%n"))
+                        HbFrame:UpdateEframe(updateFrameConfig)
+                    end,
+                    get = function(_)
+                        if ele.texts == nil then
+                            ele.texts = {}
+                        end
+                        for _, text in ipairs(ele.texts) do
+                            if text.text == "%n" then
+                                return true
+                            end
+                        end
+                        return false
                     end
-                end
-            }
-            textSettingOrder = textSettingOrder + 1
+                }
+                textSettingOrder = textSettingOrder + 1
+                textSettingArgs.TextOfCountToogle = {
+                    order = textSettingOrder,
+                    width = 1,
+                    type = 'toggle',
+                    name = L["Item Count"],
+                    set = function(_, _)
+                        for tIndex, text in ipairs(ele.texts) do
+                            if text.text == "%s" then
+                                table.remove(ele.texts, tIndex)
+                                HbFrame:UpdateEframe(updateFrameConfig)
+                                return
+                            end
+                        end
+                        table.insert(ele.texts, Text:New("%s"))
+                        HbFrame:UpdateEframe(updateFrameConfig)
+                    end,
+                    get = function(_)
+                        if ele.texts == nil then
+                            ele.texts = {}
+                        end
+                        for _, text in ipairs(ele.texts) do
+                            if text.text == "%s" then
+                                return true
+                            end
+                        end
+                        return false
+                    end
+                }
+                textSettingOrder = textSettingOrder + 1
+            end
         end
         -- 物品条组、物品条、物品组添加子元素
         if ele.type == const.ELEMENT_TYPE.BAR_GROUP or ele.type == const.ELEMENT_TYPE.BAR or ele.type == const.ELEMENT_TYPE.ITEM_GROUP then
@@ -1076,7 +1082,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             end
         end
         local menuName = iconPath .. showTitle
-        if not isTopElement then
+        if not isRoot then
             menuName = "|cff00ff00" .. iconPath .. showTitle .. "|r"
         end
         eleArgs["elementMenu" .. i] = {

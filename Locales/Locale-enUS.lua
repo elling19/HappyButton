@@ -137,7 +137,7 @@ L["Localize the name of items"] = true
 
 
 L["Text Settings"] = true
-L["Whether to use parent Element Settings"] = true
+L["Use root element settings"] = true
 L["Item Name"] = true
 L["Item Count"] = true
 L["Add Text"] = true

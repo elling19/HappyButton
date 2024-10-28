@@ -137,7 +137,7 @@ L["AttachFrame"] = "依附框体"
 L["AttachFrame Anchor Position"] = "依附框体锚点"
 
 L["Text Settings"] = "文本设置"
-L["Whether to use parent Element Settings"] = "是否使用父级元素的设置"
+L["Use root element settings"] = "使用根元素的设置"
 L["Item Name"] = "物品名称"
 L["Item Count"] = "物品数量"
 L["Add Text"] = "添加文本"

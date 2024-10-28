@@ -25,11 +25,12 @@ function BarCore:Start()
     BarCore.Frame:RegisterEvent("SPELL_UPDATE_COOLDOWN")    -- 触发冷却
     BarCore.Frame:RegisterEvent("PLAYER_REGEN_DISABLED")    -- 进入战斗事件
     BarCore.Frame:RegisterEvent("PLAYER_REGEN_ENABLED")     -- 退出战斗事件
-    BarCore.Frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED") -- 装备改变
-    BarCore.Frame:RegisterEvent("SPELLS_CHANGED")           -- 技能改变
-    BarCore.Frame:RegisterEvent("PLAYER_TALENT_UPDATE")     -- 天赋改变
-    BarCore.Frame:RegisterEvent("UNIT_AURA")                -- 目标buff或者defbuff改变
-    BarCore.Frame:RegisterEvent("PLAYER_TARGET_CHANGED")    -- 目标改变
+    BarCore.Frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED") -- 装备改变（物品、装备）
+    BarCore.Frame:RegisterEvent("SPELLS_CHANGED")           -- 技能改变（技能）
+    BarCore.Frame:RegisterEvent("PLAYER_TALENT_UPDATE")     -- 天赋改变（技能）
+    BarCore.Frame:RegisterEvent("UNIT_AURA")                -- 目标buff或者defbuff改变（脚本、触发器）
+    BarCore.Frame:RegisterEvent("PLAYER_TARGET_CHANGED")    -- 目标改变（脚本、触发器）
+    BarCore.Frame:RegisterEvent("BAG_UPDATE")               -- 背包物品改变(物品、装备)
     BarCore.Frame:SetScript("OnEvent", function(self, event, arg1)
         if event == "PLAYER_LOGIN" then
             BarCore:Initial()
@@ -39,7 +40,8 @@ function BarCore:Start()
             event == "SPELLS_CHANGED" or
             event == "PLAYER_TALENT_UPDATE" or
             event == "UNIT_AURA" or
-            event == "PLAYER_TARGET_CHANGED"
+            event == "PLAYER_TARGET_CHANGED" or
+            event == "BAG_UPDATE"
         then
             HbFrame:UpdateAllEframes()
         end

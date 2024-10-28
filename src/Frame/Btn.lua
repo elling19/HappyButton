@@ -22,7 +22,7 @@ local Item = addon:GetModule("Item")
 ---@field Cooldown table|Cooldown|CooldownFrameTemplate  -- 冷却倒计时
 ---@field Border table | Frame -- 边框
 ---@field CbResult CbResult
----@field Config ElementConfig
+---@field LeafConfig ElementConfig
 local Btn = addon:NewModule("Btn")
 
 ---@param eFrame ElementFrame
@@ -35,6 +35,8 @@ function Btn:New(eFrame, barIndex, cbIndex)
     obj.EFrame = eFrame
     obj.Button = CreateFrame("Button", ("Button-%s-%s-%s"):format(eFrame.Config.id, barIndex, cbIndex), bar.BarFrame, "SecureActionButtonTemplate, UIPanelButtonTemplate")
     obj.Button:SetSize(eFrame.IconWidth, eFrame.IconHeight)
+    Btn.CreateIcon(obj)
+    Btn.CreateBorder(obj)
 
     if eFrame.Config.type == const.ELEMENT_TYPE.BAR_GROUP then
         if eFrame.Config.elesGrowth == const.GROWTH.LEFTTOP or eFrame.Config.elesGrowth == const.GROWTH.RIGHTTOP then
@@ -75,14 +77,15 @@ function Btn:New(eFrame, barIndex, cbIndex)
         obj.Button:GetPushedTexture():SetVertexColor(1, 1, 1, 0.3)
     else
         local highlightTexture = obj.Button:CreateTexture()
-        highlightTexture:SetColorTexture(255, 255, 255, 0.2)
+        highlightTexture:SetColorTexture(255, 255, 255, 0.5)
         obj.Button:SetHighlightTexture(highlightTexture)
-        obj.Button:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.3)
-        obj.Button:SetPushedTexture(highlightTexture)
-        obj.Button:GetPushedTexture():SetVertexColor(1, 1, 1, 0.3)
+        obj.Button:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.5)
+        local pushedTexture = obj.Button:CreateTexture()
+        pushedTexture:SetColorTexture(255, 255, 255, 0.5)
+        obj.Button:SetPushedTexture(pushedTexture)
+        obj.Button:GetPushedTexture():SetVertexColor(1, 1, 1, 0.5)
     end
-    Btn.CreateIcon(obj)
-    Btn.CreateBorder(obj)
+
 
     -- local LCG = LibStub("LibCustomGlow-1.0")
     -- obj.Button:SetScript("OnEnter", function(btn)
@@ -125,7 +128,7 @@ function Btn:New(eFrame, barIndex, cbIndex)
 ---@param config ElementConfig
 ---@param cbResult CbResult
 function Btn:Update(config, cbResult)
-    self.Config = config
+    self.LeafConfig = config
     self.CbResult = cbResult
       -- 如果回调函数返回的是item模式
     if self.CbResult.item ~= nil then
@@ -133,37 +136,10 @@ function Btn:Update(config, cbResult)
         self:SetMacro()
         self:SetCooldown()
         self:SetMouseEvent()
-        self:SetLearnable()
     else
         self:SetScriptEvent()
     end
-    -- 隐藏/显示文字
-    -- if self.EFrame.Config.isDisplayText == true then
-    --     if self.Text == nil then
-    --         self.Text = self.Button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-    --         if self.EFrame:IsIconsHorizontal() then
-    --             self.Text:SetWidth(self.EFrame.IconWidth)
-    --         else
-    --             self.Text:SetHeight(self.EFrame.IconHeight)
-    --         end
-    --         if self.EFrame:IsIconsHorizontal() then
-    --             self.Text:SetPoint("TOP", self.Button, "BOTTOM", 0, -5)
-    --         else
-    --             self.Text:SetPoint("LEFT", self.Button, "RIGHT", 5, 0)
-    --         end
-    --     end
-    --     if cbResult.text then
-    --         if self.EFrame:IsIconsHorizontal() then
-    --             self.Text:SetText(U.String.ToVertical(cbResult.text))
-    --         else
-    --             self.Text:SetText(cbResult.text)
-    --         end
-    --     end
-    -- else
-    --     if self.Text then
-    --         self.Text:Hide()
-    --     end
-    -- end
+    self:UpdateTexts()
 end
 
 -- 创建图标Icon
@@ -180,16 +156,62 @@ end
 
 
 -- 创建文本Text
-function Btn:ReCreateTexts()
+function Btn:UpdateTexts()
     if self.Texts == nil then
         self.Texts = {}
-    else
-        for i = #self.Texts, 1, -1 do
-            table.remove(self.Texts, i)
+    end
+    local texts = self.EFrame.Config.texts or {}
+    if self.LeafConfig.isUseRootTexts == false then
+        texts = self.LeafConfig.texts or {}
+    end
+    for tIndex, text in ipairs(texts) do
+        if tIndex > #self.Texts then
+            local fString = self.Button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            fString:SetTextColor(1, 1, 1)  -- 默认使用白色
+            table.insert(self.Texts, fString)
+        end
+        local tString = self.Texts[tIndex]
+        if text.text == "%n" then
+            if self.EFrame:IsIconsHorizontal() then
+                tString:SetWidth(self.EFrame.IconWidth)
+            else
+                tString:SetHeight(self.EFrame.IconHeight)
+            end
+            if self.EFrame:IsIconsHorizontal() then
+                tString:SetPoint("TOP", self.Button, "BOTTOM", 0, -5)
+            else
+                tString:SetPoint("LEFT", self.Button, "RIGHT", 5, 0)
+            end
+            if self.CbResult.text then
+                if self.EFrame:IsIconsHorizontal() then
+                    tString:SetText(U.String.ToVertical(self.CbResult.text))
+                else
+                    tString:SetText(self.CbResult.text)
+                end
+            end
+            -- 如果没有学习这个技能，则将文字改成灰色半透明
+            if self.CbResult.isLearnd == false then
+                tString:SetTextColor(0.8, 0.8, 0.8)
+            else
+                tString:SetTextColor(1, 1, 1)
+            end
+        end
+        if text.text == "%s" then
+            tString:SetPoint("BOTTOMRIGHT", self.Button, "BOTTOMRIGHT", -2, 2)
+            if self.CbResult.count ~= nil then
+                tString:SetText(tostring(self.CbResult.count))
+            else
+                tString:SetText("")
+            end
         end
     end
-    -- todo: 更新文本
-    
+    if #texts < #self.Texts then
+        for i = #self.Texts, #texts + 1, -1 do
+            local tString = self.Texts[i]
+            tString:SetParent(nil)
+            self.Texts[i] = nil
+        end
+    end
 end
 
 -- 创建边框背景框架
@@ -206,7 +228,7 @@ function Btn:CreateBorder()
             insets = { left = 0, right = 0, top = 0, bottom = 0 },
         })
         self.Border:SetBackdropColor(0, 0, 0, 0) -- 背景透明（灰色）
-        self.Border:SetBackdropBorderColor(0.5, 0.5, 0.5, 1)
+        self.Border:SetBackdropBorderColor(unpack(const.DefaultItemColor))
     end
 end
 
@@ -229,6 +251,20 @@ function Btn:SetIcon()
         self.Icon:SetTexture(r.icon)
     else
         self.Icon:SetTexture(134400)
+    end
+    -- 如果没有学习这个技能，则将图标改成灰色半透明
+    if self.CbResult.isLearnd == false then
+        self.Button:SetEnabled(false)
+        self.Button:SetAlpha(0.8)
+    else
+        self.Button:SetEnabled(true)
+        self.Button:SetAlpha(1)
+    end
+    -- 设置物品边框
+    if self.CbResult.borderColor then
+        self.Border:SetBackdropBorderColor(unpack(self.CbResult.borderColor))
+    else
+        self.Border:SetBackdropBorderColor(unpack(const.DefaultItemColor))
     end
 end
 
@@ -269,13 +305,16 @@ end
 -- 设置按钮冷却
 function Btn:SetCooldown()
     local r = self.CbResult
-    if r == nil or r.item == nil then
+    if r == nil then
+        return
+    end
+    local item = r.item
+    if item == nil then
         return
     end
     if self.Cooldown == nil then
         self:CreateCoolDown()
     end
-    local item = r.item
     self.Button:SetScript("OnUpdate", function(_)
         -- 更新冷却倒计时
         if item.type == const.ITEM_TYPE.ITEM then
@@ -324,29 +363,6 @@ function Btn:SetScriptEvent()
     end
 end
 
--- 当按钮上的技能没有学习的时候，置为灰色
-function Btn:SetLearnable()
-    local r = self.CbResult
-    if r == nil or r.item == nil then
-        return
-    end
-    local isLearned = Item:IsLearned(r.item.id, r.item.type)
-    -- 如果没有学习这个技能，则将图标和文字改成灰色半透明
-    if isLearned == false then
-        self.Button:SetEnabled(false)
-        self.Button:SetAlpha(0.5)
-        if self.Text then
-            self.Text:SetTextColor(0.5, 0.5, 0.5)
-        end
-    else
-        self.Button:SetEnabled(true)
-        self.Button:SetAlpha(1)
-        if self.Text then
-            self.Text:SetTextColor(1, 1, 1)
-        end
-    end
-end
-
 -- 设置button鼠标移入事件
 function Btn:SetShowGameTooltip()
     local r = self.CbResult
@@ -354,6 +370,9 @@ function Btn:SetShowGameTooltip()
         return
     end
     local item = r.item
+    if item == nil then
+        return
+    end
     GameTooltip:SetOwner(self.Border, "ANCHOR_RIGHT") -- 设置提示显示的位置
     if item.type == const.ITEM_TYPE.ITEM then
         GameTooltip:SetItemByID(item.id)

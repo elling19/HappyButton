@@ -122,6 +122,8 @@ function ElementFrame:New(element)
 end
 
 function ElementFrame:ReLoadUI()
+    self.IconHeight = self.Config.iconHeight or addon.G.iconHeight
+    self.IconWidth = self.Config.iconWidth or addon.G.iconWidth
     self.Cbss = self:GetCbss(self.Config)
     self:UpdateWindow()
     self:UpdateBarMenuFrame()
@@ -165,7 +167,10 @@ function ElementFrame:GetCbss(eleConfig)
         local bar = E:ToBar(eleConfig)
         for _, _eleConfig in ipairs(bar.elements) do
             if _eleConfig.isLoad then
-                table.insert(cbs, self:GetCbss(_eleConfig)[1][1])
+                local eleConfigCbss = self:GetCbss(_eleConfig)
+                for _, _cbs in ipairs(eleConfigCbss[1]) do
+                    table.insert(cbs, _cbs)
+                end
             end
         end
         return { cbs, }
@@ -241,8 +246,8 @@ function ElementFrame:Update()
             for _, cb in ipairs(self.Cbss[barIndex]) do
                 cb.r = cb.f(cb.p, cb.r)
                 for _, r in ipairs(cb.r) do
-                    ---@type ElementCbInfo
-                    local cbInfo = { p = cb.p, f = cb.f, r = { r, } }
+                    ECB:Compatible(r)
+                    local cbInfo = { p = cb.p, f = cb.f, r = { r, } } ---@type ElementCbInfo
                     table.insert(cbInfos, cbInfo)
                 end
             end

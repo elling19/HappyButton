@@ -1,2 +1,2 @@
 ---@class TextConfig
----@field text string -- 文字内容
+---@field text TextExpr -- 文字内容

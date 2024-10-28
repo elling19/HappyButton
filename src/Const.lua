@@ -195,12 +195,11 @@ const.AttachFrameOptions = {
     ["CollectionsJournal"] = L["CollectionsJournal"]
 }
 
--- 文字表达式
---（参考wa文本名称） %n：名称， %s：堆叠数量，%c：自定义
+-- 文字表达式：参考wa文本名称
 ---@alias TextExpr
---- | "%n"
---- | "%s"
---- | "%c"
+--- | "%n" -- 名称
+--- | "%s" -- 堆叠数量
+--- | "%c" -- 自定义
 
 
 -- 文本表达式选项
@@ -210,6 +209,27 @@ const.TextOptions = {
     ["%n"] = L["Item Name"],
     ["%s"] = L["Item Count"],
 }
+
+
+---@alias RGBAColor table<number, number, number, number>
+
+-- 物品颜色代码
+---@type table<Enum.ItemQuality, RGBAColor>
+const.ItemQualityColor = {
+    [Enum.ItemQuality.Poor] = { 0.617, 0.617, 0.617, 1 },   -- 灰色
+    [Enum.ItemQuality.Common] = { 1, 1, 1, 1 },             -- 普通
+    [Enum.ItemQuality.Uncommon] = { 0.118, 1, 0, 1 },       -- 优秀
+    [Enum.ItemQuality.Rare] = { 0.00, 0.439, 0.867, 1 },    -- 精良
+    [Enum.ItemQuality.Epic] = { 0.639, 0.208, 0.933, 1 },   -- 史诗
+    [Enum.ItemQuality.Legendary] = { 1, 0.502, 0, 1 },      -- 传说
+    [Enum.ItemQuality.Artifact] = { 0.902, 0.800, 0.502, 1 }, -- 神器
+    [Enum.ItemQuality.Heirloom] = { 0, 0.800, 1, 1 },       -- 传家宝
+    [Enum.ItemQuality.WoWToken] = { 0, 0.800, 1, 1 },       -- 代币
+}
+
+-- 默认边框代码
+---@type RGBAColor
+const.DefaultItemColor = { 0.2, 0.2, 0.2, 1 }
 
 --[[
 -- 事件常量
