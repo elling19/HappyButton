@@ -7,8 +7,6 @@ local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 ---@class CONST: AceModule
 local const = addon:GetModule('CONST')
 
-local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
-
 ---@class Utils: AceModule
 local U = addon:GetModule('Utils')
 
@@ -17,9 +15,8 @@ local Trigger = addon:NewModule("Trigger")
 
 
 -- 创建自身触发器
----@param title string | nil
 ---@return TriggerConfig
-function Trigger:NewSelfTriggerConfig(title)
+function Trigger:NewSelfTriggerConfig()
     ---@type SelfTriggerCondition
     local condition = {
         isLearned = true,
