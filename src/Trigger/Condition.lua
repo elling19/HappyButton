@@ -19,8 +19,6 @@ local Condition = addon:NewModule("Condition")
 ---@return ConditionConfig
 function Condition:New()
     ---@type ConditionConfig
-    local condition = {
-        effects = {}
-    }
+    local condition = {}
     return condition
 end

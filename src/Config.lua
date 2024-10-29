@@ -1178,78 +1178,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     end
                 }
                 triggerSettingOrder = triggerSettingOrder + 1
-                triggerSettingArgs.auraRemainingTime = {
-                    order = triggerSettingOrder,
-                    width = 1,
-                    type = "input",
-                    name = L["Aura Remaining Time"],
-                    validate = function(_, val)
-                        if val == nil or val == "" or val == " " then
-                            return false
-                        end
-                        if tonumber(val) == nil then
-                            return false
-                        end
-                        return true
-                    end,
-                    set = function(_, val)
-                        trigger.condition.remainingTime = tonumber(val)
-                        HbFrame:UpdateEframe(updateFrameConfig)
-                        addon:UpdateOptions()
-                    end,
-                    get = function()
-                        if trigger.condition.remainingTime == nil then
-                            return ""
-                        else
-                            return tostring(trigger.condition.remainingTime)
-                        end
-                    end
-                }
-                triggerSettingOrder = triggerSettingOrder + 1
             end
             if editTrigger and editTrigger.type == "self" then
                 local trigger = Trigger:ToSelfTriggerConfig(editTrigger)
-                triggerSettingArgs.selfCount = {
-                    order = triggerSettingOrder,
-                    width = 1,
-                    type = "input",
-                    name = L["Count/Charge"],
-                    validate = function(_, val)
-                        if val == nil or val == "" or val == " " then
-                            return false
-                        end
-                        if tonumber(val) == nil then
-                            return false
-                        end
-                        return true
-                    end,
-                    set = function(_, val)
-                        trigger.condition.count = tonumber(val)
-                        HbFrame:UpdateEframe(updateFrameConfig)
-                        addon:UpdateOptions()
-                    end,
-                    get = function()
-                        if trigger.condition.count == nil then
-                            return ""
-                        else
-                            return tostring(trigger.condition.count)
-                        end
-                    end
-                }
-                triggerSettingOrder = triggerSettingOrder + 1
-                triggerSettingArgs.selfIsLearned = {
-                    order = triggerSettingOrder,
-                    width = 1,
-                    type = "toggle",
-                    name = L["Is Learned"],
-                    set = function(_, val)
-                        trigger.condition.isLearned = val
-                        HbFrame:UpdateEframe(updateFrameConfig)
-                        addon:UpdateOptions()
-                    end,
-                    get = function() return trigger.condition.isLearned end
-                }
-                triggerSettingOrder = triggerSettingOrder + 1
             end
             triggerSettingArgs.addTrigger = {
                 order = triggerSettingOrder,
@@ -1350,45 +1281,33 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 if ele.triggers then
                     for _, t in ipairs(ele.triggers) do
                         if t.id == editCondtion.leftTriggerId then
-                            if t.condition then
-                                for condK, condV in pairs(t.condition) do
-                                    if condK ~= nil then
-                                        leftValOptions[condK] = condK
-                                    end
-                                end
+                            if t.type then
+                                leftValOptions = Trigger:GetConditions(t.type)
                             end
                         end
                     end
                 end
-                condSettingArgs.leftValue = {
+                condSettingArgs.leftVal = {
                     order = condSettingOrder,
                     width = 1,
                     type = "select",
                     name = "",
                     values = leftValOptions,
                     set = function(_, val)
-                        editCondtion.leftValue = val
+                        editCondtion.leftVal = val
                         HbFrame:UpdateEframe(updateFrameConfig)
                         addon:UpdateOptions()
                     end,
-                    get = function() return editCondtion.leftValue end
+                    get = function() return editCondtion.leftVal end
                 }
                 condSettingOrder = condSettingOrder + 1
                 -- 获取触发器对于条件设置的值，根据值来获取值的类型：是数字类型还是布尔类型，根据类型来选择右值如何选择。
-                local leftValue = nil
-                if editCondtion.leftValue and editCondtion.leftTriggerId then
-                    if ele.triggers then
-                        for _, t in ipairs(ele.triggers) do
-                            if t.id == editCondtion.leftTriggerId then
-                                if t.condition and t.condition[editCondtion.leftValue] then
-                                    leftValue = t.condition[editCondtion.leftValue]
-                                end
-                                break
-                            end
-                        end
-                    end
+                local leftValType = nil
+                if leftValOptions and leftValOptions[editCondtion.leftVal] then
+                    ---@type type
+                    leftValType = leftValOptions[editCondtion.leftVal]
                 end
-                if leftValue ~= nil then
+                if leftValType ~= nil then
                     condSettingArgs.operate = {
                         order = condSettingOrder,
                         width = 1,
@@ -1403,7 +1322,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         get = function() return editCondtion.operator end
                     }
                     condSettingOrder = condSettingOrder + 1
-                    if type(leftValue) == "boolean" then
+                    if leftValType == "boolean" then
                         condSettingArgs.rightValue = {
                             order = condSettingOrder,
                             width = 1,
@@ -1449,7 +1368,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     condSettingOrder = condSettingOrder + 1
                 end
             end
-            condSettingArgs.addTrigger = {
+            condSettingArgs.addCondition = {
                 order = condSettingOrder,
                 width = 2,
                 type = "execute",
