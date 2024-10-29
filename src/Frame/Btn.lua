@@ -295,10 +295,6 @@ function Btn:SetMacro()
     elseif r.item.type == const.ITEM_TYPE.PET then
         macroText = "/SummonPet " .. r.item.name
     end
-    -- 宏命令附加关闭窗口
-    if r.closeGUIAfterClick == nil or r.closeGUIAfterClick == true then
-        macroText = macroText .. "\r" .. "/SETCLOSEEFRAME" .. " " .. self.EFrame.Config.id
-    end
     self.Button:SetAttribute("macrotext", macroText)
 end
 
@@ -356,9 +352,6 @@ function Btn:SetScriptEvent()
         self.Button:SetAttribute("type", "macro")
         local macroText = ""
         macroText = macroText .. r.macro
-        if r.closeGUIAfterClick == nil or r.closeGUIAfterClick == true then
-            macroText = macroText .. "\r" .. "/closehtmainframe"
-        end
         self.Button:SetAttribute("macrotext", macroText)
     end
 end

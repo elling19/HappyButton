@@ -11,20 +11,3 @@ local BarCore = addon:GetModule("BarCore")
 
 ---@class HbFrame: AceModule
 local HbFrame = addon:GetModule("HbFrame")
-
--- 注册命令：关闭窗口
--- /closeEframe xxxxxx
-SlashCmdList["SETCLOSEEFRAME"] = function(configId)
-    local eFrame = HbFrame.EFrames[configId]
-    if eFrame == nil then
-        return
-    end
-    if eFrame:IsBarGroup() then
-        eFrame:HideAllBarFrame()
-    else
-        if eFrame.Config.isDisplayMouseEnter then
-            eFrame:SetBarTransparency()
-        end
-    end
-end
-SLASH_SETCLOSEEFRAME1 = "/SETCLOSEEFRAME"

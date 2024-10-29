@@ -19,7 +19,6 @@ local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 local const = addon:GetModule('CONST')
 
 ---@class CbResult
----@field closeGUIAfterClick boolean | nil
 ---@field icon string | number
 ---@field text string
 ---@field borderColor RGBAColor | nil
@@ -184,7 +183,6 @@ function ECB:NilCallback()
         text = "",
         isLearnd = false,
         isUsable = false,
-        closeGUIAfterClick = nil,
         count = 0,
         item = nil,
         macro = nil,
@@ -217,7 +215,9 @@ function ECB:Compatible(cbResult)
     end
     if cbResult.item.type == const.ITEM_TYPE.SPELL then
         local chargeInfo = C_Spell.GetSpellCharges(cbResult.item.id)
-        cbResult.count = chargeInfo.currentCharges
+        if chargeInfo then
+            cbResult.count = chargeInfo.currentCharges
+        end
     end
     -- 更新物品边框
     if cbResult.borderColor == nil then

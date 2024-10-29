@@ -195,12 +195,6 @@ const.AttachFrameOptions = {
     ["CollectionsJournal"] = L["CollectionsJournal"]
 }
 
--- 文字表达式：参考wa文本名称
----@alias TextExpr
---- | "%n" -- 名称
---- | "%s" -- 堆叠数量
---- | "%c" -- 自定义
-
 
 -- 文本表达式选项
 ---@class TextOptions
@@ -210,8 +204,6 @@ const.TextOptions = {
     ["%s"] = L["Item Count"],
 }
 
-
----@alias RGBAColor table<number, number, number, number>
 
 -- 物品颜色代码
 ---@type table<Enum.ItemQuality, RGBAColor>
@@ -231,6 +223,43 @@ const.ItemQualityColor = {
 ---@type RGBAColor
 const.DefaultItemColor = { 0.2, 0.2, 0.2, 1 }
 
+-- 触发器类型选项
+---@type table<TriggerType, string>
+const.TriggerTypeOptions = {
+    ["self"] = L["Self Trigger"],
+    ["aura"] = L["Aura Trigger"],
+}
+
+-- 触发器目标选项
+---@type table<TriggerTarget, string>
+const.TriggerTargetOptions = {
+    ["player"] = L["Player"] ,
+    ["target"] = L["Target"]
+}
+
+
+-- 触发器光环类型
+---@type table<AuraType, string>
+const.AuraTypeOptions = {
+    ["buff"] = L["Buff"],
+    ["defbuff"] = L["Debuff"]
+}
+
+-- 运算符类型
+const.OperateOptions = {
+    ["="] = "=",
+    ["!="] = "!=",
+    [">"] = ">",
+    [">="] = ">=",
+    ["<"] = "<",
+    ["<="] = "<="
+}
+
+-- 布尔类型选择器
+const.BooleanOptions = {
+    [true] = L["True"],
+    [false] = L["False"]
+}
 --[[
 -- 事件常量
 ]]

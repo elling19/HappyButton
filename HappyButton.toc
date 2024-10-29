@@ -21,6 +21,10 @@ Main.lua
 Src\Const.lua
 Src\Result.lua
 Src\Utils.lua
+Src\Trigger\TriggerConfig.lua
+Src\Trigger\Trigger.lua
+Src\Trigger\ConditionConfig.lua
+Src\Trigger\Condition.lua
 Src\Element\TextConfig.lua
 Src\Element\Text.lua
 Src\Element\Element.lua

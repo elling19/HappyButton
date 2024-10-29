@@ -3,12 +3,9 @@
 ---@field id integer | nil
 ---@field icon integer | string | nil
 ---@field name string | nil
----@field replaceName string | nil
 
 ---@class ItemGroupAttr
 ---@field mode ItemsGroupMode
----@field displayUnLearned boolean
----@field replaceName string | nil
 ---@field configSelectedItemIndex number 编辑子元素的时候选中的下标
 
 ---@class ScriptAttr
@@ -17,6 +14,8 @@
 ---@class ElementConfig
 ---@field id string
 ---@field isLoad boolean -- 是否启用
+---@field isDisplayMouseEnter boolean --是否鼠标移入显示
+---@field isDisplayUnLearned boolean  -- 未拥有/学习的物品
 ---@field iconWidth number | nil
 ---@field iconHeight number | nil
 ---@field title string
@@ -30,11 +29,14 @@
 ---@field posX number | nil -- X轴位置
 ---@field posY number | nil  -- Y轴位置
 ---@field elesGrowth string --子元素生长方向
----@field isDisplayMouseEnter boolean --是否鼠标移入显示
 ---@field combatLoadCond CombatLoadCond  -- 战斗状态显示
----@field isUseRootTexts boolean -- 是否使用根元素的设置
----@field texts TextConfig[]  -- 字体设置
+---@field isUseRootTexts boolean -- 是否使用根元素文本的设置
+---@field texts TextConfig[]  -- 文本设置
 ---@field configSelectedTextIndex number -- 编辑文本的时候选中的下标
+---@field triggers TriggerConfig[]  -- 触发器设置
+---@field configSelectedTriggerIndex number -- 编辑触发器的时候选中的下标
+---@field conditions ConditionConfig[]  -- 触发器条件
+---@field configSelectedConditionIndex number -- 编辑条件设置的时候选中的下标
 local ElementConfig = {}
 
 

@@ -7,27 +7,15 @@ local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 ---@class CONST: AceModule
 local const = addon:GetModule('CONST')
 
+---@class Utils: AceModule
+local U = addon:GetModule('Utils')
 
 ---@class E: AceModule
 local E = addon:NewModule("Element")
 
---[[
-生成时间戳+8位随机字符串来标识配置的唯一性
-]]
----@return string
-function E:GenerateID()
-    local chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
-    local result = {}
-    -- 生成随机部分
-    for _ = 1, 8 do
-        local index = math.random(#chars)
-        table.insert(result, chars:sub(index, index))
-    end
-    -- 获取时间戳
-    local timestamp = time()
-    -- 拼接随机字符串和时间戳
-    return timestamp .. '_' .. table.concat(result)
-end
+---@class Trigger: AceModule
+local Trigger = addon:GetModule("Trigger")
+
 
 ---@return ElementConfig
 ---@param title string
@@ -35,13 +23,14 @@ end
 function E:New(title, type)
     ---@type ElementConfig
     local config = {
-        id = self:GenerateID(),
+        id = U.String.GenerateID(),
         isLoad = true,
+        isDisplayMouseEnter = false,
+        isDisplayUnLearned = false,
         title = title,
         type = type,
         icon = 134400,
         elements = {},
-        isDisplayMouseEnter = false,
         elesGrowth = const.GROWTH.RIGHTBOTTOM,
         attachFrame = const.ATTACH_FRAME.UIParent,
         anchorPos = const.ANCHOR_POS.CENTER,
@@ -50,6 +39,10 @@ function E:New(title, type)
         isUseRootTexts = true,
         texts = {},
         configSelectedTextIndex = 1,
+        triggers = {Trigger:NewSelfTriggerConfig(), },
+        configSelectedTriggerIndex = 1,
+        conditions = {},
+        configSelectedConditionIndex = 1,
     }
     return config
 end
@@ -88,7 +81,6 @@ function E:NewItemGroup(title)
     local e = E:New(title, const.ELEMENT_TYPE.ITEM_GROUP)
     e = E:ToItemGroup(e)
     e.extraAttr.mode = const.ITEMS_GROUP_MODE.RANDOM
-    e.extraAttr.displayUnLearned = false
     e.extraAttr.configSelectedItemIndex = 1
     return e
 end

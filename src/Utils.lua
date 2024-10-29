@@ -26,6 +26,7 @@ local UtilsPrint = {}
 
 ---@class UtilsString
 ---@field ToVertical fun(text: string | nil): string 将字符串转为竖形结构
+---@field GenerateID fun(): string 返回随机ID
 local UtilsString = {}
 
 ---@class Utils: AceModule
@@ -214,4 +215,23 @@ function UtilsString.ToVertical(str)
         verticalStr = verticalStr .. char .. "\n"
     end
     return verticalStr
+end
+
+
+--[[
+生成时间戳+8位随机字符串来标识配置的唯一性
+]]
+---@return string
+function UtilsString.GenerateID()
+    local chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+    local result = {}
+    -- 生成随机部分
+    for _ = 1, 8 do
+        local index = math.random(#chars)
+        table.insert(result, chars:sub(index, index))
+    end
+    -- 获取时间戳
+    local timestamp = time()
+    -- 拼接随机字符串和时间戳
+    return timestamp .. '_' .. table.concat(result)
 end

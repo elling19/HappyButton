@@ -20,6 +20,12 @@ local E = addon:GetModule("Element")
 ---@class Text: AceModule
 local Text = addon:GetModule("Text")
 
+---@class Trigger: AceModule
+local Trigger = addon:GetModule("Trigger")
+
+---@class Condition: AceModule
+local Condition = addon:GetModule("Condition")
+
 ---@class Utils: AceModule
 local U = addon:GetModule('Utils')
 
@@ -570,33 +576,6 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 get = function() return itemGroup.extraAttr.mode end
             }
             elementSettingOrder = elementSettingOrder + 1
-            elementSettingArgs.displayLearnedToggle = {
-                order = elementSettingOrder,
-                width = 2,
-                type = 'toggle',
-                name = L["Whether to display only learned or owned items."],
-                set = function(_, val)
-                    itemGroup.extraAttr.displayUnLearned = not val
-                    HbFrame:UpdateEframe(updateFrameConfig)
-                end,
-                get = function(_)
-                    return not itemGroup.extraAttr.displayUnLearned
-                end
-            }
-            elementSettingOrder = elementSettingOrder + 1
-            elementSettingArgs.replaceNameToggle = {
-                order = elementSettingOrder,
-                width = 2,
-                type = 'toggle',
-                name = L["Wheter to use element title to replace item name."],
-                set = function(_, val)
-                    itemGroup.extraAttr.replaceName = val
-                    HbFrame:UpdateEframe(updateFrameConfig)
-                end,
-                get = function(_)
-                    return itemGroup.extraAttr.replaceName == true
-                end
-            }
         end
         if isRoot then
             local positionSettingOrder = 1
@@ -773,26 +752,23 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 }
             end
             displaySettingOrder = displaySettingOrder + 1
-            if ele.type == const.ELEMENT_TYPE.ITEM then
-                local item = E:ToItem(ele)
-                local extraAttr = item.extraAttr
-                displaySettingArgs.replaceNameToggle = {
-                    order = displaySettingOrder,
-                    width = 2,
-                    type = 'toggle',
-                    name = L["Wheter to use element title to replace item name."],
-                    set = function(_, val)
-                        extraAttr.replaceName = val
-                        HbFrame:UpdateEframe(updateFrameConfig)
-                    end,
-                    get = function(_)
-                        return extraAttr.replaceName == true
-                    end
-                }
-                displaySettingOrder = displaySettingOrder + 1
-            end
         end
-
+        if E:IsLeaf(ele) then
+            displaySettingArgs.displayLearnedToggle = {
+                order = displaySettingOrder,
+                width = 2,
+                type = 'toggle',
+                name = L["Whether to display only learned or owned items."],
+                set = function(_, val)
+                    ele.isDisplayUnLearned = not val
+                    HbFrame:UpdateEframe(updateFrameConfig)
+                end,
+                get = function(_)
+                    return not ele.isDisplayUnLearned
+                end
+            }
+        end
+        displaySettingOrder = displaySettingOrder + 1
         -- 文字设置：根元素或者叶子元素可以使用
         if isRoot or E:IsLeaf(ele) then
             local textSettingOrder = 1
@@ -882,6 +858,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 textSettingOrder = textSettingOrder + 1
             end
         end
+
         -- 物品条组、物品条、物品组添加子元素
         if ele.type == const.ELEMENT_TYPE.BAR_GROUP or ele.type == const.ELEMENT_TYPE.BAR or ele.type == const.ELEMENT_TYPE.ITEM_GROUP then
             local addChildrenSettingOrder = 1
@@ -1034,7 +1011,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 type = "group",
                 name = L["Edit Child Elements"],
                 inline = true,
-                order = 5,
+                order = 7,
                 args = editChildrenSettingArgs
             }
             args.editChildrenSetting = editChildrenSettingOptions
@@ -1073,6 +1050,423 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 end
             }
         end
+
+        -- 触发器设置：叶子元素可以使用
+        if E:IsLeaf(ele) then
+            local triggerSettingOrder = 1
+            local triggerSettingArgs = {}
+            local triggerSettingOptions = {
+                type = "group",
+                name = L["Trigger Settings"],
+                inline = true,
+                order = 8,
+                args = triggerSettingArgs
+            }
+            args.triggerSetting = triggerSettingOptions
+            local triggerOptions = {}
+            if ele.triggers then
+                for triggerIndex, _ in ipairs(ele.triggers) do
+                    table.insert(triggerOptions, L["Trigger"] .. triggerIndex)
+                end
+            end
+            if #triggerOptions > 0 then
+                triggerSettingArgs.selectTrigger = {
+                    order = triggerSettingOrder,
+                    width = 1,
+                    type = "select",
+                    name = "",
+                    values = triggerOptions,
+                    set = function(_, val)
+                        ele.configSelectedTriggerIndex = val
+                    end,
+                    get = function() return ele.configSelectedTriggerIndex end
+                }
+                triggerSettingOrder = triggerSettingOrder + 1
+                triggerSettingArgs.deleteTrigger = {
+                    order = triggerSettingOrder,
+                    width = 1,
+                    type = "execute",
+                    name = L["Delete"],
+                    confirm = true,
+                    func = function()
+                        if ele.configSelectedTriggerIndex then
+                            table.remove(ele.triggers, ele.configSelectedTriggerIndex)
+                            if ele.configSelectedTriggerIndex > #ele.triggers then
+                                ele.configSelectedTriggerIndex = #ele.triggers
+                            end
+                            HbFrame:UpdateEframe(updateFrameConfig)
+                            addon:UpdateOptions()
+                        end
+                    end
+                }
+                triggerSettingOrder = triggerSettingOrder + 1
+            end
+            local editTrigger
+            if ele.configSelectedTriggerIndex then
+                editTrigger = ele.triggers[ele.configSelectedTriggerIndex]
+            end
+            if editTrigger then
+                triggerSettingArgs.selectType = {
+                    order = triggerSettingOrder,
+                    width = 2,
+                    type = "select",
+                    name = L["Select Trigger Type"],
+                    values = const.TriggerTypeOptions,
+                    set = function(_, val)
+                        -- 当选择的触发器类型和当前触发器类型不一致的时候，重新设置触发器类型，并且需要删除之前触发器设置的条件和限制
+                        if val ~= editTrigger.type then
+                            editTrigger.type = val
+                            editTrigger.condition = {}
+                            editTrigger.confine = {}
+                        end
+                    end,
+                    get = function() return editTrigger.type end
+                }
+                triggerSettingOrder = triggerSettingOrder + 1
+            end
+            if editTrigger and editTrigger.type == "aura" then
+                local trigger = Trigger:ToAuraTriggerConfig(editTrigger)
+                triggerSettingArgs.selectAuraType = {
+                    order = triggerSettingOrder,
+                    width = 1,
+                    type = "select",
+                    name = L["Select Aura Type"],
+                    values = const.AuraTypeOptions,
+                    set = function(_, val)
+                        trigger.confine.type = val
+                    end,
+                    get = function() return trigger.confine.type end
+                }
+                triggerSettingOrder = triggerSettingOrder + 1
+                triggerSettingArgs.selectAuraTarget = {
+                    order = triggerSettingOrder,
+                    width = 1,
+                    type = "select",
+                    name = L["Select Target"],
+                    values = const.TriggerTargetOptions,
+                    set = function(_, val)
+                        trigger.confine.target = val
+                    end,
+                    get = function() return trigger.confine.target end
+                }
+                triggerSettingOrder = triggerSettingOrder + 1
+                triggerSettingArgs.auraID = {
+                    order = triggerSettingOrder,
+                    width = 1,
+                    type = "input",
+                    name = L["Aura ID"],
+                    validate = function(_, val)
+                        if val == nil or val == "" or val == " " then
+                            return false
+                        end
+                        if tonumber(val) == nil then
+                            return false
+                        end
+                        return true
+                    end,
+                    set = function(_, val)
+                        trigger.confine.spellId = tonumber(val)
+                        HbFrame:UpdateEframe(updateFrameConfig)
+                        addon:UpdateOptions()
+                    end,
+                    get = function()
+                        if trigger.confine.spellId == nil then
+                            return ""
+                        else
+                            return tostring(trigger.confine.spellId)
+                        end
+                    end
+                }
+                triggerSettingOrder = triggerSettingOrder + 1
+                triggerSettingArgs.auraRemainingTime = {
+                    order = triggerSettingOrder,
+                    width = 1,
+                    type = "input",
+                    name = L["Aura Remaining Time"],
+                    validate = function(_, val)
+                        if val == nil or val == "" or val == " " then
+                            return false
+                        end
+                        if tonumber(val) == nil then
+                            return false
+                        end
+                        return true
+                    end,
+                    set = function(_, val)
+                        trigger.condition.remainingTime = tonumber(val)
+                        HbFrame:UpdateEframe(updateFrameConfig)
+                        addon:UpdateOptions()
+                    end,
+                    get = function()
+                        if trigger.condition.remainingTime == nil then
+                            return ""
+                        else
+                            return tostring(trigger.condition.remainingTime)
+                        end
+                    end
+                }
+                triggerSettingOrder = triggerSettingOrder + 1
+            end
+            if editTrigger and editTrigger.type == "self" then
+                local trigger = Trigger:ToSelfTriggerConfig(editTrigger)
+                triggerSettingArgs.selfCount = {
+                    order = triggerSettingOrder,
+                    width = 1,
+                    type = "input",
+                    name = L["Count/Charge"],
+                    validate = function(_, val)
+                        if val == nil or val == "" or val == " " then
+                            return false
+                        end
+                        if tonumber(val) == nil then
+                            return false
+                        end
+                        return true
+                    end,
+                    set = function(_, val)
+                        trigger.condition.count = tonumber(val)
+                        HbFrame:UpdateEframe(updateFrameConfig)
+                        addon:UpdateOptions()
+                    end,
+                    get = function()
+                        if trigger.condition.count == nil then
+                            return ""
+                        else
+                            return tostring(trigger.condition.count)
+                        end
+                    end
+                }
+                triggerSettingOrder = triggerSettingOrder + 1
+                triggerSettingArgs.selfIsLearned = {
+                    order = triggerSettingOrder,
+                    width = 1,
+                    type = "toggle",
+                    name = L["Is Learned"],
+                    set = function(_, val)
+                        trigger.condition.isLearned = val
+                        HbFrame:UpdateEframe(updateFrameConfig)
+                        addon:UpdateOptions()
+                    end,
+                    get = function() return trigger.condition.isLearned end
+                }
+                triggerSettingOrder = triggerSettingOrder + 1
+            end
+            triggerSettingArgs.addTrigger = {
+                order = triggerSettingOrder,
+                width = 2,
+                type = "execute",
+                name = L["New Trigger"],
+                func = function()
+                    local trigger = Trigger:NewSelfTriggerConfig()
+                    if ele.triggers == nil then
+                        ele.triggers = {}
+                    end
+                    table.insert(ele.triggers, trigger)
+                    ele.configSelectedTriggerIndex = #ele.triggers
+                    HbFrame:UpdateEframe(updateFrameConfig)
+                    addon:UpdateOptions()
+                end
+            }
+        end
+
+        -- 触发器条件设置：叶子元素可以使用
+        if E:IsLeaf(ele) then
+            local condSettingOrder = 1
+            local condSettingArgs = {}
+            local condSettingOptions = {
+                type = "group",
+                name = L["Condition Settings"],
+                inline = true,
+                order = 9,
+                args = condSettingArgs
+            }
+            args.condSetting = condSettingOptions
+            local condOptions = {}
+            if ele.conditions then
+                for condIndex, _ in ipairs(ele.conditions) do
+                    table.insert(condOptions, L["Condition"] .. condIndex)
+                end
+            end
+            if #condOptions > 0 then
+                condSettingArgs.selectCondition = {
+                    order = condSettingOrder,
+                    width = 1,
+                    type = "select",
+                    name = "",
+                    values = condOptions,
+                    set = function(_, val)
+                        ele.configSelectedConditionIndex = val
+                    end,
+                    get = function() return ele.configSelectedConditionIndex end
+                }
+                condSettingOrder = condSettingOrder + 1
+                condSettingArgs.deleteCondition = {
+                    order = condSettingOrder,
+                    width = 1,
+                    type = "execute",
+                    name = L["Delete"],
+                    confirm = true,
+                    func = function()
+                        if ele.configSelectedConditionIndex then
+                            table.remove(ele.conditions, ele.configSelectedConditionIndex)
+                            if ele.configSelectedConditionIndex > #ele.conditions then
+                                ele.configSelectedConditionIndex = #ele.conditions
+                            end
+                            HbFrame:UpdateEframe(updateFrameConfig)
+                            addon:UpdateOptions()
+                        end
+                    end
+                }
+                condSettingOrder = condSettingOrder + 1
+            end
+            local editCondtion
+            if ele.configSelectedConditionIndex then
+                editCondtion = ele.conditions[ele.configSelectedConditionIndex]
+            end
+            if editCondtion then
+                local triggerOptions = {}
+                if ele.triggers then
+                    for k, t in ipairs(ele.triggers) do
+                        triggerOptions[t.id] = L["Trigger"] .. tostring(k)
+                    end
+                end
+                condSettingArgs.selectLeftTrigger = {
+                    order = condSettingOrder,
+                    width = 1,
+                    type = "select",
+                    name = L["Left Value Settings"],
+                    values = triggerOptions,
+                    set = function(_, val)
+                        editCondtion.leftTriggerId = val
+                        HbFrame:UpdateEframe(updateFrameConfig)
+                        addon:UpdateOptions()
+                    end,
+                    get = function()
+                        return editCondtion.leftTriggerId
+                    end
+                }
+                condSettingOrder = condSettingOrder + 1
+                local leftValOptions = {}
+                if ele.triggers then
+                    for _, t in ipairs(ele.triggers) do
+                        if t.id == editCondtion.leftTriggerId then
+                            if t.condition then
+                                for condK, condV in pairs(t.condition) do
+                                    if condK ~= nil then
+                                        leftValOptions[condK] = condK
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+                condSettingArgs.leftValue = {
+                    order = condSettingOrder,
+                    width = 1,
+                    type = "select",
+                    name = "",
+                    values = leftValOptions,
+                    set = function(_, val)
+                        editCondtion.leftValue = val
+                        HbFrame:UpdateEframe(updateFrameConfig)
+                        addon:UpdateOptions()
+                    end,
+                    get = function() return editCondtion.leftValue end
+                }
+                condSettingOrder = condSettingOrder + 1
+                -- 获取触发器对于条件设置的值，根据值来获取值的类型：是数字类型还是布尔类型，根据类型来选择右值如何选择。
+                local leftValue = nil
+                if editCondtion.leftValue and editCondtion.leftTriggerId then
+                    if ele.triggers then
+                        for _, t in ipairs(ele.triggers) do
+                            if t.id == editCondtion.leftTriggerId then
+                                if t.condition and t.condition[editCondtion.leftValue] then
+                                    leftValue = t.condition[editCondtion.leftValue]
+                                end
+                                break
+                            end
+                        end
+                    end
+                end
+                if leftValue ~= nil then
+                    condSettingArgs.operate = {
+                        order = condSettingOrder,
+                        width = 1,
+                        type = "select",
+                        name = L["Operate"],
+                        values = const.OperateOptions,
+                        set = function(_, val)
+                            editCondtion.operator = val
+                            HbFrame:UpdateEframe(updateFrameConfig)
+                            addon:UpdateOptions()
+                        end,
+                        get = function() return editCondtion.operator end
+                    }
+                    condSettingOrder = condSettingOrder + 1
+                    if type(leftValue) == "boolean" then
+                        condSettingArgs.rightValue = {
+                            order = condSettingOrder,
+                            width = 1,
+                            type = "select",
+                            name = L["Right Value Settings"] ,
+                            values = const.BooleanOptions,
+                            set = function(_, val)
+                                editCondtion.rightValue = val
+                                HbFrame:UpdateEframe(updateFrameConfig)
+                                addon:UpdateOptions()
+                            end,
+                            get = function() return editCondtion.rightValue end
+                        }
+                    else
+                        condSettingArgs.rightValue = {
+                            order = condSettingOrder,
+                            width = 1,
+                            type = "input",
+                            name = L["Right Value Settings"] ,
+                            validate = function(_, val)
+                                if val == nil or val == "" or val == " " then
+                                    return false
+                                end
+                                if tonumber(val) == nil then
+                                    return false
+                                end
+                                return true
+                            end,
+                            set = function(_, val)
+                                editCondtion.rightValue = tonumber(val)
+                                HbFrame:UpdateEframe(updateFrameConfig)
+                                addon:UpdateOptions()
+                            end,
+                            get = function()
+                                if editCondtion.rightValue == nil then
+                                    return ""
+                                else
+                                    return tostring(editCondtion.rightValue)
+                                end
+                            end
+                        }
+                    end
+                    condSettingOrder = condSettingOrder + 1
+                end
+            end
+            condSettingArgs.addTrigger = {
+                order = condSettingOrder,
+                width = 2,
+                type = "execute",
+                name = L["New Condition"],
+                func = function()
+                    local condition = Condition:New()
+                    if ele.conditions == nil then
+                        ele.conditions = {}
+                    end
+                    table.insert(ele.conditions, condition)
+                    ele.configSelectedConditionIndex = #ele.conditions
+                    HbFrame:UpdateEframe(updateFrameConfig)
+                    addon:UpdateOptions()
+                end
+            }
+        end
+
         -- 物品条和物品条组递归查看子元素
         if ele.type == const.ELEMENT_TYPE.BAR_GROUP or ele.type == const.ELEMENT_TYPE.BAR then
             if ele.elements and #ele.elements then
@@ -1081,6 +1475,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 for k, v in pairs(tmpArgs) do args[k] = v end
             end
         end
+        -- 递归菜单
         local menuName = iconPath .. showTitle
         if not isRoot then
             menuName = "|cff00ff00" .. iconPath .. showTitle .. "|r"
@@ -1278,7 +1673,7 @@ function ConfigOptions.ElementsOptions()
                                 end
                             end
                         else
-                            eleConfig.id = E:GenerateID()
+                            eleConfig.id = U.String.GenerateID()
                         end
                     end
                     if Config.IsTitleDuplicated(eleConfig.title,
