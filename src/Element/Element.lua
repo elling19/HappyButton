@@ -26,7 +26,6 @@ function E:New(title, type)
         id = U.String.GenerateID(),
         isLoad = true,
         isDisplayMouseEnter = false,
-        isDisplayUnLearned = false,
         title = title,
         type = type,
         icon = 134400,
