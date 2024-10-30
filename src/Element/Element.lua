@@ -39,12 +39,41 @@ function E:New(title, type)
         isUseRootTexts = true,
         texts = {},
         configSelectedTextIndex = 1,
-        triggers = {Trigger:NewSelfTriggerConfig(), },
+        triggers = {},
         configSelectedTriggerIndex = 1,
         condGroups = {},
         configSelectedCondGroupIndex = 1,
         configSelectedCondIndex = 1,
     }
+
+    -- 🍃 创建叶子节点时：
+    -- 🍃 默认创建“自身触发器”，并添加上“是否学会为假”的条件，并且添加上“隐藏”的特效
+    -- 🍃 也就是创建物品的时候，当物品不存在或者没有学习的时候，默认不显示
+    if self:IsLeaf(config) then
+        local defaultTriiger = Trigger:NewSelfTriggerConfig()
+          ---@type ConditionConfig
+          local defaultCond = {
+            leftTriggerId = defaultTriiger.id,
+            leftVal = "isLearned",
+            operator = "=",
+            rightValue = false,
+        }
+        ---@type EffectConfig
+        local defaultEffectConfig = {
+            type = "btnHide",
+            attr = {}
+        }
+        ---@type ConditionGroupConfig
+        local defaultCondGroupConfig = {
+            conditions = {
+                defaultCond,
+            },
+            expression = "%cond.1",
+            effects = {defaultEffectConfig, },
+        }
+        config.triggers = {defaultTriiger, }
+        config.condGroups = {defaultCondGroupConfig, }
+    end
     return config
 end
 

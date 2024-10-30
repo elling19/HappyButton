@@ -15,7 +15,6 @@
 ---@field id string
 ---@field isLoad boolean -- 是否启用
 ---@field isDisplayMouseEnter boolean --是否鼠标移入显示
----@field isDisplayUnLearned boolean  -- 未拥有/学习的物品
 ---@field iconWidth number | nil
 ---@field iconHeight number | nil
 ---@field title string

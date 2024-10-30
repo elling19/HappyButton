@@ -21,7 +21,7 @@ local LCG = LibStub("LibCustomGlow-1.0")
 
 ---@class Btn: AceModule
 ---@diagnostic disable-next-line: undefined-doc-name
----@field Button table|Button|SecureActionButtonTemplate|UIPanelButtonTemplate
+---@field Button table|Button|SecureActionButtonTemplate
 ---@field EFrame ElementFrame
 ---@field Icon Texture  -- 图标纹理
 ---@field Texts FontString[] -- 文字提示
@@ -41,7 +41,7 @@ function Btn:New(eFrame, barIndex, cbIndex)
     local bar = eFrame.Bars[barIndex]
     local obj = setmetatable({}, { __index = self })
     obj.EFrame = eFrame
-    obj.Button = CreateFrame("Button", ("Button-%s-%s-%s"):format(eFrame.Config.id, barIndex, cbIndex), bar.BarFrame, "SecureActionButtonTemplate, UIPanelButtonTemplate")
+    obj.Button = CreateFrame("Button", ("Button-%s-%s-%s"):format(eFrame.Config.id, barIndex, cbIndex), bar.BarFrame, "SecureActionButtonTemplate")
     obj.Button:SetSize(eFrame.IconWidth, eFrame.IconHeight)
     obj.IsOpenGlow = false
     Btn.CreateIcon(obj)

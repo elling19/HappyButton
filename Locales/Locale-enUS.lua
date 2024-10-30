@@ -31,7 +31,6 @@ L["Import Configuration"] = true
 L["Configuration string"] = true
 L["Whether to overwrite the existing configuration."]= true
 L["Import failed: Invalid configuration string."] = true
-L["Whether to display only learned or owned items."] = true
 L["Wheter to use element title to replace item name."] = true
 L["Add Item"] = true
 L["Item Type"] = true
