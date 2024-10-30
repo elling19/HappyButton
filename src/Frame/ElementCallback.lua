@@ -7,9 +7,6 @@ local E = addon:GetModule("Element")
 ---@class Item: AceModule
 local Item = addon:GetModule("Item")
 
----@class ElementCallback: AceModule
-local ECB = addon:NewModule("ElementCallback")
-
 ---@class Utils: AceModule
 local U = addon:GetModule('Utils')
 
@@ -18,15 +15,29 @@ local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 ---@class CONST: AceModule
 local const = addon:GetModule('CONST')
 
+---@class Trigger: AceModule
+local Trigger = addon:GetModule("Trigger")
+
+---@class Condition: AceModule
+local Condition = addon:GetModule("Condition")
+
+---@class Effect: AceModule
+local Effect = addon:GetModule("Effect")
+
+
+---@class ElementCallback: AceModule
+local ECB = addon:NewModule("ElementCallback")
+
 ---@class CbResult
 ---@field icon string | number
 ---@field text string
 ---@field borderColor RGBAColor | nil
----@field isLearnd boolean | nil 是否学习或者拥有
+---@field isLearned boolean | nil 是否学习或者拥有
 ---@field isUsable boolean | nil 是否可以使用
 ---@field count number | nil 物品堆叠数量|技能充能次数
 ---@field item ItemAttr | nil
 ---@field macro string | nil
+---@field effects EffectConfig[] | nil
 ---@field leftClickCallback function | nil
 local CbResult = {}
 
@@ -181,7 +192,7 @@ function ECB:NilCallback()
     return {
         icon = 134400,
         text = "",
-        isLearnd = false,
+        isLearned = false,
         isUsable = false,
         count = 0,
         item = nil,
@@ -195,11 +206,11 @@ end
 ---@param cbResult CbResult
 function ECB:Compatible(cbResult)
     -- 更新物品是否已经学习
-    if cbResult.isLearnd == nil then
+    if cbResult.isLearned == nil then
         if cbResult.item then
-            cbResult.isLearnd = Item:IsLearned(cbResult.item.id, cbResult.item.type)
+            cbResult.isLearned = Item:IsLearned(cbResult.item.id, cbResult.item.type)
         else
-            cbResult.isLearnd = false
+            cbResult.isLearned = false
         end
     end
     -- 更新物品是否可以使用
@@ -235,6 +246,69 @@ function ECB:Compatible(cbResult)
         end
         if cbResult.borderColor == nil then
             cbResult.borderColor = const.DefaultItemColor
+        end
+    end
+end
+
+
+-- 对cbResult进行触发器处理
+---@param eleConfig ElementConfig
+---@param cbResult CbResult
+function ECB:UseTrigger(eleConfig, cbResult)
+    if not eleConfig.triggers or #eleConfig.triggers == 0 then
+        return
+    end
+    if not eleConfig.condGroups or #eleConfig.condGroups == 0 then
+        return
+    end
+    local triggers = {} ---@type table<string, TriggerConfig>
+    for _, trigger in ipairs(eleConfig.triggers) do
+        triggers[trigger.id] = trigger
+    end
+    for _, condGroup in ipairs(eleConfig.condGroups) do
+        if condGroup.effects and #condGroup.effects > 0 and condGroup.conditions and #condGroup.conditions and condGroup.expression then
+            local condResults = {} ---@type boolean[]
+            for _, cond in ipairs(condGroup.conditions) do
+                local condResult = false ---@type boolean
+                if cond.leftTriggerId and cond.leftVal and triggers[cond.leftTriggerId] then
+                    local leftTrigger = triggers[cond.leftTriggerId] ---@type TriggerConfig
+                    if leftTrigger.type == "self" then
+                        local leftValue = cbResult[cond.leftVal]
+                        if type(cond.rightValue) == "number" or type(cond.rightValue) == "boolean" then
+                            -- 判断条件返回真/假
+                            ---@diagnostic disable-next-line: param-type-mismatch
+                            local r = Condition:ExecOperator(leftValue, cond.operator, cond.rightValue)
+                            if r:is_ok() then
+                                condResult = r:unwrap()
+                            end
+                        end
+                    end
+                    if leftTrigger.type == "aura" then
+                        condResult = true
+                    end
+                end
+                table.insert(condResults, condResult)
+            end
+            -- 判断条件组返回真/假
+            local condGroupR = Condition:ExecExpression(condResults, condGroup.expression)
+            if condGroupR then
+                if cbResult.effects == nil then
+                    cbResult.effects = {}
+                    for _, effect in ipairs(condGroup.effects) do
+                        -- 判断是否有相同的效果，如果有则无须重复添加
+                        local hasSame = false
+                        for _, _effect in ipairs(cbResult.effects) do
+                            if _effect.type == effect.type then
+                                hasSame = true
+                                break
+                            end
+                        end
+                        if hasSame == false then
+                            table.insert(cbResult.effects, effect)
+                        end
+                    end
+                end
+            end
         end
     end
 end

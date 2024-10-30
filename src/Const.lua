@@ -260,13 +260,13 @@ const.OperateOptions = {
 ---@class CondExpressionOptions
 ---@type table<CondExpr, string>
 const.CondExpressionOptions = {
-    [11] = L["Cond1"],
-    [21] = L["Cond1 and Cond2"],
-    [22] = L["Cond1 or Cond2"],
-    [31] = L["Cond1 and Cond2 and Cond3"],
-    [32] = L["Cond1 or Cond2 or Cond3"],
-    [33] = L["(Cond1 and Cond2) or Cond3"],
-    [34] = L["(Cond1 or Cond2) and Cond3"],
+    ["%cond.1"] = L["Cond1"],
+    ["%cond.1 and %cond.2"] = L["Cond1 and Cond2"],
+    ["%cond.1 or %cond.2"] = L["Cond1 or Cond2"],
+    ["%cond.1 and %cond.2 and %cond.3"] = L["Cond1 and Cond2 and Cond3"],
+    ["%cond.1 or %cond.2 or %cond.3"] = L["Cond1 or Cond2 or Cond3"],
+    ["(%cond.1 and %cond.2) or %cond.3"] = L["(Cond1 and Cond2) or Cond3"],
+    ["(%cond.1 or %cond.2) and %cond.3"] = L["(Cond1 or Cond2) and Cond3"],
 }
 
 -- 布尔类型选择器

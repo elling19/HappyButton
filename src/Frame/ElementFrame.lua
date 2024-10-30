@@ -247,6 +247,7 @@ function ElementFrame:Update()
                 cb.r = cb.f(cb.p, cb.r)
                 for _, r in ipairs(cb.r) do
                     ECB:Compatible(r)
+                    ECB:UseTrigger(cb.p, r)
                     local cbInfo = { p = cb.p, f = cb.f, r = { r, } } ---@type ElementCbInfo
                     table.insert(cbInfos, cbInfo)
                 end

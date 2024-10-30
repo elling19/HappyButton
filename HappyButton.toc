@@ -21,6 +21,7 @@ Main.lua
 Src\Const.lua
 Src\Result.lua
 Src\Utils.lua
+Src\Client.lua
 Src\Trigger\TriggerConfig.lua
 Src\Trigger\Trigger.lua
 Src\Trigger\EffectConfig.lua

@@ -43,6 +43,7 @@ end
 
 
 -- 根据触发器类型获取触发器条件列表
+-- ！！！返回列表的key值务必在ElementCallback函数的返回值中！！！
 ---@param triggerType TriggerType
 ---@return table<string, type>
 function Trigger:GetConditions(triggerType)

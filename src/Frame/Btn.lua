@@ -12,6 +12,13 @@ local U = addon:GetModule('Utils')
 ---@class Item: AceModule
 local Item = addon:GetModule("Item")
 
+---@class Client: AceModule
+local Client = addon:GetModule("Client")
+
+---@type LibCustomGlow
+---@diagnostic disable-next-line: assign-type-mismatch
+local LCG = LibStub("LibCustomGlow-1.0")
+
 ---@class Btn: AceModule
 ---@diagnostic disable-next-line: undefined-doc-name
 ---@field Button table|Button|SecureActionButtonTemplate|UIPanelButtonTemplate
@@ -23,6 +30,7 @@ local Item = addon:GetModule("Item")
 ---@field Border table | Frame -- 边框
 ---@field CbResult CbResult
 ---@field LeafConfig ElementConfig
+---@field IsOpenGlow boolean  是否开启发光
 local Btn = addon:NewModule("Btn")
 
 ---@param eFrame ElementFrame
@@ -35,6 +43,7 @@ function Btn:New(eFrame, barIndex, cbIndex)
     obj.EFrame = eFrame
     obj.Button = CreateFrame("Button", ("Button-%s-%s-%s"):format(eFrame.Config.id, barIndex, cbIndex), bar.BarFrame, "SecureActionButtonTemplate, UIPanelButtonTemplate")
     obj.Button:SetSize(eFrame.IconWidth, eFrame.IconHeight)
+    obj.IsOpenGlow = false
     Btn.CreateIcon(obj)
     Btn.CreateBorder(obj)
 
@@ -86,8 +95,7 @@ function Btn:New(eFrame, barIndex, cbIndex)
         obj.Button:GetPushedTexture():SetVertexColor(1, 1, 1, 0.5)
     end
 
-
-    -- local LCG = LibStub("LibCustomGlow-1.0")
+    -- 
     -- obj.Button:SetScript("OnEnter", function(btn)
     --     local glowColor = {0, 1, 0, 1}  -- 绿色
     --     local glowFrequency = 0.5  -- 每秒发光频率
@@ -140,6 +148,7 @@ function Btn:Update(config, cbResult)
         self:SetScriptEvent()
     end
     self:UpdateTexts()
+    self:UpdateEffects()
 end
 
 -- 创建图标Icon
@@ -190,7 +199,7 @@ function Btn:UpdateTexts()
                 end
             end
             -- 如果没有学习这个技能，则将文字改成灰色半透明
-            if self.CbResult.isLearnd == false then
+            if self.CbResult.isLearned == false then
                 tString:SetTextColor(0.8, 0.8, 0.8)
             else
                 tString:SetTextColor(1, 1, 1)
@@ -210,6 +219,49 @@ function Btn:UpdateTexts()
             local tString = self.Texts[i]
             tString:SetParent(nil)
             self.Texts[i] = nil
+        end
+    end
+end
+
+-- 更新效果
+function Btn:UpdateEffects()
+    local effects = {} ---@type table<EffectType, EffectConfig>
+    if self.CbResult.effects then
+        for _, effect in ipairs(self.CbResult.effects) do
+            effects[effect.type] = effect
+        end
+    end
+    if effects["btnDesaturate"] then
+        self.Icon:SetAlpha(0.5)
+    else
+        self.Icon:SetAlpha(1)
+    end
+    if effects["btnHide"] then
+        self.Button:SetEnabled(false)
+        self.Button:SetAlpha(0)
+    else
+        self.Button:SetEnabled(true)
+        self.Button:SetAlpha(1)
+    end
+    if effects["borderGlow"] then
+        if Client:IsRetail() then
+            if self.IsOpenGlow == false then
+                LCG.ProcGlow_Start(self.Button, {})
+                self.IsOpenGlow = true
+            end
+        else
+            if self.IsOpenGlow == false then
+                LCG.ButtonGlow_Start(self.Button, {1, 1, 0, 1}, 0.5)
+                self.IsOpenGlow = true
+            end
+        end
+    else
+        if Client:IsRetail() then
+            LCG.ProcGlow_Stop(self.Button)
+            self.IsOpenGlow = false
+        else
+            LCG.ButtonGlow_Stop(self.Button)
+            self.IsOpenGlow = false
         end
     end
 end
@@ -251,14 +303,6 @@ function Btn:SetIcon()
         self.Icon:SetTexture(r.icon)
     else
         self.Icon:SetTexture(134400)
-    end
-    -- 如果没有学习这个技能，则将图标改成灰色半透明
-    if self.CbResult.isLearnd == false then
-        self.Button:SetEnabled(false)
-        self.Button:SetAlpha(0.8)
-    else
-        self.Button:SetEnabled(true)
-        self.Button:SetAlpha(1)
     end
     -- 设置物品边框
     if self.CbResult.borderColor then
@@ -398,13 +442,13 @@ function Btn:SetMouseEvent()
 end
 
 function Btn:Delete()
+    self.Button:Hide()
+    self.Button:ClearAllPoints()
     self.Border:Hide()
     self.Border:ClearAllPoints()
     self.Border = nil
     self.Icon = nil
     self.Text = nil
     self.Cooldown = nil
-    self.Button:Hide()
-    self.Button:ClearAllPoints()
     self.Button = nil
 end
