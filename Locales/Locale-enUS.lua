@@ -19,6 +19,7 @@ L["Items Bar"] = true
 L["Default"] = true
 L["Title"] = true
 L["Icon"] = true
+L["New"] = true
 L["Delete"] = true
 L["Mode"] = true
 L["Select items to display"] = true
@@ -162,8 +163,11 @@ L["Target"] = true
 L["Buff"] = true
 L["Debuff"] = true
 
+L["Condition Group Settings"] = true
 L["Condition Settings"] = true
+L["Condition Group"] = true
 L["Condition"] = true
+L["New Condition Group"] = true
 L["New Condition"] = true
 L["No Trigger"] = true
 L["Left Value Settings"] = true
@@ -171,3 +175,25 @@ L["Operate"] = true
 L["Right Value Settings"] = true
 L["True"] = true
 L["False"] = true
+L["Expression Settings"] = true
+L["Effect Settings"] = true
+
+-- 触发器表达式
+L["Cond1"] = true
+L["Cond1 and Cond2"] = true
+L["Cond1 or Cond2"] = true
+L["Cond1 and Cond2 and Cond3"] = true
+L["Cond1 or Cond2 or Cond3"] = true
+L["(Cond1 and Cond2) or Cond3"] = true
+L["(Cond1 or Cond2) and Cond3"] = true
+
+
+-- 触发器条件列表
+L["count"] = "Count"
+L["isLearned"] = "Is Learned"
+L["remainingTime"] = "Remaining Time"
+
+-- 触发器效果
+L["Border Glow"] = true
+L["Btn Hide"] = true
+L["Btn Desaturate"] = true

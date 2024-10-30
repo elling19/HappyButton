@@ -23,6 +23,8 @@ Src\Result.lua
 Src\Utils.lua
 Src\Trigger\TriggerConfig.lua
 Src\Trigger\Trigger.lua
+Src\Trigger\EffectConfig.lua
+Src\Trigger\Effect.lua
 Src\Trigger\ConditionConfig.lua
 Src\Trigger\Condition.lua
 Src\Element\TextConfig.lua

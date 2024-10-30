@@ -35,8 +35,9 @@
 ---@field configSelectedTextIndex number -- 编辑文本的时候选中的下标
 ---@field triggers TriggerConfig[]  -- 触发器设置
 ---@field configSelectedTriggerIndex number -- 编辑触发器的时候选中的下标
----@field conditions ConditionConfig[]  -- 触发器条件
----@field configSelectedConditionIndex number -- 编辑条件设置的时候选中的下标
+---@field condGroups ConditionGroupConfig[]  -- 触发器条件组
+---@field configSelectedCondGroupIndex number -- 编辑条件设置的时候选中的下标
+---@field configSelectedCondIndex number
 local ElementConfig = {}
 
 

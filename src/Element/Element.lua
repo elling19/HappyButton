@@ -41,8 +41,9 @@ function E:New(title, type)
         configSelectedTextIndex = 1,
         triggers = {Trigger:NewSelfTriggerConfig(), },
         configSelectedTriggerIndex = 1,
-        conditions = {},
-        configSelectedConditionIndex = 1,
+        condGroups = {},
+        configSelectedCondGroupIndex = 1,
+        configSelectedCondIndex = 1,
     }
     return config
 end

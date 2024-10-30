@@ -26,6 +26,9 @@ local Trigger = addon:GetModule("Trigger")
 ---@class Condition: AceModule
 local Condition = addon:GetModule("Condition")
 
+---@class Effect: AceModule
+local Effect = addon:GetModule("Effect")
+
 ---@class Utils: AceModule
 local U = addon:GetModule('Utils')
 
@@ -1084,7 +1087,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 triggerSettingOrder = triggerSettingOrder + 1
                 triggerSettingArgs.deleteTrigger = {
                     order = triggerSettingOrder,
-                    width = 1,
+                    width = 0.5,
                     type = "execute",
                     name = L["Delete"],
                     confirm = true,
@@ -1101,6 +1104,23 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 }
                 triggerSettingOrder = triggerSettingOrder + 1
             end
+            triggerSettingArgs.addTrigger = {
+                order = triggerSettingOrder,
+                width = 0.5,
+                type = "execute",
+                name = L["New"],
+                func = function()
+                    local trigger = Trigger:NewSelfTriggerConfig()
+                    if ele.triggers == nil then
+                        ele.triggers = {}
+                    end
+                    table.insert(ele.triggers, trigger)
+                    ele.configSelectedTriggerIndex = #ele.triggers
+                    HbFrame:UpdateEframe(updateFrameConfig)
+                    addon:UpdateOptions()
+                end
+            }
+            triggerSettingOrder = triggerSettingOrder + 1
             local editTrigger
             if ele.configSelectedTriggerIndex then
                 editTrigger = ele.triggers[ele.configSelectedTriggerIndex]
@@ -1182,208 +1202,414 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             if editTrigger and editTrigger.type == "self" then
                 local trigger = Trigger:ToSelfTriggerConfig(editTrigger)
             end
-            triggerSettingArgs.addTrigger = {
-                order = triggerSettingOrder,
-                width = 2,
-                type = "execute",
-                name = L["New Trigger"],
-                func = function()
-                    local trigger = Trigger:NewSelfTriggerConfig()
-                    if ele.triggers == nil then
-                        ele.triggers = {}
-                    end
-                    table.insert(ele.triggers, trigger)
-                    ele.configSelectedTriggerIndex = #ele.triggers
-                    HbFrame:UpdateEframe(updateFrameConfig)
-                    addon:UpdateOptions()
-                end
-            }
         end
-
+        
         -- 触发器条件设置：叶子元素可以使用
         if E:IsLeaf(ele) then
-            local condSettingOrder = 1
-            local condSettingArgs = {}
-            local condSettingOptions = {
+            local condGroupSettingOrder = 1
+            local condGroupSettingArgs = {}
+            local condGroupSettingOptions = {
                 type = "group",
-                name = L["Condition Settings"],
+                name = L["Condition Group Settings"],
                 inline = true,
                 order = 9,
-                args = condSettingArgs
+                args = condGroupSettingArgs
             }
-            args.condSetting = condSettingOptions
-            local condOptions = {}
-            if ele.conditions then
-                for condIndex, _ in ipairs(ele.conditions) do
-                    table.insert(condOptions, L["Condition"] .. condIndex)
+            args.condGroupSetting = condGroupSettingOptions
+            local triggerOptions = {}
+            if ele.triggers and #ele.triggers > 0 then
+                for k, t in ipairs(ele.triggers) do
+                    if t and t.id then
+                        triggerOptions[t.id] = L["Trigger"] .. tostring(k)
+                    end
                 end
             end
-            if #condOptions > 0 then
-                condSettingArgs.selectCondition = {
-                    order = condSettingOrder,
+            local condGroupOptions = {}
+            if ele.condGroups then
+                for condIndex, _ in ipairs(ele.condGroups) do
+                    table.insert(condGroupOptions, L["Condition Group"] .. condIndex)
+                end
+            end
+            if #condGroupOptions > 0 then
+                condGroupSettingArgs.selectCondGroup = {
+                    order = condGroupSettingOrder,
                     width = 1,
                     type = "select",
                     name = "",
-                    values = condOptions,
+                    values = condGroupOptions,
                     set = function(_, val)
-                        ele.configSelectedConditionIndex = val
+                        ele.configSelectedCondGroupIndex = val
                     end,
-                    get = function() return ele.configSelectedConditionIndex end
+                    get = function() return ele.configSelectedCondGroupIndex end
                 }
-                condSettingOrder = condSettingOrder + 1
-                condSettingArgs.deleteCondition = {
-                    order = condSettingOrder,
-                    width = 1,
+                condGroupSettingOrder = condGroupSettingOrder + 1
+                condGroupSettingArgs.deleteCondGroup = {
+                    order = condGroupSettingOrder,
+                    width = 0.5,
                     type = "execute",
                     name = L["Delete"],
                     confirm = true,
                     func = function()
-                        if ele.configSelectedConditionIndex then
-                            table.remove(ele.conditions, ele.configSelectedConditionIndex)
-                            if ele.configSelectedConditionIndex > #ele.conditions then
-                                ele.configSelectedConditionIndex = #ele.conditions
+                        if ele.configSelectedCondGroupIndex then
+                            table.remove(ele.condGroups, ele.configSelectedCondGroupIndex)
+                            if ele.configSelectedCondGroupIndex > #ele.condGroups then
+                                ele.configSelectedCondGroupIndex = #ele.condGroups
                             end
                             HbFrame:UpdateEframe(updateFrameConfig)
                             addon:UpdateOptions()
                         end
                     end
                 }
-                condSettingOrder = condSettingOrder + 1
+                condGroupSettingOrder = condGroupSettingOrder + 1
             end
-            local editCondtion
-            if ele.configSelectedConditionIndex then
-                editCondtion = ele.conditions[ele.configSelectedConditionIndex]
-            end
-            if editCondtion then
-                local triggerOptions = {}
-                if ele.triggers then
-                    for k, t in ipairs(ele.triggers) do
-                        triggerOptions[t.id] = L["Trigger"] .. tostring(k)
-                    end
-                end
-                condSettingArgs.selectLeftTrigger = {
-                    order = condSettingOrder,
-                    width = 1,
-                    type = "select",
-                    name = L["Left Value Settings"],
-                    values = triggerOptions,
-                    set = function(_, val)
-                        editCondtion.leftTriggerId = val
-                        HbFrame:UpdateEframe(updateFrameConfig)
-                        addon:UpdateOptions()
-                    end,
-                    get = function()
-                        return editCondtion.leftTriggerId
-                    end
-                }
-                condSettingOrder = condSettingOrder + 1
-                local leftValOptions = {}
-                if ele.triggers then
-                    for _, t in ipairs(ele.triggers) do
-                        if t.id == editCondtion.leftTriggerId then
-                            if t.type then
-                                leftValOptions = Trigger:GetConditions(t.type)
-                            end
-                        end
-                    end
-                end
-                condSettingArgs.leftVal = {
-                    order = condSettingOrder,
-                    width = 1,
-                    type = "select",
-                    name = "",
-                    values = leftValOptions,
-                    set = function(_, val)
-                        editCondtion.leftVal = val
-                        HbFrame:UpdateEframe(updateFrameConfig)
-                        addon:UpdateOptions()
-                    end,
-                    get = function() return editCondtion.leftVal end
-                }
-                condSettingOrder = condSettingOrder + 1
-                -- 获取触发器对于条件设置的值，根据值来获取值的类型：是数字类型还是布尔类型，根据类型来选择右值如何选择。
-                local leftValType = nil
-                if leftValOptions and leftValOptions[editCondtion.leftVal] then
-                    ---@type type
-                    leftValType = leftValOptions[editCondtion.leftVal]
-                end
-                if leftValType ~= nil then
-                    condSettingArgs.operate = {
-                        order = condSettingOrder,
-                        width = 1,
-                        type = "select",
-                        name = L["Operate"],
-                        values = const.OperateOptions,
-                        set = function(_, val)
-                            editCondtion.operator = val
-                            HbFrame:UpdateEframe(updateFrameConfig)
-                            addon:UpdateOptions()
-                        end,
-                        get = function() return editCondtion.operator end
-                    }
-                    condSettingOrder = condSettingOrder + 1
-                    if leftValType == "boolean" then
-                        condSettingArgs.rightValue = {
-                            order = condSettingOrder,
-                            width = 1,
-                            type = "select",
-                            name = L["Right Value Settings"] ,
-                            values = const.BooleanOptions,
-                            set = function(_, val)
-                                editCondtion.rightValue = val
-                                HbFrame:UpdateEframe(updateFrameConfig)
-                                addon:UpdateOptions()
-                            end,
-                            get = function() return editCondtion.rightValue end
-                        }
-                    else
-                        condSettingArgs.rightValue = {
-                            order = condSettingOrder,
-                            width = 1,
-                            type = "input",
-                            name = L["Right Value Settings"] ,
-                            validate = function(_, val)
-                                if val == nil or val == "" or val == " " then
-                                    return false
-                                end
-                                if tonumber(val) == nil then
-                                    return false
-                                end
-                                return true
-                            end,
-                            set = function(_, val)
-                                editCondtion.rightValue = tonumber(val)
-                                HbFrame:UpdateEframe(updateFrameConfig)
-                                addon:UpdateOptions()
-                            end,
-                            get = function()
-                                if editCondtion.rightValue == nil then
-                                    return ""
-                                else
-                                    return tostring(editCondtion.rightValue)
-                                end
-                            end
-                        }
-                    end
-                    condSettingOrder = condSettingOrder + 1
-                end
-            end
-            condSettingArgs.addCondition = {
-                order = condSettingOrder,
-                width = 2,
+            condGroupSettingArgs.addCondGroup = {
+                order = condGroupSettingOrder,
+                width = 0.5,
                 type = "execute",
-                name = L["New Condition"],
+                name = L["New"],
                 func = function()
-                    local condition = Condition:New()
-                    if ele.conditions == nil then
-                        ele.conditions = {}
+                    local conditionGroup = Condition:NewGroup()
+                    if ele.condGroups == nil then
+                        ele.condGroups = {}
                     end
-                    table.insert(ele.conditions, condition)
-                    ele.configSelectedConditionIndex = #ele.conditions
+                    table.insert(ele.condGroups, conditionGroup)
+                    ele.configSelectedCondGroupIndex = #ele.condGroups
                     HbFrame:UpdateEframe(updateFrameConfig)
                     addon:UpdateOptions()
                 end
             }
+            condGroupSettingOrder = condGroupSettingOrder + 1
+            local editCondGroup
+            if ele.configSelectedCondGroupIndex then
+                editCondGroup = ele.condGroups[ele.configSelectedCondGroupIndex]
+            end
+            if editCondGroup then
+                local condSettingOrder = 1
+                local condSettingArgs = {}
+                local condSettingOptions = {
+                    type = "group",
+                    name = L["Condition Settings"],
+                    inline = true,
+                    order = condGroupSettingOrder,
+                    args = condSettingArgs
+                }
+                condGroupSettingArgs.condSetting = condSettingOptions
+                condGroupSettingOrder = condGroupSettingOrder + 1
+                local editConds = editCondGroup.conditions
+                if editConds and #editConds > 0 then
+                    local condOptions = {}
+                    for condIndex, _ in ipairs(editConds) do
+                        table.insert(condOptions, L["Condition"] .. condIndex)
+                    end
+                    condSettingArgs.selectCond = {
+                        order = condSettingOrder,
+                        width = 1,
+                        type = "select",
+                        name = "",
+                        values = condOptions,
+                        set = function(_, val)
+                            ele.configSelectedCondIndex = val
+                        end,
+                        get = function() return ele.configSelectedCondIndex end
+                    }
+                    condSettingOrder = condSettingOrder + 1
+                    condSettingArgs.deleteCond = {
+                        order = condSettingOrder,
+                        width = 0.5,
+                        type = "execute",
+                        name = L["Delete"],
+                        confirm = true,
+                        func = function()
+                            if ele.configSelectedCondIndex then
+                                table.remove(editConds, ele.configSelectedCondIndex)
+                                if ele.configSelectedCondIndex > #editConds then
+                                    ele.configSelectedCondIndex = #editConds
+                                end
+                                HbFrame:UpdateEframe(updateFrameConfig)
+                                addon:UpdateOptions()
+                            end
+                        end
+                    }
+                    condSettingArgs.addCond = {
+                        order = condSettingOrder,
+                        width = 0.5,
+                        type = "execute",
+                        name = L["New"],
+                        disabled = function ()
+                            return #editConds >= 3
+                        end,
+                        func = function()
+                            local condition = Condition:NewCondition()
+                            if editConds == nil then
+                                editConds = {}
+                            end
+                            table.insert(editConds, condition)
+                            ele.configSelectedCondIndex = #editConds
+                            HbFrame:UpdateEframe(updateFrameConfig)
+                            addon:UpdateOptions()
+                        end
+                    }
+                    condSettingOrder = condSettingOrder + 1
+                    local editCond
+                    if ele.configSelectedCondIndex then
+                        editCond = editConds[ele.configSelectedCondIndex]
+                    end
+                    if editCond then
+                        condSettingArgs.selectLeftTrigger = {
+                            order = condSettingOrder,
+                            width = 1,
+                            type = "select",
+                            name = L["Left Value Settings"],
+                            values = triggerOptions,
+                            set = function(_, val)
+                                editCond.leftTriggerId = val
+                                HbFrame:UpdateEframe(updateFrameConfig)
+                                addon:UpdateOptions()
+                            end,
+                            get = function()
+                                return editCond.leftTriggerId
+                            end
+                        }
+                        condSettingOrder = condSettingOrder + 1
+                        local leftValOptions = {}
+                        local leftValTypes = {}
+                        if ele.triggers then
+                            for _, t in ipairs(ele.triggers) do
+                                if t.id == editCond.leftTriggerId then
+                                    if t.type then
+                                        leftValTypes = Trigger:GetConditions(t.type)
+                                        leftValOptions = Trigger:GetConditionsOptions(t.type)
+                                    end
+                                end
+                            end
+                        end
+                        condSettingArgs.leftVal = {
+                            order = condSettingOrder,
+                            width = 1,
+                            type = "select",
+                            name = "",
+                            values = leftValOptions,
+                            set = function(_, val)
+                                editCond.leftVal = val
+                                HbFrame:UpdateEframe(updateFrameConfig)
+                                addon:UpdateOptions()
+                            end,
+                            get = function() return editCond.leftVal end
+                        }
+                        condSettingOrder = condSettingOrder + 1
+                        condSettingArgs.operate = {
+                            order = condSettingOrder,
+                            width = 1,
+                            type = "select",
+                            name = L["Operate"],
+                            values = const.OperateOptions,
+                            set = function(_, val)
+                                editCond.operator = val
+                                HbFrame:UpdateEframe(updateFrameConfig)
+                                addon:UpdateOptions()
+                            end,
+                            get = function() return editCond.operator end
+                        }
+                        condSettingOrder = condSettingOrder + 1
+                        -- 获取触发器对于条件设置的值，根据值来获取值的类型：是数字类型还是布尔类型，根据类型来选择右值如何选择。
+                        local leftValType = nil
+                        if leftValTypes and leftValTypes[editCond.leftVal] then
+                            ---@type type
+                            leftValType = leftValTypes[editCond.leftVal]
+                        end
+                        if leftValType == "boolean" then
+                            condSettingArgs.rightValue = {
+                                order = condSettingOrder,
+                                width = 1,
+                                type = "select",
+                                name = L["Right Value Settings"] ,
+                                values = const.BooleanOptions,
+                                set = function(_, val)
+                                    editCond.rightValue = val
+                                    HbFrame:UpdateEframe(updateFrameConfig)
+                                    addon:UpdateOptions()
+                                end,
+                                get = function() return editCond.rightValue end
+                            }
+                        else
+                            condSettingArgs.rightValue = {
+                                order = condSettingOrder,
+                                width = 1,
+                                type = "input",
+                                name = L["Right Value Settings"] ,
+                                validate = function(_, val)
+                                    if val == nil or val == "" or val == " " then
+                                        return false
+                                    end
+                                    if tonumber(val) == nil then
+                                        return false
+                                    end
+                                    return true
+                                end,
+                                set = function(_, val)
+                                    editCond.rightValue = tonumber(val)
+                                    HbFrame:UpdateEframe(updateFrameConfig)
+                                    addon:UpdateOptions()
+                                end,
+                                get = function()
+                                    if editCond.rightValue == nil then
+                                        return ""
+                                    else
+                                        return tostring(editCond.rightValue)
+                                    end
+                                end
+                            }
+                        end
+                        condSettingOrder = condSettingOrder + 1
+                    end
+                else
+                    condSettingArgs.addCond = {
+                        order = condSettingOrder,
+                        width = 0.5,
+                        type = "execute",
+                        name = L["New"],
+                        disabled = function ()
+                            return #editConds >= 3
+                        end,
+                        func = function()
+                            local condition = Condition:NewCondition()
+                            if editConds == nil then
+                                editConds = {}
+                            end
+                            table.insert(editConds, condition)
+                            ele.configSelectedCondIndex = #editConds
+                            HbFrame:UpdateEframe(updateFrameConfig)
+                            addon:UpdateOptions()
+                        end
+                    }
+                    condSettingOrder = condSettingOrder + 1
+                end
+                --[[
+                表达式设置
+                ]]
+                local exprSettingOptions = {
+                    type = "group",
+                    name = L["Expression Settings"],
+                    inline = true,
+                    order = condGroupSettingOrder,
+                    args = {
+                        expr = {
+                            order = condSettingOrder,
+                            width = 2,
+                            type = "select",
+                            name = "",
+                            values = const.CondExpressionOptions,
+                            set = function(_, val)
+                                editCondGroup.expression = val
+                            end,
+                            get = function() return editCondGroup.expression end
+                        }
+                    }
+                }
+                condGroupSettingArgs.exprSetting = exprSettingOptions
+                condGroupSettingOrder = condGroupSettingOrder + 1
+                
+                --[[
+                效果设置：目前只支持边框发光效果、图标褪色效果、隐藏图标
+                ]]
+                local effectSettingOptions = {
+                    type = "group",
+                    name = L["Effect Settings"],
+                    inline = true,
+                    order = condGroupSettingOrder,
+                    args = {
+                        borderGlow = {
+                            order = 1,
+                            width = 1,
+                            type = 'toggle',
+                            name = L["Border Glow"],
+                            set = function(_, _)
+                                if editCondGroup.effects == nil then
+                                    editCondGroup.effects = {}
+                                end
+                                for effectIndex, effect in ipairs(editCondGroup.effects) do
+                                    if effect.type == "borderGlow" then
+                                        table.remove(editCondGroup.effects, effectIndex)
+                                        return
+                                    end
+                                end
+                                table.insert(editCondGroup.effects, Effect:NewBorderGlowEffect())
+                            end,
+                            get = function(_)
+                                if editCondGroup.effects == nil or #editCondGroup.effects == 0 then
+                                    return false
+                                end
+                                for _, effect in ipairs(editCondGroup.effects) do
+                                    if effect.type == "borderGlow" then
+                                        return true
+                                    end
+                                end
+                                return false
+                            end
+                        },
+                        btnHide = {
+                            order = 2,
+                            width = 1,
+                            type = 'toggle',
+                            name = L["Btn Hide"] ,
+                            set = function(_, _)
+                                if editCondGroup.effects == nil then
+                                    editCondGroup.effects = {}
+                                end
+                                for effectIndex, effect in ipairs(editCondGroup.effects) do
+                                    if effect.type == "btnHide" then
+                                        table.remove(editCondGroup.effects, effectIndex)
+                                        return
+                                    end
+                                end
+                                table.insert(editCondGroup.effects, Effect:NewBtnHideEffect())
+                            end,
+                            get = function(_)
+                                if editCondGroup.effects == nil or #editCondGroup.effects == 0 then
+                                    return false
+                                end
+                                for _, effect in ipairs(editCondGroup.effects) do
+                                    if effect.type == "btnHide" then
+                                        return true
+                                    end
+                                end
+                                return false
+                            end
+                        },
+                        btnDesaturate = {
+                            order = 3,
+                            width = 1,
+                            type = 'toggle',
+                            name = L["Btn Desaturate"] ,
+                            set = function(_, _)
+                                if editCondGroup.effects == nil then
+                                    editCondGroup.effects = {}
+                                end
+                                for effectIndex, effect in ipairs(editCondGroup.effects) do
+                                    if effect.type == "btnDesaturate" then
+                                        table.remove(editCondGroup.effects, effectIndex)
+                                        return
+                                    end
+                                end
+                                table.insert(editCondGroup.effects, Effect:NewBtnDesaturateEffect())
+                            end,
+                            get = function(_)
+                                if editCondGroup.effects == nil or #editCondGroup.effects == 0 then
+                                    return false
+                                end
+                                for _, effect in ipairs(editCondGroup.effects) do
+                                    if effect.type == "btnDesaturate" then
+                                        return true
+                                    end
+                                end
+                                return false
+                            end
+                        }
+                    }
+                }
+                condGroupSettingArgs.effectSetting = effectSettingOptions
+                condGroupSettingOrder = condGroupSettingOrder + 1
+            end
         end
 
         -- 物品条和物品条组递归查看子元素

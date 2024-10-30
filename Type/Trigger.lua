@@ -10,7 +10,7 @@
 --- | "buff"
 --- | "defbuff"
 
----@alias TriggerOperator -- 触发器条件运算符
+---@alias CondOperator -- 触发器条件运算符
 --- | "="
 --- | "!="
 --- | ">"
@@ -18,5 +18,18 @@
 --- | "<"
 --- | "<="
 
+
+---@alias CondExpr  --- 条件表达式
+--- | "%cond.1"
+--- | "%cond.1 and cond.2"
+--- | "%cond.1 or cond.2"
+--- | "%cond.1 and cond.2 and cond.3"
+--- | "%cond.1 or cond.2 or cond.3"
+--- | "(%cond.1 and cond.2) or cond.3"
+--- | "(%cond.1 or cond.2) and cond.3"
+
+
 ---@alias EffectType
---- | "border"
+--- | "borderGlow"
+--- | "btnHide"
+--- | "btnDesaturate"

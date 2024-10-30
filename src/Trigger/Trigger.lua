@@ -13,6 +13,7 @@ local U = addon:GetModule('Utils')
 ---@class Trigger: AceModule
 local Trigger = addon:NewModule("Trigger")
 
+local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 
 -- 创建自身触发器
 ---@return TriggerConfig
@@ -40,6 +41,8 @@ function Trigger:ToAuraTriggerConfig(config)
     return config --- @type AuraTriggerConfig
 end
 
+
+-- 根据触发器类型获取触发器条件列表
 ---@param triggerType TriggerType
 ---@return table<string, type>
 function Trigger:GetConditions(triggerType)
@@ -55,4 +58,16 @@ function Trigger:GetConditions(triggerType)
         }
     end
     return {}
+end
+
+-- 根据触发器类型获取触发器条件选项
+---@param triggerType TriggerType
+---@return table<string, string>
+function Trigger:GetConditionsOptions(triggerType)
+    local conditions = self:GetConditions(triggerType)
+    local options = {}
+    for k, cond in pairs(conditions) do
+        options[k] = L[k]
+    end
+    return options
 end
