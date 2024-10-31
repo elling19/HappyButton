@@ -98,7 +98,7 @@ end
 
 -- 修改全局打印方法，在打印信息前加上插件名称
 function UtilsPrint.Print(...) _G.print(
-    "|cfffff700H|r|cffeeaf7aa|r|cffe38483pp|r|cffd966a6y|r|cffc84dcaT|r|cffb539e6o|r|cff9f2bffo|r|cffa636f3l|r|cffbb4ed2k|r|cffe38280i|r|cffffad75t|r" ..
+    "|cfffff700H|r|cffeeaf7aa|r|cffe38483pp|r|cffd966a6y|r|cffc84dcaB|r|cffb539e6u|r|cff9f2bfft|r|cffa636f3t|r|cffbb4ed2o|r|cffe38280n|r" ..
     "|cfffff700:|r", ...) end
 
 -- 打印彩色字体

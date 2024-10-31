@@ -204,7 +204,7 @@ end
 
 -- 对cbResult进行兼容处理，返回一个符合当前预期的cbResult
 ---@param cbResult CbResult
-function ECB:Compatible(cbResult)
+function ECB:UseCompatible(cbResult)
     -- 更新物品是否已经学习
     if cbResult.isLearned == nil then
         if cbResult.item then

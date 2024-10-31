@@ -12,12 +12,16 @@ local U = addon:GetModule('Utils')
 ---@class Item: AceModule
 local Item = addon:GetModule("Item")
 
+---@class ElementCallback: AceModule
+local ECB = addon:GetModule('ElementCallback')
+
 ---@class Client: AceModule
 local Client = addon:GetModule("Client")
 
 ---@type LibCustomGlow
 ---@diagnostic disable-next-line: assign-type-mismatch
 local LCG = LibStub("LibCustomGlow-1.0")
+
 
 ---@class Btn: AceModule
 ---@diagnostic disable-next-line: undefined-doc-name
@@ -30,7 +34,7 @@ local LCG = LibStub("LibCustomGlow-1.0")
 ---@field Border table | Frame -- 边框
 ---@field CbResult CbResult
 ---@field LeafConfig ElementConfig
----@field IsOpenGlow boolean  是否开启发光
+---@field effects table<EffectType, boolean>
 local Btn = addon:NewModule("Btn")
 
 ---@param eFrame ElementFrame
@@ -43,7 +47,7 @@ function Btn:New(eFrame, barIndex, cbIndex)
     obj.EFrame = eFrame
     obj.Button = CreateFrame("Button", ("Button-%s-%s-%s"):format(eFrame.Config.id, barIndex, cbIndex), bar.BarFrame, "SecureActionButtonTemplate")
     obj.Button:SetSize(eFrame.IconWidth, eFrame.IconHeight)
-    obj.IsOpenGlow = false
+    obj.effects = {}
     Btn.CreateIcon(obj)
     Btn.CreateBorder(obj)
 
@@ -94,51 +98,30 @@ function Btn:New(eFrame, barIndex, cbIndex)
         obj.Button:SetPushedTexture(pushedTexture)
         obj.Button:GetPushedTexture():SetVertexColor(1, 1, 1, 0.5)
     end
-
-    -- 
-    -- obj.Button:SetScript("OnEnter", function(btn)
-    --     local glowColor = {0, 1, 0, 1}  -- 绿色
-    --     local glowFrequency = 0.5  -- 每秒发光频率
-    --     LCG.ButtonGlow_Start(btn, glowColor, glowFrequency)
-    -- end)
-
-    -- obj.Button:SetScript("OnLeave", function(btn)
-    --     LCG.ButtonGlow_Stop(btn)  -- 停止发光
-    -- end)
-
-    -- local function UpdateGlow(event)
-    --     if event == "PLAYER_REGEN_DISABLED" then
-    --         -- 战斗中，设置红色像素发光
-    --         print("战斗中，设置红色像素发光")
-    --         LCG.ButtonGlow_Start(obj.Button, {1, 0, 0, 1}, 0.25)  -- 绿色
-    --     end
-    --     if event == "PLAYER_REGEN_ENABLED" then
-    --         -- 战斗外，设置绿色动作条按钮发光
-    --         print("战斗外，设置绿色动作条按钮发光")
-    --         LCG.ButtonGlow_Start(obj.Button, {0, 1, 0, 1}, 0.25)  -- 绿色
-    --     end
-    -- end
-
-    -- obj.Button:RegisterEvent("PLAYER_REGEN_ENABLED")  -- 战斗结束
-    -- obj.Button:RegisterEvent("PLAYER_REGEN_DISABLED")  -- 开始战斗
-
-    -- obj.Button:SetScript("OnEvent", function(btn, event)
-    --     print("更新")
-    --     UpdateGlow(event)  -- 更新发光效果
-    -- end)
-
-    -- -- 初始化时检查一次
-    -- UpdateGlow()
     return obj ---@type Btn
     end
 
-
+--- 按钮🔘从Frame中获取CbResult并更新
 ---@param config ElementConfig
 ---@param cbResult CbResult
-function Btn:Update(config, cbResult)
+function Btn:UpdateByElementFrame(config, cbResult)
     self.LeafConfig = config
     self.CbResult = cbResult
-      -- 如果回调函数返回的是item模式
+    self:Update()
+end
+
+-- 按钮自身更新CbResult
+function Btn:UpdateBySelf()
+    ECB:UseCompatible(self.CbResult)
+    ECB:UseTrigger(self.LeafConfig, self.CbResult)
+    self:Update()
+end
+
+
+function Btn:Update()
+    if self.CbResult == nil then
+        return
+    end
     if self.CbResult.item ~= nil then
         self:SetIcon()
         self:SetMacro()
@@ -151,6 +134,8 @@ function Btn:Update(config, cbResult)
     self:UpdateEffects()
 end
 
+
+
 -- 创建图标Icon
 function Btn:CreateIcon()
     if self.Icon == nil then
@@ -159,7 +144,6 @@ function Btn:CreateIcon()
         self.Icon:SetSize(self.Button:GetWidth(), self.Button:GetHeight())
         self.Icon:SetPoint("CENTER")
         self.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92) -- 裁剪图标
-        -- self.Icon:SetVertexColor(1, 0, 0, 1)
     end
 end
 
@@ -236,6 +220,9 @@ function Btn:UpdateEffects()
     else
         self.Icon:SetAlpha(1)
     end
+    -- ⚠️ 关于按钮隐藏的特殊说明：
+    -- 如果设置了按钮隐藏，当在战斗外的时候ElementFrame🍃会监测到隐藏按钮并且会移除按钮，因此战斗外的按钮隐藏等于🟰移除按钮
+    -- 当战斗中的时候，由于API限制，无法设置移除按钮，因此战斗中隐藏按钮的设置为“透明度为0”，这样同样实现了按钮隐藏，但是实际上按钮还是可以被点击的
     if effects["btnHide"] then
         self.Button:SetEnabled(false)
         self.Button:SetAlpha(0)
@@ -243,25 +230,30 @@ function Btn:UpdateEffects()
         self.Button:SetEnabled(true)
         self.Button:SetAlpha(1)
     end
+    if effects["btnVertexColor"] then
+        self.Icon:SetVertexColor(1, 0, 0, 1)  -- 红色背景
+    else
+        self.Icon:SetVertexColor(1, 1, 1, 1)  -- 清除效果
+    end
     if effects["borderGlow"] then
         if Client:IsRetail() then
-            if self.IsOpenGlow == false then
-                LCG.ProcGlow_Start(self.Button, {})
-                self.IsOpenGlow = true
+            if not self.effects.borderGlow then
+                LCG.ButtonGlow_Start(self.Button, {1, 1, 0, 1}, 0.5)
+                self.effects.borderGlow = true
             end
         else
-            if self.IsOpenGlow == false then
+            if not self.effects.borderGlow then
                 LCG.ButtonGlow_Start(self.Button, {1, 1, 0, 1}, 0.5)
-                self.IsOpenGlow = true
+                self.effects.borderGlow = true
             end
         end
     else
         if Client:IsRetail() then
             LCG.ProcGlow_Stop(self.Button)
-            self.IsOpenGlow = false
+            self.effects.borderGlow = false
         else
             LCG.ButtonGlow_Stop(self.Button)
-            self.IsOpenGlow = false
+            self.effects.borderGlow = false
         end
     end
 end

@@ -38,12 +38,23 @@ function Effect:NewBtnHideEffect()
 end
 
 
--- 创建图标褪色
+-- 创建图标褪色⚫
 ---@return EffectConfig
 function Effect:NewBtnDesaturateEffect()
     ---@type EffectConfig
     local effect = {
         type = "btnDesaturate",
+        attr = {}
+    }
+    return effect
+end
+
+-- 创建图标顶点红色🔴
+---@return EffectConfig
+function Effect:NewBtnVertexColorEffect()
+    ---@type EffectConfig
+    local effect = {
+        type = "btnVertexColor",
         attr = {}
     }
     return effect

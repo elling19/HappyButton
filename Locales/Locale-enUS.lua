@@ -13,7 +13,6 @@ L["Merchant"] = true
 L["Others"] = true
 L["Yes"] = true
 L["No"] = true
-L["Configuration imported. Would you like to switch to the new configuration?"] = true
 L["Please copy the configuration to the clipboard."] = true
 L["Items Bar"] = true
 L["Default"] = true
@@ -190,9 +189,11 @@ L["(Cond1 or Cond2) and Cond3"] = true
 -- 触发器条件列表
 L["count"] = "Count"
 L["isLearned"] = "Is Learned"
+L["isUsable"] = "Is Usable"
 L["remainingTime"] = "Remaining Time"
 
 -- 触发器效果
 L["Border Glow"] = true
 L["Btn Hide"] = true
 L["Btn Desaturate"] = true
+L["Btn Vertex Red Color"] = true

@@ -50,7 +50,8 @@ function Trigger:GetConditions(triggerType)
     if triggerType == "self" then
         return {
             count = "number",
-            isLearned = "boolean"
+            isLearned = "boolean",
+            isUsable = "boolean"
         }
     end
     if triggerType == "aura" then

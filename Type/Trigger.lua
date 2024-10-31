@@ -30,6 +30,7 @@
 
 
 ---@alias EffectType
---- | "borderGlow"
---- | "btnHide"
---- | "btnDesaturate"
+--- | "borderGlow"  -- 边框发光
+--- | "btnHide"  -- 按钮隐藏
+--- | "btnDesaturate"  -- 按钮褪色
+--- | "btnVertexColor"  -- 按钮顶点上色

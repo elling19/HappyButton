@@ -130,7 +130,7 @@ function ElementFrame:ReLoadUI()
     self:UpdateBars()
     self:UpdateBarFrame()
     self:CreateEditModeFrame()
-    self:Update()
+    self:OutCombatUpdate()
 end
 
 ---@param eleConfig ElementConfig
@@ -239,17 +239,29 @@ function ElementFrame:RemoveBars()
     end
 end
 
-function ElementFrame:Update()
+function ElementFrame:OutCombatUpdate()
     for barIndex, bar in ipairs(self.Bars) do
         local cbInfos = {} ---@type ElementCbInfo[]
         if self.Cbss[barIndex] then
             for _, cb in ipairs(self.Cbss[barIndex]) do
                 cb.r = cb.f(cb.p, cb.r)
                 for _, r in ipairs(cb.r) do
-                    ECB:Compatible(r)
+                    ECB:UseCompatible(r)
                     ECB:UseTrigger(cb.p, r)
-                    local cbInfo = { p = cb.p, f = cb.f, r = { r, } } ---@type ElementCbInfo
-                    table.insert(cbInfos, cbInfo)
+                    -- 战斗外更新，如果发现隐藏按钮则是移除按钮
+                    local hideBtn = false
+                    if r.effects then
+                        for _, effect in ipairs(r.effects) do
+                            if effect.type == "btnHide" then
+                                hideBtn = true
+                                break
+                            end
+                        end
+                    end
+                    if hideBtn == false then
+                        local cbInfo = { p = cb.p, f = cb.f, r = { r, } } ---@type ElementCbInfo
+                        table.insert(cbInfos, cbInfo)
+                    end
                 end
             end
         end
@@ -260,7 +272,7 @@ function ElementFrame:Update()
                 table.insert(bar.BarBtns, btn)
             end
             local btn = bar.BarBtns[cbIndex]
-            btn:Update(cbInfo.p, cbInfo.r[1])
+            btn:UpdateByElementFrame(cbInfo.p, cbInfo.r[1])
         end
         -- 如果按钮过多，删除冗余按钮
         if #cbInfos < #bar.BarBtns then
@@ -273,6 +285,17 @@ function ElementFrame:Update()
     end
     self:SetWindowSize()
 end
+
+function ElementFrame:InCombatUpdate()
+    for _, bar in ipairs(self.Bars) do
+        if bar.BarBtns then
+            for _, btn in ipairs(bar.BarBtns) do
+                btn:UpdateBySelf()
+            end
+        end
+    end
+end
+
 
 function ElementFrame:InitialWindow()
     self.Window = CreateFrame("Frame", ("HtWindow-%s"):format(self.Config.id), UIParent)

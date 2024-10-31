@@ -77,20 +77,36 @@ function HbFrame:UpdateEframe(eleConfig)
         return
     end
     local eFrame = self.EFrames[eleConfig.id]
-    eFrame:Update()
+    if InCombatLockdown() then
+        eFrame:InCombatUpdate()
+    else
+        eFrame:OutCombatUpdate()
+    end
 end
 
 -- 全部更新
 function HbFrame:UpdateAllEframes()
-    if self.EFrames then
-        for _, eFrame in pairs(self.EFrames) do
-            eFrame:Update()
+    if not self.EFrames then
+        return
+    end
+    if InCombatLockdown() then
+         -- 战斗中，通知Btn更新
+         for _, eFrame in pairs(self.EFrames) do
+            eFrame:InCombatUpdate()
         end
+    else
+       -- 不在战斗中，全局更新
+       for _, eFrame in pairs(self.EFrames) do
+        eFrame:OutCombatUpdate()
+    end
     end
 end
 
 -- 开启编辑模式
 function HbFrame:OpenEditMode()
+    if not self.EFrames then
+        return
+    end
     for _, eFrame in pairs(self.EFrames) do
         eFrame:OpenEditMode()
     end
@@ -98,6 +114,9 @@ end
 
 -- 关闭编辑模式
 function HbFrame:CloseEditMode()
+    if not self.EFrames then
+        return
+    end
     for _, eFrame in pairs(self.EFrames) do
         eFrame:CloseEditMode()
     end
@@ -105,6 +124,9 @@ end
 
 -- 处理战斗event
 function HbFrame:OnCombatEvent()
+    if not self.EFrames then
+        return
+    end
     for _, eFrame in pairs(self.EFrames) do
         if eFrame:IsBarGroup() then
             eFrame:HideWindow()
@@ -120,6 +142,9 @@ end
 
 -- 处理战斗结束event
 function HbFrame:OutCombatEvent()
+    if not self.EFrames then
+        return
+    end
     for _, eFrame in pairs(self.EFrames) do
         if eFrame:IsBarGroup() then
             eFrame:ShowWindow()

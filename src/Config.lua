@@ -366,40 +366,42 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             args = elementSettingArgs
         }
         args.elementSetting = elementSettingOptions
-        elementSettingArgs.title = {
-            order = elementSettingOrder,
-            width = 1,
-            type = 'input',
-            name = L['Element Title'],
-            validate = function(_, val)
-                for _i, _ele in ipairs(elements) do
-                    if _ele.title == val and i ~= _i then
-                        return "repeat title, please input another one."
+        if ele.type ~= const.ELEMENT_TYPE.ITEM then
+            elementSettingArgs.title = {
+                order = elementSettingOrder,
+                width = 1,
+                type = 'input',
+                name = L['Element Title'],
+                validate = function(_, val)
+                    for _i, _ele in ipairs(elements) do
+                        if _ele.title == val and i ~= _i then
+                            return "repeat title, please input another one."
+                        end
                     end
+                    return true
+                end,
+                get = function() return ele.title end,
+                set = function(_, val)
+                    ele.title = val
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                    addon:UpdateOptions()
                 end
-                return true
-            end,
-            get = function() return ele.title end,
-            set = function(_, val)
-                ele.title = val
-                HbFrame:ReloadEframeUI(updateFrameConfig)
-                addon:UpdateOptions()
-            end
-        }
-        elementSettingOrder = elementSettingOrder + 1
-        elementSettingArgs.icon = {
-            order = elementSettingOrder,
-            width = 1,
-            type = 'input',
-            name = L["Element Icon ID or Path"],
-            get = function() return ele.icon end,
-            set = function(_, val)
-                ele.icon = val
-                HbFrame:ReloadEframeUI(updateFrameConfig)
-                addon:UpdateOptions()
-            end
-        }
-        elementSettingOrder = elementSettingOrder + 1
+            }
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.icon = {
+                order = elementSettingOrder,
+                width = 1,
+                type = 'input',
+                name = L["Element Icon ID or Path"],
+                get = function() return ele.icon end,
+                set = function(_, val)
+                    ele.icon = val
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                    addon:UpdateOptions()
+                end
+            }
+            elementSettingOrder = elementSettingOrder + 1
+        end
         if isRoot then
             elementSettingArgs.iconWidth = {
                 step = 1,
@@ -756,22 +758,6 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             end
             displaySettingOrder = displaySettingOrder + 1
         end
-        if E:IsLeaf(ele) then
-            displaySettingArgs.displayLearnedToggle = {
-                order = displaySettingOrder,
-                width = 2,
-                type = 'toggle',
-                name = L["Whether to display only learned or owned items."],
-                set = function(_, val)
-                    ele.isDisplayUnLearned = not val
-                    HbFrame:UpdateEframe(updateFrameConfig)
-                end,
-                get = function(_)
-                    return not ele.isDisplayUnLearned
-                end
-            }
-        end
-        displaySettingOrder = displaySettingOrder + 1
         -- 文字设置：根元素或者叶子元素可以使用
         if isRoot or E:IsLeaf(ele) then
             local textSettingOrder = 1
@@ -1604,7 +1590,36 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                                 end
                                 return false
                             end
-                        }
+                        },
+                        btnVertexColor = {
+                            order = 4,
+                            width = 1,
+                            type = 'toggle',
+                            name = L["Btn Vertex Red Color"]  ,
+                            set = function(_, _)
+                                if editCondGroup.effects == nil then
+                                    editCondGroup.effects = {}
+                                end
+                                for effectIndex, effect in ipairs(editCondGroup.effects) do
+                                    if effect.type == "btnVertexColor" then
+                                        table.remove(editCondGroup.effects, effectIndex)
+                                        return
+                                    end
+                                end
+                                table.insert(editCondGroup.effects, Effect:NewBtnVertexColorEffect())
+                            end,
+                            get = function(_)
+                                if editCondGroup.effects == nil or #editCondGroup.effects == 0 then
+                                    return false
+                                end
+                                for _, effect in ipairs(editCondGroup.effects) do
+                                    if effect.type == "btnVertexColor" then
+                                        return true
+                                    end
+                                end
+                                return false
+                            end
+                        },
                     }
                 }
                 condGroupSettingArgs.effectSetting = effectSettingOptions
@@ -1941,7 +1956,13 @@ function addon:OnInitialize()
     self:RegisterChatCommand("hb", "OpenConfig")
 end
 
-function addon:OpenConfig() AceConfigDialog:Open(addonName) end
+function addon:OpenConfig()
+    if InCombatLockdown() then
+        U.Print.PrintInfoText(L["You cannot use this in combat."])
+        return
+    end
+    AceConfigDialog:Open(addonName)
+end
 
 function addon:UpdateOptions()
     -- 重新注册配置表来更新菜单栏
