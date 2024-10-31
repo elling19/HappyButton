@@ -20,7 +20,7 @@ Welcome to the **HappyButton** plugin! This is a **World of Warcraft** plugin th
 
 ## Usage
 ### Open the Settings Interface
-Use the command `/hb` to open the settings interface, or click on the game menu -> AddOns -> `HappyButton` to open the settings interface.
+Use the command `/hb` to open the settings interface.
 ### Settings
 Once the settings interface is open, you will see three settings menus in the left sidebar:
 - **Basic Settings**: Includes `Edit Mode`.

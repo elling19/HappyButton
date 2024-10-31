@@ -34,3 +34,12 @@
 --- | "btnHide"  -- 按钮隐藏
 --- | "btnDesaturate"  -- 按钮褪色
 --- | "btnVertexColor"  -- 按钮顶点上色
+
+
+---@alias SelfTriggerCond
+--- | "count"
+--- | "isLearned"
+--- | "isUsable"
+
+---@alias AuraTriggerCond
+--- | "remainingTime"

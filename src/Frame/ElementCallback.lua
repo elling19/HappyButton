@@ -276,7 +276,6 @@ function ECB:UseTrigger(eleConfig, cbResult)
                         local leftValue = cbResult[cond.leftVal]
                         if type(cond.rightValue) == "number" or type(cond.rightValue) == "boolean" then
                             -- 判断条件返回真/假
-                            ---@diagnostic disable-next-line: param-type-mismatch
                             local r = Condition:ExecOperator(leftValue, cond.operator, cond.rightValue)
                             if r:is_ok() then
                                 condResult = r:unwrap()
@@ -284,7 +283,12 @@ function ECB:UseTrigger(eleConfig, cbResult)
                         end
                     end
                     if leftTrigger.type == "aura" then
-                        condResult = true
+                        local auraTriggerCond = Trigger:GetAuraTriggerCond(leftTrigger)
+                        local leftValue = auraTriggerCond[cond.leftVal]
+                        local r = Condition:ExecOperator(leftValue, cond.operator, cond.rightValue)
+                        if r:is_ok() then
+                            condResult = r:unwrap()
+                        end
                     end
                 end
                 table.insert(condResults, condResult)
@@ -309,6 +313,7 @@ function ECB:UseTrigger(eleConfig, cbResult)
                     end
                 end
             end
+            
         end
     end
 end

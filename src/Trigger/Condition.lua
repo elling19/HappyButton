@@ -42,6 +42,9 @@ end
 ---@param operator CondOperator
 ---@return Result
 function Condition:ExecOperator(leftValue, operator, rightValue)
+    if leftValue == nil or rightValue == nil then
+        return R:Err("Invalid leftValue or rightValue.")
+    end
     if operator == "=" then
         return R:Ok(leftValue == rightValue)
     elseif operator == "!=" then
@@ -55,7 +58,7 @@ function Condition:ExecOperator(leftValue, operator, rightValue)
     elseif operator == ">=" then
         return R:Ok(leftValue >= rightValue)
     else
-        return R:Err("Invalid operator")
+        return R:Err("Invalid operator.")
     end
 end
 

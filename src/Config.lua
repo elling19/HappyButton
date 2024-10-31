@@ -1950,15 +1950,15 @@ function addon:OnInitialize()
     -- 注册选项表
     AceConfig:RegisterOptionsTable(addonName, ConfigOptions.Options)
     -- 在Blizzard界面选项中添加一个子选项
-    self.optionsFrame = AceConfigDialog:AddToBlizOptions(addonName, addonName)
-    -- 输入 /HappyButton 打开配置
+    -- self.optionsFrame = AceConfigDialog:AddToBlizOptions(addonName, addonName)
+    -- 输入 /HappyButton 或者 /hb 打开配置
     self:RegisterChatCommand(addonName, "OpenConfig")
     self:RegisterChatCommand("hb", "OpenConfig")
 end
 
 function addon:OpenConfig()
     if InCombatLockdown() then
-        U.Print.PrintInfoText(L["You cannot use this in combat."])
+        U.Print.PrintInfoText(L["You cannot use this in combat."] )
         return
     end
     AceConfigDialog:Open(addonName)

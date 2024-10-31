@@ -238,7 +238,7 @@ function Btn:UpdateEffects()
     if effects["borderGlow"] then
         if Client:IsRetail() then
             if not self.effects.borderGlow then
-                LCG.ButtonGlow_Start(self.Button, {1, 1, 0, 1}, 0.5)
+                LCG.ProcGlow_Start(self.Button, {})
                 self.effects.borderGlow = true
             end
         else

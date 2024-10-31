@@ -52,12 +52,12 @@ function Trigger:GetConditions(triggerType)
             count = "number",
             isLearned = "boolean",
             isUsable = "boolean"
-        }
+        } ---@type table<SelfTriggerCond, type>
     end
     if triggerType == "aura" then
         return {
             remainingTime = "number",
-        }
+        } ---@type table<AuraTriggerCond, type>
     end
     return {}
 end
@@ -72,4 +72,36 @@ function Trigger:GetConditionsOptions(triggerType)
         options[k] = L[k]
     end
     return options
+end
+
+
+---@param triggerConfig TriggerConfig
+---@return table<AuraTriggerCond, any>
+function Trigger:GetAuraTriggerCond(triggerConfig)
+    ---@type table<AuraTriggerCond, any>
+    local result = {}
+    local trigger = Trigger:ToAuraTriggerConfig(triggerConfig)
+    if not trigger.confine then
+        return result
+    end
+    local target = trigger.confine.target or "player"
+    local auraId = trigger.confine.spellId
+    if not auraId then
+        return result
+    end
+    local filter
+    if trigger.confine.type == "buff" then
+        filter = "HELPFUL"
+    end
+    if trigger.confine.type == "defbuff" then
+        filter = "HARMFUL"
+    end
+    for i = 1, 100 do
+        local aura = C_UnitAuras.GetBuffDataByIndex(target, i, filter)
+        if aura and aura.spellId == auraId then
+            result.remainingTime = aura.expirationTime - GetTime()
+            break
+        end
+    end
+    return result
 end
