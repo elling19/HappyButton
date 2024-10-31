@@ -246,8 +246,8 @@ function ElementFrame:OutCombatUpdate()
             for _, cb in ipairs(self.Cbss[barIndex]) do
                 cb.r = cb.f(cb.p, cb.r)
                 for _, r in ipairs(cb.r) do
-                    ECB:UseCompatible(r)
-                    ECB:UseTrigger(cb.p, r)
+                    ECB:UpdateSelfTrigger(r)
+                    r.effects = ECB:UseTrigger(cb.p, r)
                     -- 战斗外更新，如果发现隐藏按钮则是移除按钮
                     local hideBtn = false
                     if r.effects then

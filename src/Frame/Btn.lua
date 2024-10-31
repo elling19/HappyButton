@@ -112,8 +112,8 @@ end
 
 -- 按钮自身更新CbResult
 function Btn:UpdateBySelf()
-    ECB:UseCompatible(self.CbResult)
-    ECB:UseTrigger(self.LeafConfig, self.CbResult)
+    ECB:UpdateSelfTrigger(self.CbResult)
+    self.CbResult.effects = ECB:UseTrigger(self.LeafConfig, self.CbResult)
     self:Update()
 end
 

@@ -202,24 +202,20 @@ function ECB:NilCallback()
 end
 
 
--- 对cbResult进行兼容处理，返回一个符合当前预期的cbResult
+-- 更新自身触发器
 ---@param cbResult CbResult
-function ECB:UseCompatible(cbResult)
+function ECB:UpdateSelfTrigger(cbResult)
     -- 更新物品是否已经学习
-    if cbResult.isLearned == nil then
-        if cbResult.item then
-            cbResult.isLearned = Item:IsLearned(cbResult.item.id, cbResult.item.type)
-        else
-            cbResult.isLearned = false
-        end
+    if cbResult.item then
+        cbResult.isLearned = Item:IsLearned(cbResult.item.id, cbResult.item.type)
+    else
+        cbResult.isLearned = false
     end
     -- 更新物品是否可以使用
-    if cbResult.isUsable == nil then
-        if cbResult.item then
-            cbResult.isUsable = Item:IsLearnedAndUsable(cbResult.item.id, cbResult.item.type)
-        else
-            cbResult.isUsable = false
-        end
+    if cbResult.item then
+        cbResult.isUsable = Item:IsLearnedAndUsable(cbResult.item.id, cbResult.item.type)
+    else
+        cbResult.isUsable = false
     end
     if cbResult.item.type == const.ITEM_TYPE.ITEM then
         cbResult.count = C_Item.GetItemCount(cbResult.item.id, false)
@@ -231,22 +227,20 @@ function ECB:UseCompatible(cbResult)
         end
     end
     -- 更新物品边框
-    if cbResult.borderColor == nil then
-        if cbResult.item then
-            if cbResult.item.type == const.ITEM_TYPE.ITEM or cbResult.item.type == const.ITEM_TYPE.TOY or cbResult.item.type == const.ITEM_TYPE.EQUIPMENT then
-                local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType, expansionID, setID, isCraftingReagent = C_Item.GetItemInfo(cbResult.item.id)
-                if itemQuality then
-                    cbResult.borderColor = const.ItemQualityColor[itemQuality]
-                end
-            elseif cbResult.item.type == const.ITEM_TYPE.MOUNT then
-                cbResult.borderColor = const.ItemQualityColor[Enum.ItemQuality.Epic]
-            elseif cbResult.item.type == const.ITEM_TYPE.PET then
-                cbResult.borderColor = const.ItemQualityColor[Enum.ItemQuality.Rare]
+    if cbResult.item then
+        if cbResult.item.type == const.ITEM_TYPE.ITEM or cbResult.item.type == const.ITEM_TYPE.TOY or cbResult.item.type == const.ITEM_TYPE.EQUIPMENT then
+            local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType, expansionID, setID, isCraftingReagent = C_Item.GetItemInfo(cbResult.item.id)
+            if itemQuality then
+                cbResult.borderColor = const.ItemQualityColor[itemQuality]
             end
+        elseif cbResult.item.type == const.ITEM_TYPE.MOUNT then
+            cbResult.borderColor = const.ItemQualityColor[Enum.ItemQuality.Epic]
+        elseif cbResult.item.type == const.ITEM_TYPE.PET then
+            cbResult.borderColor = const.ItemQualityColor[Enum.ItemQuality.Rare]
         end
-        if cbResult.borderColor == nil then
-            cbResult.borderColor = const.DefaultItemColor
-        end
+    end
+    if cbResult.borderColor == nil then
+        cbResult.borderColor = const.DefaultItemColor
     end
 end
 
@@ -254,12 +248,15 @@ end
 -- 对cbResult进行触发器处理
 ---@param eleConfig ElementConfig
 ---@param cbResult CbResult
+---@return EffectConfig[]
 function ECB:UseTrigger(eleConfig, cbResult)
+    local effects = {} ---@type EffectConfig[]
     if not eleConfig.triggers or #eleConfig.triggers == 0 then
-        return
+        return effects
     end
     if not eleConfig.condGroups or #eleConfig.condGroups == 0 then
-        return
+        cbResult.effects = effects
+        return effects
     end
     local triggers = {} ---@type table<string, TriggerConfig>
     for _, trigger in ipairs(eleConfig.triggers) do
@@ -296,24 +293,21 @@ function ECB:UseTrigger(eleConfig, cbResult)
             -- 判断条件组返回真/假
             local condGroupR = Condition:ExecExpression(condResults, condGroup.expression)
             if condGroupR then
-                if cbResult.effects == nil then
-                    cbResult.effects = {}
-                    for _, effect in ipairs(condGroup.effects) do
-                        -- 判断是否有相同的效果，如果有则无须重复添加
-                        local hasSame = false
-                        for _, _effect in ipairs(cbResult.effects) do
-                            if _effect.type == effect.type then
-                                hasSame = true
-                                break
-                            end
+                for _, effect in ipairs(condGroup.effects) do
+                    -- 判断是否有相同的效果，如果有则无须重复添加
+                    local hasSame = false
+                    for _, _effect in ipairs(effects) do
+                        if _effect.type == effect.type then
+                            hasSame = true
+                            break
                         end
-                        if hasSame == false then
-                            table.insert(cbResult.effects, effect)
-                        end
+                    end
+                    if hasSame == false then
+                        table.insert(effects, effect)
                     end
                 end
             end
-            
         end
     end
+    return effects
 end
