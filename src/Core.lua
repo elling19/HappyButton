@@ -41,15 +41,13 @@ function BarCore:Start()
             event == "PLAYER_TALENT_UPDATE" or
             event == "UNIT_AURA" or
             event == "PLAYER_TARGET_CHANGED" or
-            event == "BAG_UPDATE"
+            event == "BAG_UPDATE" or
+            event == "PLAYER_REGEN_ENABLED"
         then
             HbFrame:UpdateAllEframes()
         end
         if event == "PLAYER_REGEN_DISABLED" then
             HbFrame:OnCombatEvent()
-        end
-        if event == "PLAYER_REGEN_ENABLED" then
-            HbFrame:OutCombatEvent()
         end
     end)
 end

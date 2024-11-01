@@ -12,6 +12,9 @@ local E = addon:GetModule("Element")
 ---@class Utils: AceModule
 local U = addon:GetModule('Utils')
 
+---@class LoadCondition: AceModule
+local LoadCondition = addon:GetModule("LoadCondition")
+
 ---@class ElementFrame: AceModule
 local ElementFrame = addon:GetModule('ElementFrame')
 
@@ -77,11 +80,7 @@ function HbFrame:UpdateEframe(eleConfig)
         return
     end
     local eFrame = self.EFrames[eleConfig.id]
-    if InCombatLockdown() then
-        eFrame:InCombatUpdate()
-    else
-        eFrame:OutCombatUpdate()
-    end
+    eFrame:Update()
 end
 
 -- 全部更新
@@ -89,16 +88,8 @@ function HbFrame:UpdateAllEframes()
     if not self.EFrames then
         return
     end
-    if InCombatLockdown() then
-         -- 战斗中，通知Btn更新
-         for _, eFrame in pairs(self.EFrames) do
-            eFrame:InCombatUpdate()
-        end
-    else
-       -- 不在战斗中，全局更新
-       for _, eFrame in pairs(self.EFrames) do
-        eFrame:OutCombatUpdate()
-    end
+    for _, eFrame in pairs(self.EFrames) do
+        eFrame:Update()
     end
 end
 
@@ -131,28 +122,14 @@ function HbFrame:OnCombatEvent()
         if eFrame:IsBarGroup() then
             eFrame:HideWindow()
         else
-            if eFrame.Config.combatLoadCond == const.COMBAT_LOAD_COND.OUT_COMBAT_LOAD then
-                eFrame:HideWindow()
+            if LoadCondition:Pass(eFrame.Config.loadCond) then
+                if eFrame.Config.loadCond and eFrame.Config.loadCond.CombatCond == false then
+                    eFrame:HideWindow()
+                else
+                    eFrame:ShowWindow()
+                end
             else
-                eFrame:ShowWindow()
-            end
-        end
-    end
-end
-
--- 处理战斗结束event
-function HbFrame:OutCombatEvent()
-    if not self.EFrames then
-        return
-    end
-    for _, eFrame in pairs(self.EFrames) do
-        if eFrame:IsBarGroup() then
-            eFrame:ShowWindow()
-        else
-            if eFrame.Config.combatLoadCond == const.COMBAT_LOAD_COND.IN_COMBAT_LOAD then
                 eFrame:HideWindow()
-            else
-                eFrame:ShowWindow()
             end
         end
     end

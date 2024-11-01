@@ -13,7 +13,6 @@
 
 ---@class ElementConfig
 ---@field id string
----@field isLoad boolean -- 是否启用
 ---@field isDisplayMouseEnter boolean --是否鼠标移入显示
 ---@field iconWidth number | nil
 ---@field iconHeight number | nil
@@ -28,7 +27,7 @@
 ---@field posX number | nil -- X轴位置
 ---@field posY number | nil  -- Y轴位置
 ---@field elesGrowth string --子元素生长方向
----@field combatLoadCond CombatLoadCond  -- 战斗状态显示
+---@field loadCond LoadConditionConfig  -- 加载条件
 ---@field isUseRootTexts boolean -- 是否使用根元素文本的设置
 ---@field texts TextConfig[]  -- 文本设置
 ---@field configSelectedTextIndex number -- 编辑文本的时候选中的下标

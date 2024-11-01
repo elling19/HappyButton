@@ -28,6 +28,7 @@ Src\Trigger\EffectConfig.lua
 Src\Trigger\Effect.lua
 Src\Trigger\ConditionConfig.lua
 Src\Trigger\Condition.lua
+Src\Element\LoadCondition.lua
 Src\Element\TextConfig.lua
 Src\Element\Text.lua
 Src\Element\Element.lua

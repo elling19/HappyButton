@@ -158,23 +158,11 @@ const.AnchorPosOptions = {
 }
 
 
----
---[[
-战斗状态加载条件
-]]
----@enum CombatLoadCond
-const.COMBAT_LOAD_COND = {
-    ALWAYS_LOAD = 1,     -- 总是显示
-    OUT_COMBAT_LOAD = 2, -- 战斗外显示
-    IN_COMBAT_LOAD = 3   -- 战斗中显示
-}
 
-
----@class CombatLoadCondOptions
-const.CombatLoadCondOptions = {
-    [const.COMBAT_LOAD_COND.ALWAYS_LOAD] = L["Always load"],
-    [const.COMBAT_LOAD_COND.OUT_COMBAT_LOAD] = L["Load when out of combat"],
-    [const.COMBAT_LOAD_COND.IN_COMBAT_LOAD] = L["Load when in combat"],
+---@class LoadCondCombatOptions
+const.LoadCondCombatOptions = {
+    [false] = L["Load when out of combat"],
+    [true] = L["Load when in combat"],
 }
 
 ---@enum AttachFrame
@@ -274,6 +262,13 @@ const.BooleanOptions = {
     [true] = L["True"],
     [false] = L["False"]
 }
+
+---@class LoadCondCombatOptions
+const.OpenEffectOptions = {
+    [false] = L["Close"],
+    [true] = L["Open"],
+}
+
 --[[
 -- 事件常量
 ]]

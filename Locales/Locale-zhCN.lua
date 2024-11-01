@@ -123,7 +123,6 @@ L["PVEFrame"] = "地下城和团队副本"
 
 
 L["Combat Load Condition"] = "战斗状态加载条件"
-L["Always load"] = "总是加载"
 L["Load when out of combat"] = "战斗外加载"
 L["Load when in combat"] = "战斗中加载"
 L["BarGroup only load when out of combat"] = "物品条组仅在战斗外加载"
@@ -193,9 +192,13 @@ L["count"] = "数量"
 L["isLearned"] = "已学会"
 L["isUsable"] = "可用"
 L["remainingTime"] = "剩余时间"
+L["targetIsEnemy"] = "目标是否敌对"
 
 -- 触发器效果
 L["Border Glow"] = "边框发光"
 L["Btn Hide"] = "按钮隐藏"
 L["Btn Desaturate"] = "按钮褪色"
 L["Btn Vertex Red Color"] = "顶点红色"
+
+L["Open"] = "开启"
+L["Close"] = "关闭"

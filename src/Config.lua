@@ -38,7 +38,6 @@ local AceSerializer = LibStub("AceSerializer-3.0")
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
 local AceGUI = LibStub("AceGUI-3.0")
 
-
 ---@class Config
 local Config = {}
 
@@ -279,6 +278,12 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
     local isRoot = topEleConfig == nil
     local eleArgs = {}
     for i, ele in ipairs(elements) do
+        -- 兼容性处理
+        if not ele.loadCond then
+            ele.loadCond = {
+                LoadCond = true
+            }
+        end
         -- 判断需要触发哪个菜单的更新事件
         local updateFrameConfig
         if topEleConfig ~= nil then
@@ -693,29 +698,6 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             args = displaySettingArgs
         }
         args.displaySetting = displaySettingOptions
-        displaySettingArgs.isLoadToggle = {
-            order = displaySettingOrder,
-            width = 2,
-            type = 'toggle',
-            name = L["Load"],
-            set = function(_, val)
-                ele.isLoad = val
-                if ele.isLoad == true then
-                    if isRoot then
-                        HbFrame:AddEframe(updateFrameConfig)
-                    else
-                        HbFrame:ReloadEframeUI(updateFrameConfig)
-                    end
-                else
-                    if isRoot then
-                        HbFrame:DeleteEframe(updateFrameConfig)
-                    else
-                        HbFrame:ReloadEframeUI(updateFrameConfig)
-                    end
-                end
-            end,
-            get = function(_) return ele.isLoad end
-        }
         displaySettingOrder = displaySettingOrder + 1
         if isRoot then
             displaySettingArgs.isDisplayMouseEnter = {
@@ -731,32 +713,79 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             }
             displaySettingOrder = displaySettingOrder + 1
         end
+
+        -- 支持根元素和🍃叶子元素设置加载条件，根元素加载条件在Cbss获取的时候判断，叶子元素在cbResult的时候判断
+        if isRoot or E:IsLeaf(ele) then
+            displaySettingArgs.isLoadToggle = {
+                order = displaySettingOrder,
+                width = 2,
+                type = 'toggle',
+                name = L["Load"],
+                set = function(_, val)
+                    ele.loadCond.LoadCond = val
+                    if ele.loadCond.LoadCond == true then
+                        if isRoot then
+                            HbFrame:AddEframe(updateFrameConfig)
+                        else
+                            HbFrame:ReloadEframeUI(updateFrameConfig)
+                        end
+                    else
+                        if isRoot then
+                            HbFrame:DeleteEframe(updateFrameConfig)
+                        else
+                            HbFrame:ReloadEframeUI(updateFrameConfig)
+                        end
+                    end
+                end,
+                get = function(_) return ele.loadCond.LoadCond end
+            }
+        end
         -- 顶部元素设置是否开启战斗支持
         if isRoot then
             if ele.type == const.ELEMENT_TYPE.BAR_GROUP then
-                displaySettingArgs.combatLoadCond = {
+                displaySettingArgs.loadCondCombat = {
                     order = displaySettingOrder,
                     width = 2,
                     type = 'description',
                     name = L["BarGroup only load when out of combat"]
                 }
             else
-                displaySettingArgs.combatLoadCond = {
+                displaySettingArgs.loadCondCombat = {
                     order = displaySettingOrder,
-                    width = 2,
-                    type = 'select',
-                    values = const.CombatLoadCondOptions,
+                    width = 1,
+                    type = 'toggle',
                     name = L["Combat Load Condition"],
                     set = function(_, val)
-                        ele.combatLoadCond = val
+                        if val == true then
+                            ele.loadCond.CombatCond = true
+                        else
+                            ele.loadCond.CombatCond = nil
+                        end
                         HbFrame:UpdateEframe(updateFrameConfig)
                     end,
                     get = function(_)
-                        return ele.combatLoadCond
+                        return ele.loadCond.CombatCond ~= nil
                     end
                 }
+                displaySettingOrder = displaySettingOrder + 1
+                if ele.loadCond.CombatCond ~= nil then
+                    displaySettingArgs.loadCondCombatOptions = {
+                        order = displaySettingOrder,
+                        width = 1,
+                        type = 'select',
+                        values = const.LoadCondCombatOptions,
+                        name = "",
+                        set = function(_, val)
+                            ele.loadCond.CombatCond = val
+                            HbFrame:UpdateEframe(updateFrameConfig)
+                        end,
+                        get = function(_)
+                            return ele.loadCond.CombatCond
+                        end
+                    }
+                    displaySettingOrder = displaySettingOrder + 1
+                end
             end
-            displaySettingOrder = displaySettingOrder + 1
         end
         -- 文字设置：根元素或者叶子元素可以使用
         if isRoot or E:IsLeaf(ele) then
@@ -1054,8 +1083,8 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             args.triggerSetting = triggerSettingOptions
             local triggerOptions = {}
             if ele.triggers then
-                for triggerIndex, _ in ipairs(ele.triggers) do
-                    table.insert(triggerOptions, L["Trigger"] .. triggerIndex)
+                for triggerIndex, trigger in ipairs(ele.triggers) do
+                    table.insert(triggerOptions, L["Trigger"] .. triggerIndex .. ": "  .. Trigger:GetTriggerName(trigger.type))
                 end
             end
             if #triggerOptions > 0 then
@@ -1160,7 +1189,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     order = triggerSettingOrder,
                     width = 1,
                     type = "input",
-                    name = L["Aura ID"],
+                    name = L["Aura ID"] ,
                     validate = function(_, val)
                         if val == nil or val == "" or val == " " then
                             return false
@@ -1184,12 +1213,23 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     end
                 }
                 triggerSettingOrder = triggerSettingOrder + 1
+                local iconPath = 134400
+                if trigger.confine.spellId then
+                    iconPath = C_Spell.GetSpellTexture(trigger.confine.spellId)
+                end
+                triggerSettingArgs.auraIconId = {
+                    order = triggerSettingOrder,
+                    width = 1,
+                    type = "description",
+                    name = "|T" .. iconPath .. ":16|t"
+                }
+                triggerSettingOrder = triggerSettingOrder + 1
             end
             if editTrigger and editTrigger.type == "self" then
                 local trigger = Trigger:ToSelfTriggerConfig(editTrigger)
             end
         end
-        
+
         -- 触发器条件设置：叶子元素可以使用
         if E:IsLeaf(ele) then
             local condGroupSettingOrder = 1
@@ -1206,7 +1246,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             if ele.triggers and #ele.triggers > 0 then
                 for k, t in ipairs(ele.triggers) do
                     if t and t.id then
-                        triggerOptions[t.id] = L["Trigger"] .. tostring(k)
+                        triggerOptions[t.id] = L["Trigger"] .. tostring(k) .. ": "  .. Trigger:GetTriggerName(t.type)
                     end
                 end
             end
@@ -1498,129 +1538,232 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 --[[
                 效果设置：目前只支持边框发光效果、图标褪色效果、隐藏图标
                 ]]
+                if editCondGroup.effects == nil then
+                    editCondGroup.effects = {}
+                end
+                local effectSettingArgs = {}
+                local effectSettingOrder = 1
+
+                ---@param effectName EffectType
+                ---@return nil | EffectConfig
+                local function GetEffect(effectName)
+                    for _, effect in ipairs(editCondGroup.effects) do
+                        if effect.type == effectName then
+                            return effect
+                        end
+                    end
+                    return nil
+                end
+
+                ---@param effectName EffectType
+                local function GetWidth(effectName)
+                    local effect = GetEffect(effectName)
+                    if effect and effect.status ~= nil then
+                        return 1
+                    else
+                        return 2
+                    end
+                end
+
+                local borderGlow = GetEffect("borderGlow")
+                effectSettingArgs.borderGlowStatus = {
+                    order = effectSettingOrder,
+                    width = GetWidth("borderGlow"),
+                    type = 'toggle',
+                    name = L["Border Glow"],
+                    set = function(_, val)
+                        if borderGlow == nil then
+                            borderGlow = Effect:NewBorderGlowEffect()
+                            if val == true then
+                                borderGlow.status = true
+                            else
+                                borderGlow.status = nil
+                            end
+                            table.insert(editCondGroup.effects, borderGlow)
+                        else
+                            if val == true then
+                                borderGlow.status = true
+                            else
+                                borderGlow.status = nil
+                            end
+                        end
+                    end,
+                    get = function(_)
+                        if borderGlow and borderGlow.status ~= nil then
+                            return true
+                        end
+                        return false
+                    end
+                }
+                effectSettingOrder = effectSettingOrder + 1
+                if borderGlow and borderGlow.status ~= nil then
+                    effectSettingArgs.borderGlow = {
+                        order = effectSettingOrder,
+                        width = 1,
+                        type = "select",
+                        name = "",
+                        values = const.OpenEffectOptions,
+                        set = function(_, val)
+                            borderGlow.status = val
+                        end,
+                        get = function()
+                            return borderGlow.status
+                        end
+                    }
+                end
+                effectSettingOrder = effectSettingOrder + 1
+
+                local btnHide = GetEffect("btnHide")
+                effectSettingArgs.btnHideStatus = {
+                    order = effectSettingOrder,
+                    width = GetWidth("btnHide"),
+                    type = 'toggle',
+                    name = L["Btn Hide"],
+                    set = function(_, val)
+                        if btnHide == nil then
+                            btnHide = Effect:NewBtnHideEffect()
+                            if val == true then
+                                btnHide.status = true
+                            else
+                                btnHide.status = nil
+                            end
+                            table.insert(editCondGroup.effects, btnHide)
+                        else
+                            if val == true then
+                                btnHide.status = true
+                            else
+                                btnHide.status = nil
+                            end
+                        end
+                    end,
+                    get = function(_)
+                        if btnHide and btnHide.status ~= nil then
+                            return true
+                        end
+                        return false
+                    end
+                }
+                effectSettingOrder = effectSettingOrder + 1
+                if btnHide and btnHide.status ~= nil then
+                    effectSettingArgs.btnHide = {
+                        order = effectSettingOrder,
+                        width = 1,
+                        type = "select",
+                        name = "",
+                        values = const.OpenEffectOptions,
+                        set = function(_, val)
+                            btnHide.status = val
+                        end,
+                        get = function()
+                            return btnHide.status
+                        end
+                    }
+                end
+                effectSettingOrder = effectSettingOrder + 1
+
+                local btnDesaturate = GetEffect("btnDesaturate")
+                effectSettingArgs.btnDesaturateStatus = {
+                    order = effectSettingOrder,
+                    width = GetWidth("btnDesaturate"),
+                    type = 'toggle',
+                    name = L["Btn Desaturate"],
+                    set = function(_, val)
+                        if btnDesaturate == nil then
+                            btnDesaturate = Effect:NewBtnDesaturateEffect()
+                            if val == true then
+                                btnDesaturate.status = true
+                            else
+                                btnDesaturate.status = nil
+                            end
+                            table.insert(editCondGroup.effects, btnDesaturate)
+                        else
+                            if val == true then
+                                btnDesaturate.status = true
+                            else
+                                btnDesaturate.status = nil
+                            end
+                        end
+                    end,
+                    get = function(_)
+                        if btnDesaturate and btnDesaturate.status ~= nil then
+                            return true
+                        end
+                        return false
+                    end
+                }
+                effectSettingOrder = effectSettingOrder + 1
+                if btnDesaturate and btnDesaturate.status ~= nil then
+                    effectSettingArgs.btnDesaturate = {
+                        order = effectSettingOrder,
+                        width = 1,
+                        type = "select",
+                        name = "",
+                        values = const.OpenEffectOptions,
+                        set = function(_, val)
+                            btnDesaturate.status = val
+                        end,
+                        get = function()
+                            return btnDesaturate.status
+                        end
+                    }
+                end
+                effectSettingOrder = effectSettingOrder + 1
+
+
+                local btnVertexColor = GetEffect("btnVertexColor")
+                effectSettingArgs.btnVertexColorStatus = {
+                    order = effectSettingOrder,
+                    width = GetWidth("btnVertexColor"),
+                    type = 'toggle',
+                    name = L["Btn Vertex Red Color"],
+                    set = function(_, val)
+                        if btnVertexColor == nil then
+                            btnVertexColor = Effect:NewBtnVertexColorEffect()
+                            if val == true then
+                                btnVertexColor.status = true
+                            else
+                                btnVertexColor.status = nil
+                            end
+                            table.insert(editCondGroup.effects, btnVertexColor)
+                        else
+                            if val == true then
+                                btnVertexColor.status = true
+                            else
+                                btnVertexColor.status = nil
+                            end
+                        end
+                    end,
+                    get = function(_)
+                        if btnVertexColor and btnVertexColor.status ~= nil then
+                            return true
+                        end
+                        return false
+                    end
+                }
+                effectSettingOrder = effectSettingOrder + 1
+                if btnVertexColor and btnVertexColor.status ~= nil then
+                    effectSettingArgs.btnVertexColor = {
+                        order = effectSettingOrder,
+                        width = 1,
+                        type = "select",
+                        name = "",
+                        values = const.OpenEffectOptions,
+                        set = function(_, val)
+                            btnVertexColor.status = val
+                        end,
+                        get = function()
+                            return btnVertexColor.status
+                        end
+                    }
+                end
+                effectSettingOrder = effectSettingOrder + 1
+
                 local effectSettingOptions = {
                     type = "group",
                     name = L["Effect Settings"],
                     inline = true,
                     order = condGroupSettingOrder,
-                    args = {
-                        borderGlow = {
-                            order = 1,
-                            width = 1,
-                            type = 'toggle',
-                            name = L["Border Glow"],
-                            set = function(_, _)
-                                if editCondGroup.effects == nil then
-                                    editCondGroup.effects = {}
-                                end
-                                for effectIndex, effect in ipairs(editCondGroup.effects) do
-                                    if effect.type == "borderGlow" then
-                                        table.remove(editCondGroup.effects, effectIndex)
-                                        return
-                                    end
-                                end
-                                table.insert(editCondGroup.effects, Effect:NewBorderGlowEffect())
-                            end,
-                            get = function(_)
-                                if editCondGroup.effects == nil or #editCondGroup.effects == 0 then
-                                    return false
-                                end
-                                for _, effect in ipairs(editCondGroup.effects) do
-                                    if effect.type == "borderGlow" then
-                                        return true
-                                    end
-                                end
-                                return false
-                            end
-                        },
-                        btnHide = {
-                            order = 2,
-                            width = 1,
-                            type = 'toggle',
-                            name = L["Btn Hide"] ,
-                            set = function(_, _)
-                                if editCondGroup.effects == nil then
-                                    editCondGroup.effects = {}
-                                end
-                                for effectIndex, effect in ipairs(editCondGroup.effects) do
-                                    if effect.type == "btnHide" then
-                                        table.remove(editCondGroup.effects, effectIndex)
-                                        return
-                                    end
-                                end
-                                table.insert(editCondGroup.effects, Effect:NewBtnHideEffect())
-                            end,
-                            get = function(_)
-                                if editCondGroup.effects == nil or #editCondGroup.effects == 0 then
-                                    return false
-                                end
-                                for _, effect in ipairs(editCondGroup.effects) do
-                                    if effect.type == "btnHide" then
-                                        return true
-                                    end
-                                end
-                                return false
-                            end
-                        },
-                        btnDesaturate = {
-                            order = 3,
-                            width = 1,
-                            type = 'toggle',
-                            name = L["Btn Desaturate"] ,
-                            set = function(_, _)
-                                if editCondGroup.effects == nil then
-                                    editCondGroup.effects = {}
-                                end
-                                for effectIndex, effect in ipairs(editCondGroup.effects) do
-                                    if effect.type == "btnDesaturate" then
-                                        table.remove(editCondGroup.effects, effectIndex)
-                                        return
-                                    end
-                                end
-                                table.insert(editCondGroup.effects, Effect:NewBtnDesaturateEffect())
-                            end,
-                            get = function(_)
-                                if editCondGroup.effects == nil or #editCondGroup.effects == 0 then
-                                    return false
-                                end
-                                for _, effect in ipairs(editCondGroup.effects) do
-                                    if effect.type == "btnDesaturate" then
-                                        return true
-                                    end
-                                end
-                                return false
-                            end
-                        },
-                        btnVertexColor = {
-                            order = 4,
-                            width = 1,
-                            type = 'toggle',
-                            name = L["Btn Vertex Red Color"]  ,
-                            set = function(_, _)
-                                if editCondGroup.effects == nil then
-                                    editCondGroup.effects = {}
-                                end
-                                for effectIndex, effect in ipairs(editCondGroup.effects) do
-                                    if effect.type == "btnVertexColor" then
-                                        table.remove(editCondGroup.effects, effectIndex)
-                                        return
-                                    end
-                                end
-                                table.insert(editCondGroup.effects, Effect:NewBtnVertexColorEffect())
-                            end,
-                            get = function(_)
-                                if editCondGroup.effects == nil or #editCondGroup.effects == 0 then
-                                    return false
-                                end
-                                for _, effect in ipairs(editCondGroup.effects) do
-                                    if effect.type == "btnVertexColor" then
-                                        return true
-                                    end
-                                end
-                                return false
-                            end
-                        },
-                    }
+                    args = effectSettingArgs
                 }
                 condGroupSettingArgs.effectSetting = effectSettingOptions
                 condGroupSettingOrder = condGroupSettingOrder + 1
@@ -1863,7 +2006,7 @@ end
 
 function ConfigOptions.Options()
     local options = {
-        name = "",
+        name = addonName,
         handler = addon,
         type = 'group',
         args = {
@@ -1903,7 +2046,7 @@ function ConfigOptions.Options()
                         order = 4,
                         width = 2,
                         type = "description",
-                        name = L["Version"] .. ": " .. "0.0.4"
+                        name = L["Version"] .. ": " .. "0.0.5"
                     }
                 }
             },
@@ -1923,13 +2066,14 @@ function addon:OnInitialize()
         ElvUI = unpack(_G.ElvUI) ---@type ElvUI
         ElvUISkins = ElvUI:GetModule("Skins") ---@type ElvUISkins
     end
+    local screenWidth, screenHeight = GetPhysicalScreenSize()
     -- 全局变量
     ---@class GlobalValue
     self.G = {
         ElvUI = ElvUI,
         ElvUISkins = ElvUISkins,
-        screenWidth = math.floor(GetScreenWidth()),   -- 屏幕宽度
-        screenHeight = math.floor(GetScreenHeight()), -- 屏幕高度
+        screenWidth = math.floor(screenWidth),   -- 屏幕宽度
+        screenHeight = math.floor(screenHeight), -- 屏幕高度
         iconWidth = 32,
         iconHeight = 32,
         IsEditMode = false,
@@ -1962,6 +2106,11 @@ function addon:OpenConfig()
         return
     end
     AceConfigDialog:Open(addonName)
+    -- local frame = AceConfigDialog.OpenFrames[addonName]
+    -- if frame then
+    --     frame:SetWidth(1000)
+    --     frame:SetHeight(600)
+    -- end
 end
 
 function addon:UpdateOptions()

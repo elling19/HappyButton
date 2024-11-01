@@ -21,6 +21,9 @@ local ECB = addon:GetModule('ElementCallback')
 ---@class Btn: AceModule
 local Btn = addon:GetModule("Btn")
 
+---@class LoadCondition: AceModule
+local LoadCondition = addon:GetModule("LoadCondition")
+
 ---@class ElementCbInfo
 ---@field f fun(ele: ElementConfig, lastCbResults: CbResult[]): CbResult[]  -- f: function
 ---@field p ElementConfig -- p: params
@@ -136,7 +139,7 @@ end
 ---@param eleConfig ElementConfig
 ---@return ElementCbInfo[][]
 function ElementFrame:GetCbss(eleConfig)
-    if eleConfig.isLoad == false then
+    if eleConfig.loadCond and LoadCondition:Pass(eleConfig.loadCond) == false then
         return { {} }
     end
     if eleConfig.type == const.ELEMENT_TYPE.ITEM then
@@ -166,7 +169,7 @@ function ElementFrame:GetCbss(eleConfig)
         local cbs = {}
         local bar = E:ToBar(eleConfig)
         for _, _eleConfig in ipairs(bar.elements) do
-            if _eleConfig.isLoad then
+            if _eleConfig.loadCond and _eleConfig.loadCond then
                 local eleConfigCbss = self:GetCbss(_eleConfig)
                 for _, _cbs in ipairs(eleConfigCbss[1]) do
                     table.insert(cbs, _cbs)
@@ -179,7 +182,7 @@ function ElementFrame:GetCbss(eleConfig)
         local cbss = {}
         local barGroup = E:ToBarGroup(eleConfig)
         for _, _eleConfig in ipairs(barGroup.elements) do
-            if _eleConfig.isLoad == true then
+            if _eleConfig.loadCond and LoadCondition:Pass(_eleConfig.loadCond) == true then
                 table.insert(cbss, self:GetCbss(_eleConfig)[1])
             end
         end
@@ -193,7 +196,7 @@ function ElementFrame:UpdateBars()
     self:RemoveBars()
     ---@type Bar[]
     local bars = {}
-    if self.Config.isLoad == false then
+    if self.Config.loadCond and LoadCondition:Pass(self.Config.loadCond) == false then
         self.Bars = bars
         return
     end
@@ -239,28 +242,46 @@ function ElementFrame:RemoveBars()
     end
 end
 
+-- 更新
+function ElementFrame:Update()
+    if InCombatLockdown() then
+        self:InCombatUpdate()
+    else
+        self:OutCombatUpdate()
+    end
+end
+
+-- 战斗外更新
 function ElementFrame:OutCombatUpdate()
+    -- 首先判断载入条件
+    if LoadCondition:Pass(self.Config.loadCond) == false then
+        self:HideWindow()
+        return
+    end
     for barIndex, bar in ipairs(self.Bars) do
         local cbInfos = {} ---@type ElementCbInfo[]
         if self.Cbss[barIndex] then
             for _, cb in ipairs(self.Cbss[barIndex]) do
-                cb.r = cb.f(cb.p, cb.r)
-                for _, r in ipairs(cb.r) do
-                    ECB:UpdateSelfTrigger(r)
-                    r.effects = ECB:UseTrigger(cb.p, r)
-                    -- 战斗外更新，如果发现隐藏按钮则是移除按钮
-                    local hideBtn = false
-                    if r.effects then
-                        for _, effect in ipairs(r.effects) do
-                            if effect.type == "btnHide" then
-                                hideBtn = true
-                                break
+                -- 判断是否通过展示条件判断
+                if LoadCondition:Pass(cb.p.loadCond) == true then
+                    cb.r = cb.f(cb.p, cb.r)
+                    for _, r in ipairs(cb.r) do
+                        ECB:UpdateSelfTrigger(r)
+                        r.effects = ECB:UseTrigger(cb.p, r)
+                        -- 战斗外更新，如果发现隐藏按钮则是移除按钮
+                        local hideBtn = false
+                        if r.effects then
+                            for _, effect in ipairs(r.effects) do
+                                if effect.type == "btnHide" then
+                                    hideBtn = true
+                                    break
+                                end
                             end
                         end
-                    end
-                    if hideBtn == false then
-                        local cbInfo = { p = cb.p, f = cb.f, r = { r, } } ---@type ElementCbInfo
-                        table.insert(cbInfos, cbInfo)
+                        if hideBtn == false then
+                            local cbInfo = { p = cb.p, f = cb.f, r = { r, } } ---@type ElementCbInfo
+                            table.insert(cbInfos, cbInfo)
+                        end
                     end
                 end
             end
@@ -283,10 +304,18 @@ function ElementFrame:OutCombatUpdate()
             end
         end
     end
-    self:SetWindowSize()
+    if self.Config.loadCond and self.Config.loadCond.CombatCond == true then
+        self:HideWindow()
+    else
+        self:ShowWindow()
+    end
 end
 
+-- 战斗中更新
 function ElementFrame:InCombatUpdate()
+    if LoadCondition:Pass(self.Config.loadCond) == false then
+        return
+    end
     for _, bar in ipairs(self.Bars) do
         if bar.BarBtns then
             for _, btn in ipairs(bar.BarBtns) do
@@ -295,7 +324,6 @@ function ElementFrame:InCombatUpdate()
         end
     end
 end
-
 
 function ElementFrame:InitialWindow()
     self.Window = CreateFrame("Frame", ("HtWindow-%s"):format(self.Config.id), UIParent)

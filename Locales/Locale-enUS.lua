@@ -126,7 +126,6 @@ L["AttachFrame Anchor Position"] = true
 
 
 L["Combat Load Condition"] = true
-L["Always load"] = true
 L["Load when out of combat"] = true
 L["Load when in combat"] = true
 L["BarGroup only load when out of combat"] = true
@@ -191,9 +190,13 @@ L["count"] = "Count"
 L["isLearned"] = "Is Learned"
 L["isUsable"] = "Is Usable"
 L["remainingTime"] = "Remaining Time"
+L["targetIsEnemy"] = "Target Is Enemy"
 
 -- 触发器效果
 L["Border Glow"] = true
 L["Btn Hide"] = true
 L["Btn Desaturate"] = true
 L["Btn Vertex Red Color"] = true
+
+L["Open"] = true
+L["Close"] = false

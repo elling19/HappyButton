@@ -45,7 +45,8 @@ function Btn:New(eFrame, barIndex, cbIndex)
     local bar = eFrame.Bars[barIndex]
     local obj = setmetatable({}, { __index = self })
     obj.EFrame = eFrame
-    obj.Button = CreateFrame("Button", ("Button-%s-%s-%s"):format(eFrame.Config.id, barIndex, cbIndex), bar.BarFrame, "SecureActionButtonTemplate")
+    obj.Button = CreateFrame("Button", ("Button-%s-%s-%s"):format(eFrame.Config.id, barIndex, cbIndex), bar.BarFrame,
+        "SecureActionButtonTemplate")
     obj.Button:SetSize(eFrame.IconWidth, eFrame.IconHeight)
     obj.effects = {}
     Btn.CreateIcon(obj)
@@ -99,7 +100,7 @@ function Btn:New(eFrame, barIndex, cbIndex)
         obj.Button:GetPushedTexture():SetVertexColor(1, 1, 1, 0.5)
     end
     return obj ---@type Btn
-    end
+end
 
 --- 按钮🔘从Frame中获取CbResult并更新
 ---@param config ElementConfig
@@ -117,24 +118,24 @@ function Btn:UpdateBySelf()
     self:Update()
 end
 
-
 function Btn:Update()
     if self.CbResult == nil then
         return
     end
     if self.CbResult.item ~= nil then
         self:SetIcon()
-        self:SetMacro()
         self:SetCooldown()
         self:SetMouseEvent()
+        -- ⚠️ 非战斗状态才能更新macro
+        if not InCombatLockdown() then
+            self:SetMacro()
+        end
     else
         self:SetScriptEvent()
     end
     self:UpdateTexts()
     self:UpdateEffects()
 end
-
-
 
 -- 创建图标Icon
 function Btn:CreateIcon()
@@ -146,7 +147,6 @@ function Btn:CreateIcon()
         self.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92) -- 裁剪图标
     end
 end
-
 
 -- 创建文本Text
 function Btn:UpdateTexts()
@@ -160,7 +160,7 @@ function Btn:UpdateTexts()
     for tIndex, text in ipairs(texts) do
         if tIndex > #self.Texts then
             local fString = self.Button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            fString:SetTextColor(1, 1, 1)  -- 默认使用白色
+            fString:SetTextColor(1, 1, 1) -- 默认使用白色
             table.insert(self.Texts, fString)
         end
         local tString = self.Texts[tIndex]
@@ -215,27 +215,29 @@ function Btn:UpdateEffects()
             effects[effect.type] = effect
         end
     end
-    if effects["btnDesaturate"] then
+    local btnDesaturate = effects["btnDesaturate"]
+    local btnHide = effects["btnHide"]
+    local btnVertexColor = effects["btnVertexColor"]
+    local borderGlow = effects["borderGlow"]
+    if btnDesaturate and btnDesaturate.status == true then
         self.Icon:SetAlpha(0.5)
     else
         self.Icon:SetAlpha(1)
     end
-    -- ⚠️ 关于按钮隐藏的特殊说明：
-    -- 如果设置了按钮隐藏，当在战斗外的时候ElementFrame🍃会监测到隐藏按钮并且会移除按钮，因此战斗外的按钮隐藏等于🟰移除按钮
-    -- 当战斗中的时候，由于API限制，无法设置移除按钮，因此战斗中隐藏按钮的设置为“透明度为0”，这样同样实现了按钮隐藏，但是实际上按钮还是可以被点击的
-    if effects["btnHide"] then
-        self.Button:SetEnabled(false)
+    if btnHide and btnHide.status == true then
+        -- ⚠️ 关于按钮隐藏的特殊说明：
+        -- 如果设置了按钮隐藏，当在战斗外的时候ElementFrame🍃会监测到隐藏按钮并且会移除按钮，因此战斗外的按钮隐藏等于🟰移除按钮
+        -- 当战斗中的时候，由于API限制，无法设置移除按钮，因此战斗中隐藏按钮的设置为“透明度为0”，这样同样实现了按钮隐藏，但是实际上按钮还是可以被点击的
         self.Button:SetAlpha(0)
     else
-        self.Button:SetEnabled(true)
         self.Button:SetAlpha(1)
     end
-    if effects["btnVertexColor"] then
-        self.Icon:SetVertexColor(1, 0, 0, 1)  -- 红色背景
+    if btnVertexColor and btnVertexColor.status == true then
+        self.Icon:SetVertexColor(1, 0, 0, 1) -- 红色背景
     else
-        self.Icon:SetVertexColor(1, 1, 1, 1)  -- 清除效果
+        self.Icon:SetVertexColor(1, 1, 1, 1) -- 清除效果
     end
-    if effects["borderGlow"] then
+    if borderGlow and borderGlow.status == true then
         if Client:IsRetail() then
             if not self.effects.borderGlow then
                 LCG.ProcGlow_Start(self.Button, {})
@@ -243,7 +245,7 @@ function Btn:UpdateEffects()
             end
         else
             if not self.effects.borderGlow then
-                LCG.ButtonGlow_Start(self.Button, {1, 1, 0, 1}, 0.5)
+                LCG.ButtonGlow_Start(self.Button, { 1, 1, 0, 1 }, 0.5)
                 self.effects.borderGlow = true
             end
         end
@@ -266,9 +268,11 @@ function Btn:CreateBorder()
         self.Border:SetPoint("CENTER")
         self.Border:SetFrameLevel(self.Button:GetFrameLevel() + 1)
         self.Border:SetBackdrop({
-            bgFile = "Interface\\Buttons\\WHITE8x8", -- 背景色
+            bgFile = "Interface\\Buttons\\WHITE8x8",   -- 背景色
             edgeFile = "Interface\\Buttons\\WHITE8x8", -- 边框纹理
-            tile = false, tileSize = 0, edgeSize = 1, -- 边框大小
+            tile = false,
+            tileSize = 0,
+            edgeSize = 1,                              -- 边框大小
             insets = { left = 0, right = 0, top = 0, bottom = 0 },
         })
         self.Border:SetBackdropColor(0, 0, 0, 0) -- 背景透明（灰色）
@@ -280,7 +284,7 @@ end
 function Btn:CreateCoolDown()
     if self.Cooldown == nil then
         self.Cooldown = CreateFrame("Cooldown", nil, self.Button, "CooldownFrameTemplate")
-        self.Cooldown:SetAllPoints()             -- 设置冷却效果覆盖整个按钮
+        self.Cooldown:SetAllPoints()                -- 设置冷却效果覆盖整个按钮
         self.Cooldown:SetDrawEdge(true)             -- 显示边缘
         self.Cooldown:SetHideCountdownNumbers(true) -- 隐藏倒计时数字
     end

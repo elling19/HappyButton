@@ -24,7 +24,6 @@ function E:New(title, type)
     ---@type ElementConfig
     local config = {
         id = U.String.GenerateID(),
-        isLoad = true,
         isDisplayMouseEnter = false,
         title = title,
         type = type,
@@ -34,7 +33,9 @@ function E:New(title, type)
         attachFrame = const.ATTACH_FRAME.UIParent,
         anchorPos = const.ANCHOR_POS.CENTER,
         attachFrameAnchorPos = const.ANCHOR_POS.CENTER,
-        combatLoadCond = const.COMBAT_LOAD_COND.OUT_COMBAT_LOAD,
+        loadCond = {
+            LoadCond = true,
+        },
         isUseRootTexts = true,
         texts = {},
         configSelectedTextIndex = 1,
@@ -62,7 +63,8 @@ function E:New(title, type)
         ---@type EffectConfig
         local btnHideEffectConfig = {
             type = "btnHide",
-            attr = {}
+            attr = {},
+            status = true
         }
         ---@type ConditionGroupConfig
         local btnHideCondGroupConfig = {
@@ -82,7 +84,8 @@ function E:New(title, type)
         ---@type EffectConfig
         local btnVertexColorEffectConfig = {
             type = "btnVertexColor",
-            attr = {}
+            attr = {},
+            status = true
         }
         ---@type ConditionGroupConfig
         local btnVertexColorCondGroupConfig = {

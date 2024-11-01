@@ -15,47 +15,55 @@ local U = addon:GetModule('Utils')
 local Effect = addon:NewModule("Effect")
 
 -- 创建边框发光效果
+---@param status nil | boolean
 ---@return EffectConfig
-function Effect:NewBorderGlowEffect()
+function Effect:NewBorderGlowEffect(status)
     ---@type EffectConfig
     local effect = {
         type = "borderGlow",
-        attr = {}
+        attr = {},
+        status = status
     }
     return effect
 end
 
 
 -- 创建图标隐藏效果
+---@param status nil | boolean
 ---@return EffectConfig
-function Effect:NewBtnHideEffect()
+function Effect:NewBtnHideEffect(status)
     ---@type EffectConfig
     local effect = {
         type = "btnHide",
-        attr = {}
+        attr = {},
+        status = status
     }
     return effect
 end
 
 
 -- 创建图标褪色⚫
+---@param status nil | boolean
 ---@return EffectConfig
-function Effect:NewBtnDesaturateEffect()
+function Effect:NewBtnDesaturateEffect(status)
     ---@type EffectConfig
     local effect = {
         type = "btnDesaturate",
-        attr = {}
+        attr = {},
+        status = status
     }
     return effect
 end
 
 -- 创建图标顶点红色🔴
+---@param status nil | boolean
 ---@return EffectConfig
-function Effect:NewBtnVertexColorEffect()
+function Effect:NewBtnVertexColorEffect(status)
     ---@type EffectConfig
     local effect = {
         type = "btnVertexColor",
-        attr = {}
+        attr = {},
+        status = status
     }
     return effect
 end

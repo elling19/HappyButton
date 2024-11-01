@@ -177,8 +177,8 @@ end
 ---@return CbResult
 function ECB:CallbackByItemConfig(element)
     local item = E:ToItem(element)
-       ---@type CbResult
-       local cbResult = {
+    ---@type CbResult
+    local cbResult = {
         icon = item.extraAttr.icon,
         text = item.extraAttr.name or item.title,
         item = item.extraAttr,
@@ -200,7 +200,6 @@ function ECB:NilCallback()
         leftClickCallback = nil
     }
 end
-
 
 -- 更新自身触发器
 ---@param cbResult CbResult
@@ -229,7 +228,8 @@ function ECB:UpdateSelfTrigger(cbResult)
     -- 更新物品边框
     if cbResult.item then
         if cbResult.item.type == const.ITEM_TYPE.ITEM or cbResult.item.type == const.ITEM_TYPE.TOY or cbResult.item.type == const.ITEM_TYPE.EQUIPMENT then
-            local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType, expansionID, setID, isCraftingReagent = C_Item.GetItemInfo(cbResult.item.id)
+            local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType, expansionID, setID, isCraftingReagent =
+            C_Item.GetItemInfo(cbResult.item.id)
             if itemQuality then
                 cbResult.borderColor = const.ItemQualityColor[itemQuality]
             end
@@ -243,7 +243,6 @@ function ECB:UpdateSelfTrigger(cbResult)
         cbResult.borderColor = const.DefaultItemColor
     end
 end
-
 
 -- 对cbResult进行触发器处理
 ---@param eleConfig ElementConfig
@@ -273,6 +272,7 @@ function ECB:UseTrigger(eleConfig, cbResult)
                         local leftValue = cbResult[cond.leftVal]
                         if type(cond.rightValue) == "number" or type(cond.rightValue) == "boolean" then
                             -- 判断条件返回真/假
+                            ---@diagnostic disable-next-line: param-type-mismatch
                             local r = Condition:ExecOperator(leftValue, cond.operator, cond.rightValue)
                             if r:is_ok() then
                                 condResult = r:unwrap()
@@ -282,6 +282,7 @@ function ECB:UseTrigger(eleConfig, cbResult)
                     if leftTrigger.type == "aura" then
                         local auraTriggerCond = Trigger:GetAuraTriggerCond(leftTrigger)
                         local leftValue = auraTriggerCond[cond.leftVal]
+                        ---@diagnostic disable-next-line: param-type-mismatch
                         local r = Condition:ExecOperator(leftValue, cond.operator, cond.rightValue)
                         if r:is_ok() then
                             condResult = r:unwrap()
@@ -294,16 +295,20 @@ function ECB:UseTrigger(eleConfig, cbResult)
             local condGroupR = Condition:ExecExpression(condResults, condGroup.expression)
             if condGroupR then
                 for _, effect in ipairs(condGroup.effects) do
-                    -- 判断是否有相同的效果，如果有则无须重复添加
-                    local hasSame = false
-                    for _, _effect in ipairs(effects) do
-                        if _effect.type == effect.type then
-                            hasSame = true
-                            break
+                    -- 首先判断状态，如果状态为nil则不处理
+                    if effect.status ~= nil then
+                        -- 判断是否有相同的效果，如果有则替换，没有则添加
+                        local hasSame = false
+                        for index, _effect in ipairs(effects) do
+                            if _effect.type == effect.type then
+                                hasSame = true
+                                effects[index] = effect
+                                break
+                            end
                         end
-                    end
-                    if hasSame == false then
-                        table.insert(effects, effect)
+                        if hasSame == false then
+                            table.insert(effects, effect)
+                        end
                     end
                 end
             end

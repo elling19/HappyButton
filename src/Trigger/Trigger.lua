@@ -41,6 +41,19 @@ function Trigger:ToAuraTriggerConfig(config)
     return config --- @type AuraTriggerConfig
 end
 
+-- 获取触发器名称
+---@param triggerType  TriggerType
+---@return string
+function Trigger:GetTriggerName(triggerType)
+    if triggerType == "self" then
+        return L["Self Trigger"]
+    end
+    if triggerType == "aura" then
+        return L["Aura Trigger"]
+    end
+    return "Unknown"
+end
+
 
 -- 根据触发器类型获取触发器条件列表
 -- ！！！返回列表的key值务必在ElementCallback函数的返回值中！！！
@@ -57,6 +70,7 @@ function Trigger:GetConditions(triggerType)
     if triggerType == "aura" then
         return {
             remainingTime = "number",
+            targetIsEnemy = "boolean"
         } ---@type table<AuraTriggerCond, type>
     end
     return {}
@@ -96,12 +110,20 @@ function Trigger:GetAuraTriggerCond(triggerConfig)
     if trigger.confine.type == "defbuff" then
         filter = "HARMFUL"
     end
+    if UnitExists(target) and UnitIsEnemy("player", target) then
+        result.targetIsEnemy = true
+    else
+        result.targetIsEnemy = false
+    end
     for i = 1, 100 do
         local aura = C_UnitAuras.GetBuffDataByIndex(target, i, filter)
         if aura and aura.spellId == auraId then
             result.remainingTime = aura.expirationTime - GetTime()
             break
         end
+    end
+    if result.remainingTime == nil then
+        result.remainingTime = 0
     end
     return result
 end

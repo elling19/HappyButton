@@ -5,3 +5,4 @@
 ---@class EffectConfig
 ---@field type EffectType
 ---@field attr EffectAttr
+---@field status nil | boolean  -- nil 不设置 true启用 false关闭
