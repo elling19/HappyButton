@@ -82,9 +82,10 @@ function ECB.CallbackOfRandomMode(element, lastCbResults)
         -- 没有没有冷却可用，则选择可用
         cb = ECB:CallbackByItemConfig(usableItemList[1])
     elseif #element.elements > 0 then
-        -- 没有可用的item时返回第一个
-        local item = E:ToItem(element.elements[1])
-        cb = ECB:CallbackByItemConfig(item)
+        -- 没有可用的item时随机返回一个
+        local randomIndex = math.random(1, #element.elements)
+        local selectedItem = E:ToItem(element.elements[randomIndex])
+        cb = ECB:CallbackByItemConfig(selectedItem)
     else
         cb = ECB:NilCallback()
     end
@@ -122,8 +123,9 @@ function ECB.CallbackOfSeqMode(element, lastCbResults)
     end
     if cb == nil then
         if #element.elements > 0 then
-            local item = E:ToItem(element.elements[1])
-            cb = ECB:CallbackByItemConfig(item)
+            local randomIndex = math.random(1, #element.elements)
+            local selectedItem = E:ToItem(element.elements[randomIndex])
+            cb = ECB:CallbackByItemConfig(selectedItem)
         else
             cb = ECB:NilCallback()
         end
