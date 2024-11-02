@@ -410,8 +410,8 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             type = "select",
             values = childEleOptions,
             set = function(_, val)
-                table.remove(elements, i)
                 table.insert(elements[val].elements, ele)
+                table.remove(elements, i)
                 local moveToSelectGroups = U.Table.DeepCopyList(selectGroups)
                 table.insert(moveToSelectGroups, "elementMenu" .. val)
                 table.insert(moveToSelectGroups, "elementMenu" .. #elements[val].elements)

@@ -17,6 +17,12 @@ function BarCore:Initial()
     HbFrame:Initial()
 end
 
+-- 使用定时器替代UNIT_AURA事件执行
+-- TODO: 对每个Frame进行事件追踪，创建Frame的时候收集需要监听的事件。
+C_Timer.NewTicker(0.2, function()
+    HbFrame:UpdateAllEframes()
+end)
+
 -- 注册事件
 function BarCore:Start()
     -- 注册相关事件以立即更新宏（如玩家登录或冷却更新）
@@ -28,10 +34,10 @@ function BarCore:Start()
     BarCore.Frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED") -- 装备改变（物品、装备）
     BarCore.Frame:RegisterEvent("SPELLS_CHANGED")           -- 技能改变（技能）
     BarCore.Frame:RegisterEvent("PLAYER_TALENT_UPDATE")     -- 天赋改变（技能）
-    BarCore.Frame:RegisterEvent("UNIT_AURA")                -- 目标buff或者defbuff改变（脚本、触发器）
+    -- BarCore.Frame:RegisterEvent("UNIT_AURA")                -- 目标buff或者defbuff改变（脚本、触发器）
     BarCore.Frame:RegisterEvent("PLAYER_TARGET_CHANGED")    -- 目标改变（脚本、触发器）
     BarCore.Frame:RegisterEvent("BAG_UPDATE")               -- 背包物品改变(物品、装备)
-    BarCore.Frame:SetScript("OnEvent", function(self, event, arg1)
+    BarCore.Frame:SetScript("OnEvent", function(self, event, arg1)  
         if event == "PLAYER_LOGIN" then
             BarCore:Initial()
         end
@@ -39,7 +45,7 @@ function BarCore:Start()
             event == "PLAYER_EQUIPMENT_CHANGED" or
             event == "SPELLS_CHANGED" or
             event == "PLAYER_TALENT_UPDATE" or
-            event == "UNIT_AURA" or
+            -- event == "UNIT_AURA" or
             event == "PLAYER_TARGET_CHANGED" or
             event == "BAG_UPDATE" or
             event == "PLAYER_REGEN_ENABLED"
