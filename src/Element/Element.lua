@@ -161,3 +161,12 @@ function E:IsLeaf(config)
     end
     return false
 end
+
+--- 获取config带图标的标题，使用在配置功能中
+---@param config ElementConfig
+---@return string
+function E:GetTitleWithIcon(config)
+    local icon = config.icon or 134400
+    local iconPath = "|T" .. icon .. ":16|t"
+    return iconPath .. config.title
+end

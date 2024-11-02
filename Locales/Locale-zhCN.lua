@@ -202,3 +202,8 @@ L["Btn Vertex Red Color"] = "顶点红色"
 
 L["Open"] = "开启"
 L["Close"] = "关闭"
+
+L["Move Up"] = "上移"
+L["Move Down"] = "下移"
+L["Move Top Level"] = "移到顶层"
+L["Move Down Level"] = "移到下层"

@@ -200,3 +200,8 @@ L["Btn Vertex Red Color"] = true
 
 L["Open"] = true
 L["Close"] = false
+
+L["Move Up"] = true
+L["Move Down"] = true
+L["Move Top Level"] = true
+L["Move Down Level"] = true

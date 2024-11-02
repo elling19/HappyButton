@@ -39,14 +39,14 @@ function Item:IsLearned(itemID, itemType)
         end
     elseif itemType == const.ITEM_TYPE.MOUNT then
         local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight =
-        C_MountJournal.GetMountInfoByID(itemID)
+            C_MountJournal.GetMountInfoByID(itemID)
         if isCollected then
             return true
         end
     elseif itemType == const.ITEM_TYPE.PET then
         for petIndex = 1, C_PetJournal.GetNumPets() do
             local _, speciesID, owned, customName, level, favorite, isRevoked, speciesName, icon, petType, companionID, tooltip, description, isWild, canBattle, isTradeable, isUnique, obtainable =
-            C_PetJournal.GetPetInfoByIndex(petIndex)
+                C_PetJournal.GetPetInfoByIndex(petIndex)
             if speciesID == itemID then
                 return true
             end
@@ -80,6 +80,27 @@ function Item:IsLearnedAndUsable(itemID, itemType)
         if isUsable then
             return true
         end
+    elseif itemType == const.ITEM_TYPE.MOUNT then
+        -- 根据玩家职业、种族判断是否可用
+        local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight
+        = C_MountJournal.GetMountInfoByID(itemID)
+        if not isUsable then
+            return false
+        end
+        -- 室内无法使用坐骑
+        if not IsOutdoors() then
+            return false
+        end
+        local creatureDisplayInfoID, description, source, isSelfMount, mountTypeID, uiModelSceneID, animID, spellVisualKitID, disablePlayerMountPreview =
+        C_MountJournal.GetMountInfoExtraByID(mountID)
+        -- 判断当前位置是否可以使用坐骑
+        -- 不是御龙术区域无法使用御龙术
+        if not IsAdvancedFlyableArea() and mountTypeID == const.MOUNT_TYPE_ID.DRAGON then
+            return false
+        end
+        return true
+    elseif itemType == const.ITEM_TYPE.PET then
+        return true
     end
     return false
 end

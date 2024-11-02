@@ -50,7 +50,7 @@ function ECB.CallbackOfRandomMode(element, lastCbResults)
     -- 如果上一次结果可用，则继续使用上一次的结果
     if lastCbResults and #lastCbResults then
         local r = lastCbResults[1]
-        if r then
+        if r and r.item then
             local isUsable = Item:IsLearnedAndUsable(r.item.id, r.item.type)
             local isCooldown = Item:IsUseableAndCooldown(r.item.id, r.item.type)
             if isUsable and isCooldown then
@@ -99,7 +99,7 @@ end
 function ECB.CallbackOfSeqMode(element, lastCbResults)
     if lastCbResults and #lastCbResults then
         local r = lastCbResults[1]
-        if r then
+        if r and r.item then
             local isUsable = Item:IsLearnedAndUsable(r.item.id, r.item.type)
             local isCooldown = Item:IsUseableAndCooldown(r.item.id, r.item.type)
             if isUsable and isCooldown then
@@ -216,13 +216,16 @@ function ECB:UpdateSelfTrigger(cbResult)
     else
         cbResult.isUsable = false
     end
-    if cbResult.item.type == const.ITEM_TYPE.ITEM then
-        cbResult.count = C_Item.GetItemCount(cbResult.item.id, false)
-    end
-    if cbResult.item.type == const.ITEM_TYPE.SPELL then
-        local chargeInfo = C_Spell.GetSpellCharges(cbResult.item.id)
-        if chargeInfo then
-            cbResult.count = chargeInfo.currentCharges
+    -- 更新物品数量
+    if cbResult.item then
+        if cbResult.item.type == const.ITEM_TYPE.ITEM then
+            cbResult.count = C_Item.GetItemCount(cbResult.item.id, false)
+        end
+        if cbResult.item.type == const.ITEM_TYPE.SPELL then
+            local chargeInfo = C_Spell.GetSpellCharges(cbResult.item.id)
+            if chargeInfo then
+                cbResult.count = chargeInfo.currentCharges
+            end
         end
     end
     -- 更新物品边框

@@ -53,8 +53,8 @@ function Config.VerifyItemAttr(itemType, val)
     item.type = itemType
     if item.type == nil then return R:Err(L["Please select item type."]) end
     -- 添加物品逻辑
-    if item.type == const.ITEM_TYPE.ITEM or item.type ==
-        const.ITEM_TYPE.EQUIPMENT or item.type == const.ITEM_TYPE.TOY then
+    -- 说明：print(type(C_ToyBox.GetToyInfo(item.id))) 返回的是number，和文档定义的不一致，无法通过API获取玩具信息，因此只能使用物品的API来获取
+    if item.type == const.ITEM_TYPE.ITEM or item.type == const.ITEM_TYPE.EQUIPMENT or item.type == const.ITEM_TYPE.TOY then
         local itemID, itemType, itemSubType, itemEquipLoc, icon, classID, subClassID = C_Item.GetItemInfoInstant(val)
         if itemID then
             item.id = itemID
@@ -62,6 +62,18 @@ function Config.VerifyItemAttr(itemType, val)
         else
             return R:Err(L["Unable to get the id, please check the input."])
         end
+        -- local itemID = C_Item.GetItemIDForItemInfo(val)
+        -- if itemID then
+        --     item.id = itemID
+        -- else
+        --     return R:Err(L["Unable to get the id, please check the input."])
+        -- end
+        -- local itemIcon = C_Item.GetItemIconByID(item.id)
+        -- if itemIcon then
+        --     item.icon = itemIcon
+        -- else
+        --     return R:Err("Can not get the icon, please check your input.")
+        -- end
         local itemName = C_Item.GetItemNameByID(item.id)
         if itemName then
             item.name = itemName
@@ -320,6 +332,93 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             args = baseSettingArgs
         }
         args.baseSetting = baseSettingOptions
+        baseSettingArgs.moveUp = {
+            order = baseSettingOrder,
+            width = 1,
+            type = 'execute',
+            name = L["Move Up"],
+            disabled = function ()
+                return i <= 1
+            end,
+            func = function()
+                if i > 1 then
+                    elements[i], elements[i - 1] = elements[i - 1], elements[i]
+                end
+                local moveUpSelectGroups = U.Table.DeepCopyList(selectGroups)
+                table.insert(moveUpSelectGroups, "elementMenu" .. i - 1)
+                AceConfigDialog:SelectGroup(addonName, unpack(moveUpSelectGroups))
+                HbFrame:ReloadEframeUI(updateFrameConfig)
+            end
+        }
+        baseSettingOrder = baseSettingOrder + 1
+        baseSettingArgs.moveDown = {
+            order = baseSettingOrder,
+            width = 1,
+            type = 'execute',
+            name = L["Move Down"],
+            disabled = function ()
+                return i >= #elements
+            end,
+            func = function()
+                if i < #elements then
+                    elements[i], elements[i + 1] = elements[i + 1], elements[i]
+                end
+                local moveDownSelectGroups = U.Table.DeepCopyList(selectGroups)
+                table.insert(moveDownSelectGroups, "elementMenu" .. i + 1)
+                AceConfigDialog:SelectGroup(addonName, unpack(moveDownSelectGroups))
+                HbFrame:ReloadEframeUI(updateFrameConfig)
+            end
+        }
+        baseSettingArgs.moveRoot = {
+            order = baseSettingOrder,
+            width = 1,
+            type = 'execute',
+            name = L["Move Top Level"],
+            disabled = function ()
+                return isRoot == true
+            end,
+            func = function()
+                if isRoot == false then
+                    table.remove(elements, i)
+                    table.insert(addon.db.profile.elements, ele)
+                    AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end
+            end
+        }
+        baseSettingOrder = baseSettingOrder + 1
+        local childEleOptions = {}
+        for _, _ele in ipairs(elements) do
+            -- 物品条组不能放在其他元素里
+            if ele.type == const.ELEMENT_TYPE.BAR_GROUP then
+            -- 物品条只能放在物品条或者物品条组中
+            elseif ele.type == const.ELEMENT_TYPE.BAR then
+                if _ele.type == const.ELEMENT_TYPE.BAR or _ele.type == const.ELEMENT_TYPE.BAR_GROUP then
+                    childEleOptions[_] = E:GetTitleWithIcon(_ele)
+                end
+            -- 其他类型只能放在物品条中
+            else
+                if _ele.type == const.ELEMENT_TYPE.BAR then
+                    childEleOptions[_] = E:GetTitleWithIcon(_ele)
+                end
+            end
+        end
+        baseSettingArgs.moveTo = {
+            order = baseSettingOrder,
+            width = 1,
+            name = L["Move Down Level"],
+            type = "select",
+            values = childEleOptions,
+            set = function(_, val)
+                table.remove(elements, i)
+                table.insert(elements[val].elements, ele)
+                local moveToSelectGroups = U.Table.DeepCopyList(selectGroups)
+                table.insert(moveToSelectGroups, "elementMenu" .. val)
+                table.insert(moveToSelectGroups, "elementMenu" .. #elements[val].elements)
+                AceConfigDialog:SelectGroup(addonName, unpack(moveToSelectGroups))
+            end
+        }
+        baseSettingOrder = baseSettingOrder + 1
         baseSettingArgs.delete = {
             order = baseSettingOrder,
             width = 1,
@@ -1067,6 +1166,38 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     end
                 end
             }
+            editChildrenSettingArgs.moveUp = {
+                order = editChildrenSettingOrder,
+                width = 1,
+                type = 'execute',
+                name = L["Move Up"],
+                disabled = function ()
+                    return itemGroup.extraAttr.configSelectedItemIndex <= 1
+                end,
+                func = function()
+                    if itemGroup.extraAttr.configSelectedItemIndex > 1 then
+                        itemGroup.elements[itemGroup.extraAttr.configSelectedItemIndex], itemGroup.elements[itemGroup.extraAttr.configSelectedItemIndex - 1] = itemGroup.elements[itemGroup.extraAttr.configSelectedItemIndex - 1], itemGroup.elements[itemGroup.extraAttr.configSelectedItemIndex]
+                        itemGroup.extraAttr.configSelectedItemIndex = itemGroup.extraAttr.configSelectedItemIndex - 1
+                    end
+                end
+            }
+            editChildrenSettingOrder = editChildrenSettingOrder + 1
+            editChildrenSettingArgs.moveDown = {
+                order = editChildrenSettingOrder,
+                width = 1,
+                type = 'execute',
+                name = L["Move Down"],
+                disabled = function ()
+                    return itemGroup.extraAttr.configSelectedItemIndex >= #itemGroup.elements
+                end,
+                func = function()
+                    if i < #itemGroup.elements then
+                        itemGroup.elements[itemGroup.extraAttr.configSelectedItemIndex], itemGroup.elements[itemGroup.extraAttr.configSelectedItemIndex + 1] = itemGroup.elements[itemGroup.extraAttr.configSelectedItemIndex + 1], itemGroup.elements[itemGroup.extraAttr.configSelectedItemIndex]
+                        itemGroup.extraAttr.configSelectedItemIndex = itemGroup.extraAttr.configSelectedItemIndex + 1
+                    end
+                end
+            }
+            editChildrenSettingOrder = editChildrenSettingOrder + 1
         end
 
         -- 触发器设置：叶子元素可以使用

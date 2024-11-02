@@ -65,6 +65,25 @@ const.ItemTypeOptions = {
     [const.ITEM_TYPE.PET] = L["Pet"],
 }
 
+-- 坐骑类型:https://warcraft.wiki.gg/wiki/API_C_MountJournal.GetMountInfoExtraByID
+---@num MountTypeId
+const.MOUNT_TYPE_ID = {
+    GROUND = 230,  -- 大部分地面坐骑
+    TURTLE = 231,  -- [海龟]  [骑乘乌龟]
+    SEAHORE = 232, --  [瓦斯琪尔海马] 只能在瓦斯琪尔召唤
+    QIRAJI = 241,  -- 安其拉坐骑，只能在安其拉神庙使用
+    SWIFT_SPECTRAL_GRYPHON = 242,  -- 迅捷光谱狮鹫（隐藏在坐骑日志中，在某些区域死亡时使用）
+    RED_FLYING_CLOUD = 247, -- [赤飞云盘]
+    FLYING = 248, -- 大部分飞行坐骑
+    IN_WATER = 254,  -- 只能在水里召唤 [深渊居民]、[ Brinedeep 底部进料器]、 [波塞多斯的缰绳]
+    ON_WATER = 269,  -- 水上行走坐骑 水黾缰绳
+    CHAUFFEURED = 284,  -- 传家宝司机
+    KUAFON = 398,  -- https://warcraft.wiki.gg/wiki/Kua%27fon%27s_Harness
+    DRAGON = 402,  -- 御龙术 [复苏始祖幼龙]
+    HAI_LU_KONG = 407,  -- 海陆空，水底100%游泳
+    SUPPORT_DRAGON = 424,  -- 支持御龙术的飞行坐骑
+}
+
 -- 物品组分类
 ---@enum ItemsGroupMode
 const.ITEMS_GROUP_MODE = {
