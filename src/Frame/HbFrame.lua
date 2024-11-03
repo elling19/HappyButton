@@ -75,21 +75,23 @@ end
 
 -- 更新
 ---@param eleConfig ElementConfig
-function HbFrame:UpdateEframe(eleConfig)
+---@param event string | nil
+function HbFrame:UpdateEframe(eleConfig, event)
     if self.EFrames[eleConfig.id] == nil then
         return
     end
     local eFrame = self.EFrames[eleConfig.id]
-    eFrame:Update()
+    eFrame:Update(event)
 end
 
 -- 全部更新
-function HbFrame:UpdateAllEframes()
+---@param event string | nil
+function HbFrame:UpdateAllEframes(event)
     if not self.EFrames then
         return
     end
     for _, eFrame in pairs(self.EFrames) do
-        eFrame:Update()
+        eFrame:Update(event)
     end
 end
 

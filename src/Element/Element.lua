@@ -170,3 +170,70 @@ function E:GetTitleWithIcon(config)
     local iconPath = "|T" .. icon .. ":16|t"
     return iconPath .. config.title
 end
+
+--- 获取config的监听事件
+--- @param config ElementConfig
+--- @return table<string, boolean>
+function E:GetEvents(config)
+    ---@type table<string, boolean>
+    local events = {
+        ["PLAYER_REGEN_DISABLED"] = true,  -- 进入战斗
+        ["PLAYER_REGEN_ENABLED"] = true, -- 退出战斗
+        ["PLAYER_TARGET_CHANGED"] = true,
+        ["SPELL_UPDATE_COOLDOWN"] = true, -- 触发冷却/gcd
+    }
+    local hasItem = false
+    local hasEquipment = false
+    local hasSpell = false
+    local hasToy = false
+    local hasMount = false
+    local hasPet = false
+    if config.type == const.ELEMENT_TYPE.ITEM then
+        local item = E:ToItem(config)
+        if item.extraAttr.type == const.ITEM_TYPE.ITEM then
+            hasItem = true
+        end
+        if item.extraAttr.type == const.ITEM_TYPE.EQUIPMENT then
+            hasEquipment = true
+        end
+        if item.extraAttr.type == const.ITEM_TYPE.TOY then
+            hasToy = true
+        end
+        if item.extraAttr.type == const.ITEM_TYPE.SPELL then
+            hasSpell = true
+        end
+        if item.extraAttr.type == const.ITEM_TYPE.MOUNT then
+            hasMount = true
+        end
+        if item.extraAttr.type == const.ITEM_TYPE.PET then
+            hasPet = true
+        end
+    end
+    if hasItem or hasEquipment then
+        events["BAG_UPDATE"] = true
+    end
+    if hasEquipment then
+        events["PLAYER_EQUIPMENT_CHANGED"] = true
+    end
+    if hasSpell then
+        events["SPELLS_CHANGED"] = true
+        events["PLAYER_TALENT_UPDATE"] = true
+    end
+    if config.triggers and #config.triggers > 0 then
+        for _, trigger in ipairs(config.triggers) do
+            if trigger.type == "aura" then
+                events["UNIT_AURA"] = true
+            end
+        end
+    end
+    -- 递归查找
+    if config.elements and #config.elements then
+        for _, childEle in ipairs(config.elements) do
+            local childEvents = E:GetEvents(childEle)
+            for k, v in pairs(childEvents) do
+                events[k] = true
+            end
+        end
+    end
+    return events
+end

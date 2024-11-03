@@ -33,7 +33,7 @@ local LCG = LibStub("LibCustomGlow-1.0")
 ---@field Cooldown table|Cooldown|CooldownFrameTemplate  -- 冷却倒计时
 ---@field Border table | Frame -- 边框
 ---@field CbResult CbResult
----@field LeafConfig ElementConfig
+---@field CbInfo ElementCbInfo
 ---@field effects table<EffectType, boolean>
 local Btn = addon:NewModule("Btn")
 
@@ -103,18 +103,25 @@ function Btn:New(eFrame, barIndex, cbIndex)
 end
 
 --- 按钮🔘从Frame中获取CbResult并更新
----@param config ElementConfig
----@param cbResult CbResult
-function Btn:UpdateByElementFrame(config, cbResult)
-    self.LeafConfig = config
-    self.CbResult = cbResult
+--- @param cbInfo ElementCbInfo
+--- @param event string | nil
+function Btn:UpdateByElementFrame(cbInfo, event)
+    self.CbInfo = cbInfo
+    self.CbResult = cbInfo.r[1]
+    if event and self.CbInfo.e[event] == nil then
+        return
+    end
     self:Update()
 end
 
 -- 按钮自身更新CbResult
-function Btn:UpdateBySelf()
+---@param event string | nil
+function Btn:UpdateBySelf(event)
+    if event and self.CbInfo.e[event] == nil then
+        return
+    end
     ECB:UpdateSelfTrigger(self.CbResult)
-    self.CbResult.effects = ECB:UseTrigger(self.LeafConfig, self.CbResult)
+    self.CbResult.effects = ECB:UseTrigger(self.CbInfo.p, self.CbResult)
     self:Update()
 end
 
@@ -154,8 +161,8 @@ function Btn:UpdateTexts()
         self.Texts = {}
     end
     local texts = self.EFrame.Config.texts or {}
-    if self.LeafConfig.isUseRootTexts == false then
-        texts = self.LeafConfig.texts or {}
+    if self.CbInfo.p.isUseRootTexts == false then
+        texts = self.CbInfo.p.texts or {}
     end
     for tIndex, text in ipairs(texts) do
         if tIndex > #self.Texts then

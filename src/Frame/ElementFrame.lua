@@ -28,6 +28,7 @@ local LoadCondition = addon:GetModule("LoadCondition")
 ---@field f fun(ele: ElementConfig, lastCbResults: CbResult[]): CbResult[]  -- f: function
 ---@field p ElementConfig -- p: params
 ---@field r CbResult[]
+---@field e table<string, boolean>
 
 ---@class Bar
 ---@field TabBtn nil|table|Button
@@ -37,6 +38,7 @@ local LoadCondition = addon:GetModule("LoadCondition")
 
 ---@class ElementFrame: AceModule
 ---@field Cbss ElementCbInfo[][]
+---@field Events table<string, boolean>
 ---@field Config ElementConfig  -- 当前Frame的配置文件
 ---@field Window Frame
 ---@field BarMenuFrame Frame
@@ -128,6 +130,7 @@ function ElementFrame:ReLoadUI()
     self.IconHeight = self.Config.iconHeight or addon.G.iconHeight
     self.IconWidth = self.Config.iconWidth or addon.G.iconWidth
     self.Cbss = self:GetCbss(self.Config)
+    self.Events = E:GetEvents(self.Config)
     self:UpdateWindow()
     self:UpdateBarMenuFrame()
     self:UpdateBars()
@@ -145,23 +148,23 @@ function ElementFrame:GetCbss(eleConfig)
     if eleConfig.type == const.ELEMENT_TYPE.ITEM then
         local item = E:ToItem(eleConfig)
         ---@type ElementCbInfo
-        local cb = { f = ECB.CallbackOfSingleMode, p = item, r = {} }
+        local cb = { f = ECB.CallbackOfSingleMode, p = item, r = {}, e = E:GetEvents(item) }
         return { { cb, } }
     elseif eleConfig.type == const.ELEMENT_TYPE.ITEM_GROUP then
         local itemGroup = E:ToItemGroup(eleConfig)
         ---@type ElementCbInfo
         local cb
         if itemGroup.extraAttr.mode == const.ITEMS_GROUP_MODE.RANDOM then
-            cb = { f = ECB.CallbackOfRandomMode, p = itemGroup, r = {} }
+            cb = { f = ECB.CallbackOfRandomMode, p = itemGroup, r = {}, e = E:GetEvents(itemGroup) }
         end
         if itemGroup.extraAttr.mode == const.ITEMS_GROUP_MODE.SEQ then
-            cb = { f = ECB.CallbackOfSeqMode, p = itemGroup, r = {} }
+            cb = { f = ECB.CallbackOfSeqMode, p = itemGroup, r = {}, e = E:GetEvents(itemGroup) }
         end
         return { { cb, } }
     elseif eleConfig.type == const.ELEMENT_TYPE.SCRIPT then
         local script = E:ToScript(eleConfig)
         if script.extraAttr.script then
-            local cb = { f = ECB.CallbackOfScriptMode, p = script, r = {} }
+            local cb = { f = ECB.CallbackOfScriptMode, p = script, r = {}, e = E:GetEvents(script)  }
             return { { cb, } }
         end
     elseif eleConfig.type == const.ELEMENT_TYPE.BAR then
@@ -243,16 +246,21 @@ function ElementFrame:RemoveBars()
 end
 
 -- 更新
-function ElementFrame:Update()
+---@param event string | nil
+function ElementFrame:Update(event)
     if InCombatLockdown() then
-        self:InCombatUpdate()
+        self:InCombatUpdate(event)
     else
-        self:OutCombatUpdate()
+        self:OutCombatUpdate(event)
     end
 end
 
 -- 战斗外更新
-function ElementFrame:OutCombatUpdate()
+---@param event string | nil
+function ElementFrame:OutCombatUpdate(event)
+    if event and self.Events[event] == nil then
+        return
+    end
     -- 首先判断载入条件
     if LoadCondition:Pass(self.Config.loadCond) == false then
         self:HideWindow()
@@ -279,7 +287,7 @@ function ElementFrame:OutCombatUpdate()
                             end
                         end
                         if hideBtn == false then
-                            local cbInfo = { p = cb.p, f = cb.f, r = { r, } } ---@type ElementCbInfo
+                            local cbInfo = { p = cb.p, f = cb.f, r = { r, }, e = cb.e } ---@type ElementCbInfo
                             table.insert(cbInfos, cbInfo)
                         end
                     end
@@ -293,7 +301,7 @@ function ElementFrame:OutCombatUpdate()
                 table.insert(bar.BarBtns, btn)
             end
             local btn = bar.BarBtns[cbIndex]
-            btn:UpdateByElementFrame(cbInfo.p, cbInfo.r[1])
+            btn:UpdateByElementFrame(cbInfo, event)
         end
         -- 如果按钮过多，删除冗余按钮
         if #cbInfos < #bar.BarBtns then
@@ -312,14 +320,18 @@ function ElementFrame:OutCombatUpdate()
 end
 
 -- 战斗中更新
-function ElementFrame:InCombatUpdate()
+---@param event string | nil
+function ElementFrame:InCombatUpdate(event)
+    if event and self.Events[event] == nil then
+        return
+    end
     if LoadCondition:Pass(self.Config.loadCond) == false then
         return
     end
     for _, bar in ipairs(self.Bars) do
         if bar.BarBtns then
             for _, btn in ipairs(bar.BarBtns) do
-                btn:UpdateBySelf()
+                btn:UpdateBySelf(event)
             end
         end
     end
