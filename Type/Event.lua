@@ -1,5 +1,6 @@
 -- 事件名称
 ---@alias EventString
+--- | "PLAYER_ENTERING_WORLD" reload/切换地图/加载地图
 --- | "BAG_UPDATE" -- 背包物品改变(物品、装备)
 --- | "PLAYER_EQUIPMENT_CHANGED" 装备改变（物品、装备）
 --- | "PLAYER_TARGET_CHANGED" -- 目标改变（脚本、触发器）

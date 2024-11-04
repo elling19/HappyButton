@@ -53,6 +53,16 @@ function HbFrame:DeleteEframe(eleConfig)
     self.EFrames[eleConfig.id] = nil
 end
 
+-- 重载所有UI
+function HbFrame:ReloadAllEframeUI()
+    if not self.EFrames then
+        return
+    end
+    for _, eFrame in pairs(self.EFrames) do
+        eFrame:ReLoadUI()
+    end
+end
+
 -- 重载UI
 ---@param eleConfig ElementConfig
 function HbFrame:ReloadEframeUI(eleConfig)
