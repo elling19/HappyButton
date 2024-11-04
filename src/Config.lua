@@ -1658,6 +1658,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                             values = const.CondExpressionOptions,
                             set = function(_, val)
                                 editCondGroup.expression = val
+                                HbFrame:ReloadEframeUI(updateFrameConfig)
                             end,
                             get = function() return editCondGroup.expression end
                         }
@@ -1665,7 +1666,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 }
                 condGroupSettingArgs.exprSetting = exprSettingOptions
                 condGroupSettingOrder = condGroupSettingOrder + 1
-                
+
                 --[[
                 效果设置：目前只支持边框发光效果、图标褪色效果、隐藏图标
                 ]]
@@ -1718,6 +1719,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                                 borderGlow.status = nil
                             end
                         end
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
                     end,
                     get = function(_)
                         if borderGlow and borderGlow.status ~= nil then
@@ -1736,6 +1738,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         values = const.OpenEffectOptions,
                         set = function(_, val)
                             borderGlow.status = val
+                            HbFrame:ReloadEframeUI(updateFrameConfig)
                         end,
                         get = function()
                             return borderGlow.status
@@ -1766,6 +1769,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                                 btnHide.status = nil
                             end
                         end
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
                     end,
                     get = function(_)
                         if btnHide and btnHide.status ~= nil then
@@ -1784,6 +1788,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         values = const.OpenEffectOptions,
                         set = function(_, val)
                             btnHide.status = val
+                            HbFrame:ReloadEframeUI(updateFrameConfig)
                         end,
                         get = function()
                             return btnHide.status
@@ -1814,6 +1819,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                                 btnDesaturate.status = nil
                             end
                         end
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
                     end,
                     get = function(_)
                         if btnDesaturate and btnDesaturate.status ~= nil then
@@ -1832,6 +1838,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         values = const.OpenEffectOptions,
                         set = function(_, val)
                             btnDesaturate.status = val
+                            HbFrame:ReloadEframeUI(updateFrameConfig)
                         end,
                         get = function()
                             return btnDesaturate.status
@@ -1863,6 +1870,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                                 btnVertexColor.status = nil
                             end
                         end
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
                     end,
                     get = function(_)
                         if btnVertexColor and btnVertexColor.status ~= nil then
@@ -1881,6 +1889,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         values = const.OpenEffectOptions,
                         set = function(_, val)
                             btnVertexColor.status = val
+                            HbFrame:ReloadEframeUI(updateFrameConfig)
                         end,
                         get = function()
                             return btnVertexColor.status
@@ -1898,6 +1907,58 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 }
                 condGroupSettingArgs.effectSetting = effectSettingOptions
                 condGroupSettingOrder = condGroupSettingOrder + 1
+            end
+        end
+
+        -- 脚本设置事件监听
+        if ele.type == const.ELEMENT_TYPE.SCRIPT then
+            local eventSettingOrder = 1
+            local eventSettingArgs = {}
+            local eventSettingOptions = {
+                type = "group",
+                name = L["Event Settings"],
+                inline = true,
+                order = 8,
+                args = eventSettingArgs
+            }
+            args.eventSetting = eventSettingOptions
+            eventSettingArgs.borderGlowStatus = {
+                order = eventSettingOrder,
+                width = 2,
+                type = 'toggle',
+                name = L["Enable Event Listening"],
+                set = function(_, val)
+                    if val == false then
+                        ele.listenEvents = nil
+                    else
+                        ele.listenEvents = {}
+                    end
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end,
+                get = function(_)
+                    return ele.listenEvents ~= nil
+                end
+            }
+            eventSettingOrder = eventSettingOrder + 1
+            if ele.listenEvents ~= nil then
+                eventSettingArgs.selectEvents = {
+                    order = eventSettingOrder,
+                    width = 2,
+                    type = "multiselect",
+                    name = "",
+                    values = const.BUILDIN_EVENTS,
+                    get = function(_, key)
+                        return ele.listenEvents[key] ~= nil
+                    end,
+                    set = function(_, key, value)
+                        if value == true then
+                            ele.listenEvents[key] = {}
+                        else
+                            ele.listenEvents[key] = nil
+                        end
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
+                    end,
+                }
             end
         end
 
@@ -2246,5 +2307,5 @@ end
 
 function addon:UpdateOptions()
     -- 重新注册配置表来更新菜单栏
-    LibStub("AceConfigRegistry-3.0"):NotifyChange(addonName)
+    -- LibStub("AceConfigRegistry-3.0"):NotifyChange(addonName)
 end

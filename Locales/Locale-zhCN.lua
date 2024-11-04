@@ -207,3 +207,7 @@ L["Move Up"] = "上移"
 L["Move Down"] = "下移"
 L["Move Top Level"] = "移到顶层"
 L["Move Down Level"] = "移到下层"
+
+-- 事件监听设置
+L["Event Settings"] = "事件监听设置"
+L["Enable Event Listening"] = "开启事件监听"

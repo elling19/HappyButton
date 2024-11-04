@@ -1,0 +1,8 @@
+-- 事件名称
+---@alias EventString
+--- | "BAG_UPDATE" -- 背包物品改变(物品、装备)
+--- | "PLAYER_EQUIPMENT_CHANGED" 装备改变（物品、装备）
+--- | "PLAYER_TARGET_CHANGED" -- 目标改变（脚本、触发器）
+--- | "PLAYER_TALENT_UPDATE"  -- 天赋改变（技能）
+--- | "SPELLS_CHANGED" -- 技能改变（技能）
+--- | "UNIT_AURA"  -- 单位光环改变

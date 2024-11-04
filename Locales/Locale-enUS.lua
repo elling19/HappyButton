@@ -199,9 +199,13 @@ L["Btn Desaturate"] = true
 L["Btn Vertex Red Color"] = true
 
 L["Open"] = true
-L["Close"] = false
+L["Close"] = true
 
 L["Move Up"] = true
 L["Move Down"] = true
 L["Move Top Level"] = true
 L["Move Down Level"] = true
+
+-- 事件监听设置
+L["Event Settings"] = true
+L["Enable Event Listening"] = true

@@ -182,6 +182,11 @@ function E:GetEvents(config)
         ["PLAYER_TARGET_CHANGED"] = true,
         ["SPELL_UPDATE_COOLDOWN"] = true, -- 触发冷却/gcd
     }
+    if config.listenEvents ~= nil then
+        for event, _ in pairs(config.listenEvents) do
+            events[event] = true
+        end
+    end
     local hasItem = false
     local hasEquipment = false
     local hasSpell = false

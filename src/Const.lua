@@ -68,20 +68,20 @@ const.ItemTypeOptions = {
 -- 坐骑类型:https://warcraft.wiki.gg/wiki/API_C_MountJournal.GetMountInfoExtraByID
 ---@num MountTypeId
 const.MOUNT_TYPE_ID = {
-    GROUND = 230,  -- 大部分地面坐骑
-    TURTLE = 231,  -- [海龟]  [骑乘乌龟]
-    SEAHORE = 232, --  [瓦斯琪尔海马] 只能在瓦斯琪尔召唤
-    QIRAJI = 241,  -- 安其拉坐骑，只能在安其拉神庙使用
-    SWIFT_SPECTRAL_GRYPHON = 242,  -- 迅捷光谱狮鹫（隐藏在坐骑日志中，在某些区域死亡时使用）
-    RED_FLYING_CLOUD = 247, -- [赤飞云盘]
-    FLYING = 248, -- 大部分飞行坐骑
-    IN_WATER = 254,  -- 只能在水里召唤 [深渊居民]、[ Brinedeep 底部进料器]、 [波塞多斯的缰绳]
-    ON_WATER = 269,  -- 水上行走坐骑 水黾缰绳
-    CHAUFFEURED = 284,  -- 传家宝司机
-    KUAFON = 398,  -- https://warcraft.wiki.gg/wiki/Kua%27fon%27s_Harness
-    DRAGON = 402,  -- 御龙术 [复苏始祖幼龙]
-    HAI_LU_KONG = 407,  -- 海陆空，水底100%游泳
-    SUPPORT_DRAGON = 424,  -- 支持御龙术的飞行坐骑
+    GROUND = 230,                 -- 大部分地面坐骑
+    TURTLE = 231,                 -- [海龟]  [骑乘乌龟]
+    SEAHORE = 232,                --  [瓦斯琪尔海马] 只能在瓦斯琪尔召唤
+    QIRAJI = 241,                 -- 安其拉坐骑，只能在安其拉神庙使用
+    SWIFT_SPECTRAL_GRYPHON = 242, -- 迅捷光谱狮鹫（隐藏在坐骑日志中，在某些区域死亡时使用）
+    RED_FLYING_CLOUD = 247,       -- [赤飞云盘]
+    FLYING = 248,                 -- 大部分飞行坐骑
+    IN_WATER = 254,               -- 只能在水里召唤 [深渊居民]、[ Brinedeep 底部进料器]、 [波塞多斯的缰绳]
+    ON_WATER = 269,               -- 水上行走坐骑 水黾缰绳
+    CHAUFFEURED = 284,            -- 传家宝司机
+    KUAFON = 398,                 -- https://warcraft.wiki.gg/wiki/Kua%27fon%27s_Harness
+    DRAGON = 402,                 -- 御龙术 [复苏始祖幼龙]
+    HAI_LU_KONG = 407,            -- 海陆空，水底100%游泳
+    SUPPORT_DRAGON = 424,         -- 支持御龙术的飞行坐骑
 }
 
 -- 物品组分类
@@ -215,15 +215,15 @@ const.TextOptions = {
 -- 物品颜色代码
 ---@type table<Enum.ItemQuality, RGBAColor>
 const.ItemQualityColor = {
-    [Enum.ItemQuality.Poor] = { 0.617, 0.617, 0.617, 1 },   -- 灰色
-    [Enum.ItemQuality.Common] = { 1, 1, 1, 1 },             -- 普通
-    [Enum.ItemQuality.Uncommon] = { 0.118, 1, 0, 1 },       -- 优秀
-    [Enum.ItemQuality.Rare] = { 0.00, 0.439, 0.867, 1 },    -- 精良
-    [Enum.ItemQuality.Epic] = { 0.639, 0.208, 0.933, 1 },   -- 史诗
-    [Enum.ItemQuality.Legendary] = { 1, 0.502, 0, 1 },      -- 传说
+    [Enum.ItemQuality.Poor] = { 0.617, 0.617, 0.617, 1 },     -- 灰色
+    [Enum.ItemQuality.Common] = { 1, 1, 1, 1 },               -- 普通
+    [Enum.ItemQuality.Uncommon] = { 0.118, 1, 0, 1 },         -- 优秀
+    [Enum.ItemQuality.Rare] = { 0.00, 0.439, 0.867, 1 },      -- 精良
+    [Enum.ItemQuality.Epic] = { 0.639, 0.208, 0.933, 1 },     -- 史诗
+    [Enum.ItemQuality.Legendary] = { 1, 0.502, 0, 1 },        -- 传说
     [Enum.ItemQuality.Artifact] = { 0.902, 0.800, 0.502, 1 }, -- 神器
-    [Enum.ItemQuality.Heirloom] = { 0, 0.800, 1, 1 },       -- 传家宝
-    [Enum.ItemQuality.WoWToken] = { 0, 0.800, 1, 1 },       -- 代币
+    [Enum.ItemQuality.Heirloom] = { 0, 0.800, 1, 1 },         -- 传家宝
+    [Enum.ItemQuality.WoWToken] = { 0, 0.800, 1, 1 },         -- 代币
 }
 
 -- 默认边框代码
@@ -240,7 +240,7 @@ const.TriggerTypeOptions = {
 -- 触发器目标选项
 ---@type table<TriggerTarget, string>
 const.TriggerTargetOptions = {
-    ["player"] = L["Player"] ,
+    ["player"] = L["Player"],
     ["target"] = L["Target"]
 }
 
@@ -289,7 +289,21 @@ const.OpenEffectOptions = {
 }
 
 --[[
--- 事件常量
+事件监听
+]]
+
+---@type table<EventString, EventString>
+const.BUILDIN_EVENTS = {
+    ["BAG_UPDATE"] = "BAG_UPDATE",                             -- 背包物品改变(物品、装备)
+    ["PLAYER_EQUIPMENT_CHANGED"] = "PLAYER_EQUIPMENT_CHANGED", -- 装备改变（物品、装备）
+    ["PLAYER_TARGET_CHANGED"] = "PLAYER_TARGET_CHANGED",       -- 目标改变（脚本、触发器）
+    ["PLAYER_TALENT_UPDATE"] = "PLAYER_TALENT_UPDATE",         -- 天赋改变（技能）
+    ["SPELLS_CHANGED"] = "SPELLS_CHANGED",                     -- 技能改变（技能）
+    ["UNIT_AURA"] = "UNIT_AURA"                                -- 单位光环改变
+}
+
+--[[
+-- 自定义事件常量
 ]]
 const.EVENT = {
     EXIT_EDIT_MODE = "EXIT_EDIT_MODE", -- 退出编辑模式
