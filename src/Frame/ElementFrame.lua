@@ -142,7 +142,6 @@ function ElementFrame:ReLoadUI()
         if self:IsBarGroup() then
             self:SetBarGroupHidden()
         else
-            print(self.Config.title, "初始设置为透明")
             self:SetBarTransparency()
         end
     else

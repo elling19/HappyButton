@@ -135,7 +135,7 @@ const.GROWTH = {
 
 -- 生长方向类型选项
 ---@class ArrangeOptions
----@type table<number, string>
+---@type table<Growth, string>
 const.GrowthOptions = {
     [const.GROWTH.TOPLEFT] = L["TOPLEFT"],
     [const.GROWTH.TOPRIGHT] = L["TOPRIGHT"],

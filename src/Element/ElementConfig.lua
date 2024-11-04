@@ -26,7 +26,7 @@
 ---@field attachFrameAnchorPos string -- 依附框体锚点位置
 ---@field posX number | nil -- X轴位置
 ---@field posY number | nil  -- Y轴位置
----@field elesGrowth string --子元素生长方向
+---@field elesGrowth Growth --子元素生长方向
 ---@field loadCond LoadConditionConfig  -- 加载条件
 ---@field isUseRootTexts boolean -- 是否使用根元素文本的设置
 ---@field texts TextConfig[]  -- 文本设置
