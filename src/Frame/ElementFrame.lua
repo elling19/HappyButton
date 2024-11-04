@@ -137,6 +137,19 @@ function ElementFrame:ReLoadUI()
     self:UpdateBarFrame()
     self:CreateEditModeFrame()
     self:OutCombatUpdate()
+      -- 设置初始的时候是否隐藏
+      if self.Config.isDisplayMouseEnter == true then
+        if self:IsBarGroup() then
+            self:SetBarGroupHidden()
+        else
+            print(self.Config.title, "初始设置为透明")
+            self:SetBarTransparency()
+        end
+    else
+        if self:IsBarGroup() then
+            self:HideAllBarFrame()
+        end
+    end
 end
 
 ---@param eleConfig ElementConfig
@@ -312,6 +325,7 @@ function ElementFrame:OutCombatUpdate(event)
             end
         end
     end
+    self:SetWindowSize()
     if self.Config.loadCond and self.Config.loadCond.CombatCond == true then
         self:HideWindow()
     else
@@ -517,6 +531,7 @@ function ElementFrame:UpdateBarFrame()
                 -- 默认右下
                 barFrame:SetPoint("LEFT", bar.TabBtn, "RIGHT", 0, 0)
             end
+            barFrame:Hide()
         else
             if self.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM then
                 barFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
@@ -541,9 +556,6 @@ function ElementFrame:UpdateBarFrame()
         end
         barFrame:SetWidth(self.IconWidth)
         barFrame:SetHeight(self.IconHeight)
-        if self:IsBarGroup() or self.Config.isDisplayMouseEnter then
-            barFrame:Hide()
-        end
         bar.BarFrame = barFrame
     end
 end
