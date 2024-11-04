@@ -209,3 +209,19 @@ L["Move Down Level"] = true
 -- 事件监听设置
 L["Event Settings"] = true
 L["Enable Event Listening"] = true
+
+-- 职业
+L["Enable Class Settings"] = true
+L["Warrior"] = true
+L["Paladin"] = true
+L["Hunter"] = true
+L["Rogue"] = true
+L["Priest"] = true
+L["Death Knight"] = true
+L["Shaman"] = true
+L["Mage"] = true
+L["Warlock"] = true
+L["Monk"] = true
+L["Druid"] = true
+L["Demon Hunter"] = true
+L["Evoker"] = true

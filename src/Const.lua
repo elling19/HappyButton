@@ -302,6 +302,42 @@ const.BUILDIN_EVENTS = {
     ["UNIT_AURA"] = "UNIT_AURA"                                -- 单位光环改变
 }
 
+--[[职业]]
+---@enum Class
+const.CLASS = {
+    WARRIOR = 1,
+    PALADIN = 2,
+    HUNTER = 3,
+    ROGUE = 4,
+    PRIEST = 5,
+    DEATHKNIGHT = 6,
+    SHAMAN = 7,
+    MAGE = 8,
+    WARLOCK = 9,
+    MONK = 10,
+    DRUID = 11,
+    DEMONHUNTER = 12,
+    EVOKER = 13,
+}
+
+--[[职业选项]]
+const.ClassOptions = {
+    [const.CLASS.WARRIOR] = L["Warrior"],
+    [const.CLASS.PALADIN] = L["Paladin"],
+    [const.CLASS.HUNTER] = L["Hunter"],
+    [const.CLASS.ROGUE] = L["Rogue"],
+    [const.CLASS.PRIEST] = L["Priest"],
+    [const.CLASS.DEATHKNIGHT] = L["Death Knight"],
+    [const.CLASS.SHAMAN] = L["Shaman"],
+    [const.CLASS.MAGE] = L["Mage"],
+    [const.CLASS.WARLOCK] = L["Warlock"],
+    [const.CLASS.MONK] = L["Monk"],
+    [const.CLASS.DRUID] = L["Druid"],
+    [const.CLASS.DEMONHUNTER] = L["Demon Hunter"],
+    [const.CLASS.EVOKER] = L["Evoker"],
+}
+
+
 --[[
 -- 自定义事件常量
 ]]

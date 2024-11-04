@@ -886,6 +886,62 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 end
             end
         end
+        -- 加载选项：职业
+        displaySettingArgs.borderGlowStatus = {
+            order = displaySettingOrder,
+            width = 2,
+            type = 'toggle',
+            name = L["Enable Class Settings"] ,
+            set = function(_, val)
+                if val == false then
+                    ele.loadCond.ClassCond = nil
+                else
+                    ele.loadCond.ClassCond = {}
+                end
+                HbFrame:ReloadEframeUI(updateFrameConfig)
+            end,
+            get = function(_)
+                return ele.loadCond.ClassCond ~= nil
+            end
+        }
+        displaySettingOrder = displaySettingOrder + 1
+        if ele.loadCond.ClassCond ~= nil then
+            displaySettingArgs.selectClasses = {
+                order = displaySettingOrder,
+                width = 2,
+                type = "multiselect",
+                name = "",
+                values = const.ClassOptions,
+                get = function(_, key)
+                    if ele.loadCond.ClassCond then
+                        for _, class in ipairs(ele.loadCond.ClassCond) do
+                            if class == key then
+                                return true
+                            end
+                        end
+                    end
+                    return false
+                end,
+                set = function(_, key, value)
+                    if value == true then
+                        if ele.loadCond.ClassCond then
+                            if not U.Table.IsInArray(ele.loadCond.ClassCond, key) then
+                                table.insert(ele.loadCond.ClassCond, key)
+                            end
+                        end
+                    else
+                        if ele.loadCond.ClassCond then
+                            local index = U.Table.GetArrayIndex(ele.loadCond.ClassCond, key)
+                            if index ~= 0 then
+                                table.remove(ele.loadCond.ClassCond, index)
+                            end
+                        end
+                    end
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end,
+            }
+            displaySettingOrder = displaySettingOrder + 1
+        end
         -- 文字设置：根元素或者叶子元素可以使用
         if isRoot or E:IsLeaf(ele) then
             local textSettingOrder = 1
@@ -1959,6 +2015,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         HbFrame:ReloadEframeUI(updateFrameConfig)
                     end,
                 }
+                eventSettingOrder = eventSettingOrder + 1
             end
         end
 

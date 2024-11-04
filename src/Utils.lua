@@ -11,6 +11,7 @@ local const = addon:GetModule('CONST')
 ---@field IsArray fun(table: table): boolean
 ---@field Contains fun(table: table, element: any): boolean
 ---@field IsInArray fun(array: table, element: any): boolean
+---@field GetArrayIndex fun(table: table, element: any): number
 ---@field DeepCopy fun(original: table): table
 local UtilsTable = {}
 
@@ -61,6 +62,9 @@ function UtilsTable.Contains(table, element)
 end
 
 -- 检查目标是否在数组中
+---@param array table
+---@param target any
+---@return boolean
 function UtilsTable.IsInArray(array, target)
     for _, value in ipairs(array) do
         if value == target then
@@ -68,6 +72,19 @@ function UtilsTable.IsInArray(array, target)
         end
     end
     return false
+end
+
+-- 检查目标在数组中的下标, 如果找到返回下标，如果没有返回0
+---@param array table
+---@param target any
+---@return number
+function UtilsTable.GetArrayIndex(array, target)
+    for index, value in ipairs(array) do
+        if value == target then
+            return index
+        end
+    end
+    return 0
 end
 
 -- 深度复制字典

@@ -17,6 +17,7 @@ local LoadCondition = addon:NewModule("LoadCondition")
 ---@class LoadConditionConfig
 ---@field LoadCond true | false  -- 是否启用，默认true
 ---@field CombatCond true | false | nil  -- 战斗中加载true，战斗外加载false，都加载nil
+---@field ClassCond nil | Class[]  -- 职业判断
 
 -- 根据载入条件判断是否加载
 ---@param loadConditionConfig LoadConditionConfig
@@ -29,6 +30,20 @@ function LoadCondition:Pass(loadConditionConfig)
     -- 如果没有开启，则返回false
     if loadConditionConfig.LoadCond == false then
         return false
+    end
+    -- 开启了职业配置
+    if loadConditionConfig.ClassCond ~= nil then
+        local hasClass = false
+        local _, classId = UnitClassBase("player")
+        for _, id in ipairs(loadConditionConfig.ClassCond) do
+            if classId == id then
+                hasClass = true
+                break
+            end
+        end
+        if not hasClass then
+            return false
+        end
     end
     return true
 end
