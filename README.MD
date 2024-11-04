@@ -3,7 +3,7 @@
 <img src="./Media/Logo64.png" alt="HappyButton" width="64" height="64">
 
 
-[中文README](README_CN.md)
+[中文README](README_CN.MD)
 
 
 Welcome to the **HappyButton** plugin! This is a **World of Warcraft** plugin that primarily provides custom item bar functionality, making it easier to manage items, equip items, skills, mounts, toys, and pets.
