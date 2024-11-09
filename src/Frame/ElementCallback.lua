@@ -80,7 +80,9 @@ function ECB.CallbackOfRandomMode(element, lastCbResults)
         cb = ECB:CallbackByItemConfig(selectedItem)
     elseif #usableItemList > 0 then
         -- 没有没有冷却可用，则选择可用
-        cb = ECB:CallbackByItemConfig(usableItemList[1])
+        local randomIndex = math.random(1, #usableItemList)
+        local selectedItem = usableItemList[randomIndex]
+        cb = ECB:CallbackByItemConfig(selectedItem)
     elseif #element.elements > 0 then
         -- 没有可用的item时随机返回一个
         local randomIndex = math.random(1, #element.elements)

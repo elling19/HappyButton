@@ -803,7 +803,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             displaySettingOrder = displaySettingOrder + 1
         end
 
-        -- 支持根元素和🍃叶子元素设置加载条件，根元素加载条件在Cbss获取的时候判断，叶子元素在cbResult的时候判断
+        -- 支持根元素和🍃叶子元素设置加载条件，根元素加载条件在Cbs获取的时候判断，叶子元素在cbResult的时候判断
         if isRoot or E:IsLeaf(ele) then
             displaySettingArgs.isLoadToggle = {
                 order = displaySettingOrder,
