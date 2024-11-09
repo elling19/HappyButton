@@ -288,6 +288,9 @@ function Btn:SetIcon()
     if r == nil then
         return
     end
+    if self.Icon == nil then
+        self:CreateIcon()
+    end
     if r.icon then
         self.Icon:SetTexture(r.icon)
     else
