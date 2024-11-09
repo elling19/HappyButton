@@ -2,15 +2,15 @@
 
 setlocal enabledelayedexpansion
 
-set BASE_DIR=HappyButton-Beta-0.0.7
+set BASE_DIR=HappyButton
 
-set ZIPFILE=%BASE_DIR%.zip
+set ZIPFILE=%BASE_DIR%-Beta-0.0.7.zip
 set TEMP_DIR=%BASE_DIR%
 
-mkdir "%TEMP_DIR%\HappyButton"
+mkdir "%TEMP_DIR%"
 
 :: use robocpy copy file exculde some dir
-robocopy . "%TEMP_DIR%\HappyButton" /E /XD ".git" ".idea" ".vscode" "%TEMP_DIR%" "HappyButton" /XF "pack.cmd"
+robocopy . "%TEMP_DIR%" /E /XD ".git" ".idea" ".vscode" "%TEMP_DIR%" /XF "pack.cmd"
 
 :: use 7zip 
 7z a -tzip "%ZIPFILE%" "%TEMP_DIR%\*"
