@@ -117,21 +117,21 @@ function Item:IsUseableAndCooldown(itemID, itemType)
     if itemID == nil then
         return false
     end
-    if itemType == const.ITEM_TYPE.ITEM then
-        local _, duration, _ = C_Item.GetItemCooldown(itemID) -- 检查是否冷却中
-        if duration ~= 0 then
-            return false
+    if itemType == const.ITEM_TYPE.ITEM or itemType == const.ITEM_TYPE.EQUIPMENT or itemType == const.ITEM_TYPE.TOY then
+        local _, duration, enableCooldownTimer = C_Item.GetItemCooldown(itemID) -- 检查是否冷却中
+        if enableCooldownTimer == false then
+            return true
         end
-        return true
-    elseif itemType == const.ITEM_TYPE.TOY then
-        local _, duration, _ = C_Item.GetItemCooldown(itemID)
-        if duration ~= 0 then
+        if duration ~= 0 and duration > 1.5 then -- 需要判断是否是公共冷却
             return false
         end
         return true
     elseif itemType == const.ITEM_TYPE.SPELL then
         local spellCooldownInfo = C_Spell.GetSpellCooldown(itemID)
-        if spellCooldownInfo.duration ~= 0 then
+        if spellCooldownInfo.isEnabled == false then
+            return true
+        end
+        if spellCooldownInfo.duration ~= 0 and spellCooldownInfo.duration > 1.5 then -- 需要判断是否是公共冷却
             return false
         end
         return true

@@ -180,11 +180,11 @@ function ElementFrame:UpdateBar()
     if not self.Bar then
         self.Bar = { BarFrame = nil, BarBtns = {}, Icon = self.Config.icon }
     end
-    for _, btn in ipairs(self.Bar.BarBtns) do
+    for i = #self.Bar.BarBtns, 1, -1 do
+        local btn = self.Bar.BarBtns[i]
         if btn then
             btn:Delete()
-            ---@diagnostic disable-next-line: cast-local-type
-            btn = nil
+            self.Bar.BarBtns[i] = nil
         end
     end
 end
