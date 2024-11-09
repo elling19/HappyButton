@@ -68,11 +68,9 @@ L["Toggle Edit Mode"] = true
 L["Main frame"] = true
 L["Left-click to drag and move, right-click to exit edit mode."] = true
 L["Element Settings"] = true
-L["BarGroup"] = true
 L["Bar"] = true
 L["ItemGroup"] = true
 L["Script"] = true
-L["New BarGroup"] = true
 L["New Bar"] = true
 L["New ItemGroup"] = true
 L["New Item"] = true
@@ -128,9 +126,6 @@ L["AttachFrame Anchor Position"] = true
 L["Combat Load Condition"] = true
 L["Load when out of combat"] = true
 L["Load when in combat"] = true
-L["BarGroup only load when out of combat"] = true
-L["Localize the name of items"] = true
-
 
 L["Text Settings"] = true
 L["Use root element settings"] = true

@@ -147,13 +147,6 @@ function E:ToBar(config)
 end
 
 ---@param config ElementConfig
----@return BarGroupConfig
-function E:ToBarGroup(config)
-    return E:InitExtraAttr(config) ---@type BarGroupConfig
-end
-
-
----@param config ElementConfig
 ---@return boolean
 function E:IsLeaf(config)
     if config.type == const.ELEMENT_TYPE.ITEM or config.type == const.ELEMENT_TYPE.ITEM_GROUP or config.type == const.ELEMENT_TYPE.SCRIPT then

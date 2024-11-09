@@ -36,7 +36,6 @@ Src\Element\ItemGroup.lua
 Src\Element\Item.lua
 Src\Element\Script.lua
 Src\Element\Bar.lua
-Src\Element\BarGroup.lua
 Src\Frame\ElementCallback.lua
 Src\Frame\Btn.lua
 Src\Frame\ElementFrame.lua

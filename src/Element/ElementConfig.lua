@@ -56,5 +56,3 @@ local ItemGroupConfig = {}
 ---@class BarConfig: ElementConfig
 local BarConfig = {}
 
----@class BarGroupConfig: ElementConfig
-local BarGroupConfig = {}

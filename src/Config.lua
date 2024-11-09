@@ -155,6 +155,9 @@ function Config.VerifyItemAttr(itemType, val)
     return R:Ok(item)
 end
 
+--[[
+对单个物品进行本地化处理
+]]
 ---@param item ItemConfig
 function Config.UpdateItemLocalizeName(item)
     if item == nil or item.extraAttr == nil or item.extraAttr.id == nil or
@@ -201,15 +204,18 @@ function Config.UpdateItemLocalizeName(item)
     end
 end
 
+--[[
+对配置文件进行本地化处理
+]]
 ---@param ele ElementConfig
-function Config.LocalizeItemsName(ele)
+function Config.LocalizeConfig(ele)
     if ele.type == const.ELEMENT_TYPE.ITEM then
         local item = E:ToItem(ele)
         Config.UpdateItemLocalizeName(item)
     end
     if ele.elements then
         for _, childEle in ipairs(ele.elements) do
-            Config.LocalizeItemsName(childEle)
+            Config.LocalizeConfig(childEle)
         end
     end
 end
@@ -440,16 +446,6 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             end
         }
         baseSettingOrder = baseSettingOrder + 1
-        baseSettingArgs.localize = {
-            order = baseSettingOrder,
-            width = 1,
-            type = 'execute',
-            name = L["Localize the name of items"],
-            func = function()
-                Config.LocalizeItemsName(ele)
-                HbFrame:ReloadEframeUI(updateFrameConfig)
-            end
-        }
         local elementSettingOrder = 1
         local elementSettingArgs = {}
         local elementSettingOptions = {
@@ -2109,33 +2105,33 @@ function ConfigOptions.ElementsOptions()
                     local errorMsg =
                         L["Import failed: Invalid configuration string."]
                     if val == nil or val == "" then
-                        print(errorMsg)
+                        U.Print.PrintErrorText(errorMsg)
                         return
                     end
                     local decodedData = LibDeflate:DecodeForPrint(val)
                     if decodedData == nil then
-                        print(errorMsg)
+                        U.Print.PrintErrorText(errorMsg)
                         return
                     end
                     local decompressedData =
                         LibDeflate:DecompressDeflate(decodedData)
                     if decompressedData == nil then
-                        print(errorMsg)
+                        U.Print.PrintErrorText(errorMsg)
                         return
                     end
                     ---@type boolean, ElementConfig
                     local success, eleConfig =
                         AceSerializer:Deserialize(decompressedData)
                     if not success then
-                        print(errorMsg)
+                        U.Print.PrintErrorText(errorMsg)
                         return
                     end
                     if type(eleConfig) ~= "table" then
-                        print(errorMsg)
+                        U.Print.PrintErrorText(errorMsg)
                         return
                     end
                     if eleConfig.title == nil then
-                        print(errorMsg)
+                        U.Print.PrintErrorText(errorMsg)
                         return
                     end
                     local rightType = false
@@ -2146,13 +2142,15 @@ function ConfigOptions.ElementsOptions()
                         end
                     end
                     if rightType == false then
-                        print(errorMsg)
+                        U.Print.PrintErrorText(errorMsg)
                         return
                     end
                     if eleConfig.extraAttr == nil then
-                        print(errorMsg)
+                        U.Print.PrintErrorText(errorMsg)
                         return
                     end
+                    -- 对配置文件进行本地化处理
+                    Config.LocalizeConfig(eleConfig)
                     if Config.IsIdDuplicated(eleConfig.id,
                             addon.db.profile.elements) then
                         --- 如果覆盖配置
