@@ -401,10 +401,10 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             values = childEleOptions,
             set = function(_, val)
                 table.insert(elements[val].elements, ele)
-                table.remove(elements, i)
                 local moveToSelectGroups = U.Table.DeepCopyList(selectGroups)
                 table.insert(moveToSelectGroups, "elementMenu" .. val)
-                table.insert(moveToSelectGroups, "elementMenu" .. #elements[val].elements)
+                table.insert(moveToSelectGroups, "elementMenu" .. #(elements[val].elements))
+                table.remove(elements, i)
                 AceConfigDialog:SelectGroup(addonName, unpack(moveToSelectGroups))
             end
         }
