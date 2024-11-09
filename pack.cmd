@@ -2,7 +2,7 @@
 
 setlocal enabledelayedexpansion
 
-set BASE_DIR=HappyButton-Beta-0.0.6
+set BASE_DIR=HappyButton-Beta-0.0.7
 
 set ZIPFILE=%BASE_DIR%.zip
 set TEMP_DIR=%BASE_DIR%
