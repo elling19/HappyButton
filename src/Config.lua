@@ -389,18 +389,8 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
         baseSettingOrder = baseSettingOrder + 1
         local childEleOptions = {}
         for _, _ele in ipairs(elements) do
-            -- 物品条组不能放在其他元素里
-            if ele.type == const.ELEMENT_TYPE.BAR_GROUP then
-            -- 物品条只能放在物品条或者物品条组中
-            elseif ele.type == const.ELEMENT_TYPE.BAR then
-                if _ele.type == const.ELEMENT_TYPE.BAR or _ele.type == const.ELEMENT_TYPE.BAR_GROUP then
-                    childEleOptions[_] = E:GetTitleWithIcon(_ele)
-                end
-            -- 其他类型只能放在物品条中
-            else
-                if _ele.type == const.ELEMENT_TYPE.BAR then
-                    childEleOptions[_] = E:GetTitleWithIcon(_ele)
-                end
+            if _ele.type == const.ELEMENT_TYPE.BAR then
+                childEleOptions[_] = E:GetTitleWithIcon(_ele)
             end
         end
         baseSettingArgs.moveTo = {
@@ -841,49 +831,40 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
         end
         -- 顶部元素设置是否开启战斗支持
         if isRoot then
-            if ele.type == const.ELEMENT_TYPE.BAR_GROUP then
-                displaySettingArgs.loadCondCombat = {
-                    order = displaySettingOrder,
-                    width = 2,
-                    type = 'description',
-                    name = L["BarGroup only load when out of combat"]
-                }
-            else
-                displaySettingArgs.loadCondCombat = {
+            displaySettingArgs.loadCondCombat = {
+                order = displaySettingOrder,
+                width = 1,
+                type = 'toggle',
+                name = L["Combat Load Condition"],
+                set = function(_, val)
+                    if val == true then
+                        ele.loadCond.CombatCond = true
+                    else
+                        ele.loadCond.CombatCond = nil
+                    end
+                    HbFrame:UpdateEframe(updateFrameConfig)
+                end,
+                get = function(_)
+                    return ele.loadCond.CombatCond ~= nil
+                end
+            }
+            displaySettingOrder = displaySettingOrder + 1
+            if ele.loadCond.CombatCond ~= nil then
+                displaySettingArgs.loadCondCombatOptions = {
                     order = displaySettingOrder,
                     width = 1,
-                    type = 'toggle',
-                    name = L["Combat Load Condition"],
+                    type = 'select',
+                    values = const.LoadCondCombatOptions,
+                    name = "",
                     set = function(_, val)
-                        if val == true then
-                            ele.loadCond.CombatCond = true
-                        else
-                            ele.loadCond.CombatCond = nil
-                        end
+                        ele.loadCond.CombatCond = val
                         HbFrame:UpdateEframe(updateFrameConfig)
                     end,
                     get = function(_)
-                        return ele.loadCond.CombatCond ~= nil
+                        return ele.loadCond.CombatCond
                     end
                 }
                 displaySettingOrder = displaySettingOrder + 1
-                if ele.loadCond.CombatCond ~= nil then
-                    displaySettingArgs.loadCondCombatOptions = {
-                        order = displaySettingOrder,
-                        width = 1,
-                        type = 'select',
-                        values = const.LoadCondCombatOptions,
-                        name = "",
-                        set = function(_, val)
-                            ele.loadCond.CombatCond = val
-                            HbFrame:UpdateEframe(updateFrameConfig)
-                        end,
-                        get = function(_)
-                            return ele.loadCond.CombatCond
-                        end
-                    }
-                    displaySettingOrder = displaySettingOrder + 1
-                end
             end
         end
         -- 加载选项：职业
@@ -1033,7 +1014,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
         end
 
         -- 物品条组、物品条、物品组添加子元素
-        if ele.type == const.ELEMENT_TYPE.BAR_GROUP or ele.type == const.ELEMENT_TYPE.BAR or ele.type == const.ELEMENT_TYPE.ITEM_GROUP then
+        if ele.type == const.ELEMENT_TYPE.BAR or ele.type == const.ELEMENT_TYPE.ITEM_GROUP then
             local addChildrenSettingOrder = 1
             local addChildrenSettingArgs = {}
             local addChildrenSettingOptions = {
@@ -1044,25 +1025,6 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 args = addChildrenSettingArgs
             }
             args.addChildrenSetting = addChildrenSettingOptions
-
-            if ele.type == const.ELEMENT_TYPE.BAR_GROUP then
-                addChildrenSettingArgs.addBar = {
-                    order = addChildrenSettingOrder,
-                    width = 1,
-                    type = 'execute',
-                    name = L["New Bar"],
-                    func = function()
-                        local bar = E:New(Config.GetNewElementTitle(L["Bar"],
-                                ele.elements),
-                            const.ELEMENT_TYPE.BAR)
-                        table.insert(ele.elements, bar)
-                        HbFrame:ReloadEframeUI(updateFrameConfig)
-                        AceConfigDialog:SelectGroup(addonName, unpack(
-                            selectGroupsAfterAddItem))
-                    end
-                }
-                addChildrenSettingOrder = addChildrenSettingOrder + 1
-            end
             if ele.type == const.ELEMENT_TYPE.BAR then
                 addChildrenSettingArgs.addBar = {
                     order = addChildrenSettingOrder,
@@ -2019,8 +1981,8 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             end
         end
 
-        -- 物品条和物品条组递归查看子元素
-        if ele.type == const.ELEMENT_TYPE.BAR_GROUP or ele.type == const.ELEMENT_TYPE.BAR then
+        -- 物品条递归查看子元素
+        if ele.type == const.ELEMENT_TYPE.BAR then
             if ele.elements and #ele.elements then
                 local tmpArgs = GetElementOptions(ele.elements, topEleConfig or ele,
                     copySelectGroups)
@@ -2048,24 +2010,6 @@ function ConfigOptions.ElementsOptions()
         name = L["Element Settings"],
         order = 2,
         args = {
-            addBarGroup = {
-                order = 1,
-                width = 1,
-                type = 'execute',
-                name = L["New BarGroup"],
-                func = function()
-                    local barGroup = E:New(
-                        Config.GetNewElementTitle(
-                            L["BarGroup"],
-                            addon.db.profile.elements),
-                        const.ELEMENT_TYPE.BAR_GROUP)
-                    table.insert(addon.db.profile.elements, barGroup)
-                    HbFrame:AddEframe(barGroup)
-                    AceConfigDialog:SelectGroup(addonName, "element",
-                        "elementMenu" ..
-                        #addon.db.profile.elements)
-                end
-            },
             addBar = {
                 order = 2,
                 width = 1,

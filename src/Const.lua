@@ -11,7 +11,6 @@ const.ELEMENT_TYPE = {
     ITEM_GROUP = 2,
     SCRIPT = 3,
     BAR = 4,
-    BAR_GROUP = 5
 }
 
 -- 元素分类选项
@@ -22,7 +21,6 @@ const.ElementTypeOptions = {
     [const.ELEMENT_TYPE.ITEM_GROUP] = L["Script"],
     [const.ELEMENT_TYPE.SCRIPT] = L["ItemGroup"],
     [const.ELEMENT_TYPE.BAR] = L["Bar"],
-    [const.ELEMENT_TYPE.BAR_GROUP] = L["BarGroup"],
 }
 
 ---@enum BarDisplayMode

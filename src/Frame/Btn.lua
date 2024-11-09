@@ -38,46 +38,30 @@ local LCG = LibStub("LibCustomGlow-1.0")
 local Btn = addon:NewModule("Btn")
 
 ---@param eFrame ElementFrame
----@param barIndex number
 ---@param cbIndex number
 ---@return Btn
-function Btn:New(eFrame, barIndex, cbIndex)
-    local bar = eFrame.Bars[barIndex]
+function Btn:New(eFrame, cbIndex)
+    local bar = eFrame.Bar
     local obj = setmetatable({}, { __index = self })
     obj.EFrame = eFrame
-    obj.Button = CreateFrame("Button", ("Button-%s-%s-%s"):format(eFrame.Config.id, barIndex, cbIndex), bar.BarFrame,
+    obj.Button = CreateFrame("Button", ("Button-%s-%s"):format(eFrame.Config.id, cbIndex), bar.BarFrame,
         "SecureActionButtonTemplate")
     obj.Button:SetSize(eFrame.IconWidth, eFrame.IconHeight)
     obj.effects = {}
     Btn.CreateIcon(obj)
     Btn.CreateBorder(obj)
 
-    if eFrame.Config.type == const.ELEMENT_TYPE.BAR_GROUP then
-        if eFrame.Config.elesGrowth == const.GROWTH.LEFTTOP or eFrame.Config.elesGrowth == const.GROWTH.RIGHTTOP then
-            obj.Button:SetPoint("BOTTOM", bar.BarFrame, "BOTTOM", 0, eFrame.IconHeight * (cbIndex - 1))
-        elseif eFrame.Config.elesGrowth == const.GROWTH.LEFTBOTTOM or eFrame.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM then
-            obj.Button:SetPoint("TOP", bar.BarFrame, "TOP", 0, -eFrame.IconHeight * (cbIndex - 1))
-        elseif eFrame.Config.elesGrowth == const.GROWTH.BOTTOMLEFT or eFrame.Config.elesGrowth == const.GROWTH.TOPLEFT then
-            obj.Button:SetPoint("RIGHT", bar.BarFrame, "RIGHT", -eFrame.IconWidth * (cbIndex - 1), 0)
-        elseif eFrame.Config.elesGrowth == const.GROWTH.BOTTOMRIGHT or eFrame.Config.elesGrowth == const.GROWTH.TOPRIGHT then
-            obj.Button:SetPoint("LEFT", bar.BarFrame, "LEFT", eFrame.IconWidth * (cbIndex - 1), 0)
-        else
-            -- 默认右下
-            obj.Button:SetPoint("TOP", bar.BarFrame, "TOP", 0, -eFrame.IconHeight * (cbIndex - 1))
-        end
+    if eFrame.Config.elesGrowth == const.GROWTH.LEFTTOP or eFrame.Config.elesGrowth == const.GROWTH.LEFTBOTTOM then
+        obj.Button:SetPoint("RIGHT", bar.BarFrame, "RIGHT", -eFrame.IconWidth * (cbIndex - 1), 0)
+    elseif eFrame.Config.elesGrowth == const.GROWTH.TOPLEFT or eFrame.Config.elesGrowth == const.GROWTH.TOPRIGHT then
+        obj.Button:SetPoint("BOTTOM", bar.BarFrame, "BOTTOM", 0, eFrame.IconHeight * (cbIndex - 1))
+    elseif eFrame.Config.elesGrowth == const.GROWTH.BOTTOMLEFT or eFrame.Config.elesGrowth == const.GROWTH.BOTTOMRIGHT then
+        obj.Button:SetPoint("TOP", bar.BarFrame, "TOP", 0, -eFrame.IconHeight * (cbIndex - 1))
+    elseif eFrame.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM or eFrame.Config.elesGrowth == const.GROWTH.RIGHTTOP then
+        obj.Button:SetPoint("LEFT", bar.BarFrame, "LEFT", eFrame.IconWidth * (cbIndex - 1), 0)
     else
-        if eFrame.Config.elesGrowth == const.GROWTH.LEFTTOP or eFrame.Config.elesGrowth == const.GROWTH.LEFTBOTTOM then
-            obj.Button:SetPoint("RIGHT", bar.BarFrame, "RIGHT", -eFrame.IconWidth * (cbIndex - 1), 0)
-        elseif eFrame.Config.elesGrowth == const.GROWTH.TOPLEFT or eFrame.Config.elesGrowth == const.GROWTH.TOPRIGHT then
-            obj.Button:SetPoint("BOTTOM", bar.BarFrame, "BOTTOM", 0, eFrame.IconHeight * (cbIndex - 1))
-        elseif eFrame.Config.elesGrowth == const.GROWTH.BOTTOMLEFT or eFrame.Config.elesGrowth == const.GROWTH.BOTTOMRIGHT then
-            obj.Button:SetPoint("TOP", bar.BarFrame, "TOP", 0, -eFrame.IconHeight * (cbIndex - 1))
-        elseif eFrame.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM or eFrame.Config.elesGrowth == const.GROWTH.RIGHTTOP then
-            obj.Button:SetPoint("LEFT", bar.BarFrame, "LEFT", eFrame.IconWidth * (cbIndex - 1), 0)
-        else
-            -- 默认右下
-            obj.Button:SetPoint("LEFT", bar.BarFrame, "LEFT", eFrame.IconWidth * (cbIndex - 1), 0)
-        end
+        -- 默认右下
+        obj.Button:SetPoint("LEFT", bar.BarFrame, "LEFT", eFrame.IconWidth * (cbIndex - 1), 0)
     end
 
     obj.Button:RegisterForClicks("AnyDown", "AnyUp")
@@ -172,18 +156,18 @@ function Btn:UpdateTexts()
         end
         local tString = self.Texts[tIndex]
         if text.text == "%n" then
-            if self.EFrame:IsIconsHorizontal() then
+            if self.EFrame:IsHorizontal() then
                 tString:SetWidth(self.EFrame.IconWidth)
             else
                 tString:SetHeight(self.EFrame.IconHeight)
             end
-            if self.EFrame:IsIconsHorizontal() then
+            if self.EFrame:IsHorizontal() then
                 tString:SetPoint("TOP", self.Button, "BOTTOM", 0, -5)
             else
                 tString:SetPoint("LEFT", self.Button, "RIGHT", 5, 0)
             end
             if self.CbResult.text then
-                if self.EFrame:IsIconsHorizontal() then
+                if self.EFrame:IsHorizontal() then
                     tString:SetText(U.String.ToVertical(self.CbResult.text))
                 else
                     tString:SetText(self.CbResult.text)

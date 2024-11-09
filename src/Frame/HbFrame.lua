@@ -131,18 +131,14 @@ function HbFrame:OnCombatEvent()
         return
     end
     for _, eFrame in pairs(self.EFrames) do
-        if eFrame:IsBarGroup() then
-            eFrame:HideWindow()
-        else
-            if LoadCondition:Pass(eFrame.Config.loadCond) then
-                if eFrame.Config.loadCond and eFrame.Config.loadCond.CombatCond == false then
-                    eFrame:HideWindow()
-                else
-                    eFrame:ShowWindow()
-                end
-            else
+        if LoadCondition:Pass(eFrame.Config.loadCond) then
+            if eFrame.Config.loadCond and eFrame.Config.loadCond.CombatCond == false then
                 eFrame:HideWindow()
+            else
+                eFrame:ShowWindow()
             end
+        else
+            eFrame:HideWindow()
         end
     end
 end
