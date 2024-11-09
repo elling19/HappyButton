@@ -66,7 +66,7 @@ function Item:IsLearnedAndUsable(itemID, itemType)
     if not self:IsLearned(itemID, itemType) then
         return false
     end
-    if itemType == const.ITEM_TYPE.ITEM then
+    if itemType == const.ITEM_TYPE.ITEM or itemType == const.ITEM_TYPE.EQUIPMENT then
         local usable, _ = C_Item.IsUsableItem(itemID) -- 检查是否可用
         if usable == true then
             return true
