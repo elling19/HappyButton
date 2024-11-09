@@ -38,9 +38,7 @@ function BarCore:Start()
     -- BarCore.Frame:RegisterEvent("UNIT_AURA")
     BarCore.Frame:SetScript("OnEvent", function(self, event, arg1)
         if event == "PLAYER_LOGIN" then
-            C_Timer.After(3, function()
-                BarCore:Initial()
-            end)
+            BarCore:Initial()
         end
         if event == "SPELL_UPDATE_COOLDOWN" or
             event == "PLAYER_EQUIPMENT_CHANGED" or
