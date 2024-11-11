@@ -24,6 +24,8 @@ local Condition = addon:GetModule("Condition")
 ---@class Effect: AceModule
 local Effect = addon:GetModule("Effect")
 
+---@class Api: AceModule
+local Api = addon:GetModule("Api")
 
 ---@class ElementCallback: AceModule
 local ECB = addon:NewModule("ElementCallback")
@@ -223,10 +225,10 @@ function ECB:UpdateSelfTrigger(cbResult)
     -- 更新物品数量
     if cbResult.item then
         if cbResult.item.type == const.ITEM_TYPE.ITEM then
-            cbResult.count = C_Item.GetItemCount(cbResult.item.id, false)
+            cbResult.count = Api.GetItemCount(cbResult.item.id, false)
         end
         if cbResult.item.type == const.ITEM_TYPE.SPELL then
-            local chargeInfo = C_Spell.GetSpellCharges(cbResult.item.id)
+            local chargeInfo = Api.GetSpellCharges(cbResult.item.id)
             if chargeInfo then
                 cbResult.count = chargeInfo.currentCharges
             end
@@ -236,7 +238,7 @@ function ECB:UpdateSelfTrigger(cbResult)
     if cbResult.item then
         if cbResult.item.type == const.ITEM_TYPE.ITEM or cbResult.item.type == const.ITEM_TYPE.TOY or cbResult.item.type == const.ITEM_TYPE.EQUIPMENT then
             local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType, expansionID, setID, isCraftingReagent =
-            C_Item.GetItemInfo(cbResult.item.id)
+            Api.GetItemInfo(cbResult.item.id)
             if itemQuality then
                 cbResult.borderColor = const.ItemQualityColor[itemQuality]
             end

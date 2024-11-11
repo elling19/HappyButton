@@ -12,6 +12,12 @@ local const = addon:GetModule('CONST')
 ---@class Item: E
 local Item = addon:NewModule("Item", E)
 
+---@class Api: AceModule
+local Api = addon:GetModule("Api")
+
+---@class Client: AceModule
+local Client = addon:GetModule("Client")
+
 -- 判断玩家是否拥有/学习某个物品
 ---@param itemID number
 ---@param itemType ItemType
@@ -21,12 +27,12 @@ function Item:IsLearned(itemID, itemType)
         return false
     end
     if itemType == const.ITEM_TYPE.ITEM then
-        local bagCount = C_Item.GetItemCount(itemID, false) -- 检查背包中是否拥有
+        local bagCount = Api.GetItemCount(itemID, false) -- 检查背包中是否拥有
         if bagCount > 0 then
             return true
         end
     elseif itemType == const.ITEM_TYPE.EQUIPMENT then
-        local bagCount = C_Item.GetItemCount(itemID, false)
+        local bagCount = Api.GetItemCount(itemID, false)
         local isEquipped = self:IsEquipped(itemID)
         return bagCount > 0 or isEquipped == true
     elseif itemType == const.ITEM_TYPE.TOY then
@@ -67,7 +73,7 @@ function Item:IsLearnedAndUsable(itemID, itemType)
         return false
     end
     if itemType == const.ITEM_TYPE.ITEM or itemType == const.ITEM_TYPE.EQUIPMENT then
-        local usable, _ = C_Item.IsUsableItem(itemID) -- 检查是否可用
+        local usable, _ = Api.IsUsableItem(itemID) -- 检查是否可用
         if usable == true then
             return true
         end
@@ -76,7 +82,7 @@ function Item:IsLearnedAndUsable(itemID, itemType)
             return true
         end
     elseif itemType == const.ITEM_TYPE.SPELL then
-        local isUsable, _ = C_Spell.IsSpellUsable(itemID)
+        local isUsable, _ = Api.IsSpellUsable(itemID)
         if isUsable then
             return true
         end
@@ -95,8 +101,10 @@ function Item:IsLearnedAndUsable(itemID, itemType)
         C_MountJournal.GetMountInfoExtraByID(mountID)
         -- 判断当前位置是否可以使用坐骑
         -- 不是御龙术区域无法使用御龙术
-        if not IsAdvancedFlyableArea() and mountTypeID == const.MOUNT_TYPE_ID.DRAGON then
-            return false
+        if Client:IsRetail() then
+            if not IsAdvancedFlyableArea() and mountTypeID == const.MOUNT_TYPE_ID.DRAGON then
+                return false
+            end
         end
         return true
     elseif itemType == const.ITEM_TYPE.PET then
@@ -118,7 +126,7 @@ function Item:IsUseableAndCooldown(itemID, itemType)
         return false
     end
     if itemType == const.ITEM_TYPE.ITEM or itemType == const.ITEM_TYPE.EQUIPMENT or itemType == const.ITEM_TYPE.TOY then
-        local _, duration, enableCooldownTimer = C_Item.GetItemCooldown(itemID) -- 检查是否冷却中
+        local _, duration, enableCooldownTimer = Api.GetItemCooldown(itemID) -- 检查是否冷却中
         if enableCooldownTimer == false then
             return true
         end
@@ -127,7 +135,7 @@ function Item:IsUseableAndCooldown(itemID, itemType)
         end
         return true
     elseif itemType == const.ITEM_TYPE.SPELL then
-        local spellCooldownInfo = C_Spell.GetSpellCooldown(itemID)
+        local spellCooldownInfo = Api.GetSpellCooldown(itemID)
         if spellCooldownInfo.isEnabled == false then
             return true
         end

@@ -10,6 +10,9 @@ local const = addon:GetModule('CONST')
 ---@class Utils: AceModule
 local U = addon:GetModule('Utils')
 
+---@class Api: AceModule
+local Api = addon:GetModule("Api")
+
 ---@class Trigger: AceModule
 local Trigger = addon:NewModule("Trigger")
 
@@ -116,7 +119,7 @@ function Trigger:GetAuraTriggerCond(triggerConfig)
         result.targetIsEnemy = false
     end
     for i = 1, 100 do
-        local aura = C_UnitAuras.GetBuffDataByIndex(target, i, filter)
+        local aura = Api.GetBuffDataByIndex(target, i, filter)
         if aura and aura.spellId == auraId then
             result.remainingTime = aura.expirationTime - GetTime()
             break

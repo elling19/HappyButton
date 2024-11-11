@@ -4,7 +4,12 @@ local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 ---@class Client: AceModule
 local Client = addon:NewModule("Client")
 
+Client.Version = select(4, GetBuildInfo())
+
 function Client:IsRetail()
-    local version = select(4, GetBuildInfo())
-    return version > 110000
+    return Client.Version > 110000
+end
+
+function Client:IsWlk()
+    return Client.Version == 30403
 end

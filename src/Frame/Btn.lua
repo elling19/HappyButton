@@ -18,6 +18,9 @@ local ECB = addon:GetModule('ElementCallback')
 ---@class Client: AceModule
 local Client = addon:GetModule("Client")
 
+---@class Api: AceModule
+local Api = addon:GetModule("Api")
+
 ---@type LibCustomGlow
 ---@diagnostic disable-next-line: assign-type-mismatch
 local LCG = LibStub("LibCustomGlow-1.0")
@@ -329,7 +332,7 @@ function Btn:SetMacro()
     elseif r.item.type == const.ITEM_TYPE.MOUNT then
         macroText = "/cast " .. r.item.name
     elseif r.item.type == const.ITEM_TYPE.PET then
-        macroText = "/SummonPet " .. r.item.name
+        macroText = "/SummonPet " .. r.item.name -- 可以使用/sp替代 支持petNameOrGUID
     end
     self.Button:SetAttribute("macrotext", macroText)
 end
@@ -350,16 +353,16 @@ function Btn:SetCooldown()
     self.Button:SetScript("OnUpdate", function(_)
         -- 更新冷却倒计时
         if item.type == const.ITEM_TYPE.ITEM then
-            local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(item.id)
+            local startTimeSeconds, durationSeconds, enableCooldownTimer = Api.GetItemCooldown(item.id)
             CooldownFrame_Set(self.Cooldown, startTimeSeconds, durationSeconds, enableCooldownTimer)
         elseif item.type == const.ITEM_TYPE.EQUIPMENT then
-            local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(item.id)
+            local startTimeSeconds, durationSeconds, enableCooldownTimer = Api.GetItemCooldown(item.id)
             CooldownFrame_Set(self.Cooldown, startTimeSeconds, durationSeconds, enableCooldownTimer)
         elseif item.type == const.ITEM_TYPE.TOY then
-            local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(item.id)
+            local startTimeSeconds, durationSeconds, enableCooldownTimer = Api.GetItemCooldown(item.id)
             CooldownFrame_Set(self.Cooldown, startTimeSeconds, durationSeconds, enableCooldownTimer)
         elseif item.type == const.ITEM_TYPE.SPELL then
-            local spellCooldownInfo = C_Spell.GetSpellCooldown(item.id)
+            local spellCooldownInfo = Api.GetSpellCooldown(item.id)
             if spellCooldownInfo then
                 CooldownFrame_Set(self.Cooldown, spellCooldownInfo.startTime, spellCooldownInfo.duration,
                     spellCooldownInfo.isEnabled)

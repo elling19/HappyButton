@@ -32,6 +32,12 @@ local Effect = addon:GetModule("Effect")
 ---@class Utils: AceModule
 local U = addon:GetModule('Utils')
 
+---@class Client: AceModule
+local Client = addon:GetModule("Client")
+
+---@class Api: AceModule
+local Api = addon:GetModule("Api")
+
 local AceConfig = LibStub("AceConfig-3.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
 local AceSerializer = LibStub("AceSerializer-3.0")
@@ -55,13 +61,20 @@ function Config.VerifyItemAttr(itemType, val)
     -- 添加物品逻辑
     -- 说明：print(type(C_ToyBox.GetToyInfo(item.id))) 返回的是number，和文档定义的不一致，无法通过API获取玩具信息，因此只能使用物品的API来获取
     if item.type == const.ITEM_TYPE.ITEM or item.type == const.ITEM_TYPE.EQUIPMENT or item.type == const.ITEM_TYPE.TOY then
-        local itemID, itemType, itemSubType, itemEquipLoc, icon, classID, subClassID = C_Item.GetItemInfoInstant(val)
+        local itemID, itemType, itemSubType, itemEquipLoc, icon, classID, subClassID = Api.GetItemInfoInstant(val)
         if itemID then
             item.id = itemID
             item.icon = icon
         else
             return R:Err(L["Unable to get the id, please check the input."])
         end
+        local itemName = C_Item.GetItemNameByID(item.id)
+        if itemName then
+            item.name = itemName
+        else
+            return R:Err(L["Unable to get the name, please check the input."])
+        end
+
         -- local itemID = C_Item.GetItemIDForItemInfo(val)
         -- if itemID then
         --     item.id = itemID
@@ -74,30 +87,36 @@ function Config.VerifyItemAttr(itemType, val)
         -- else
         --     return R:Err("Can not get the icon, please check your input.")
         -- end
-        local itemName = C_Item.GetItemNameByID(item.id)
-        if itemName then
-            item.name = itemName
-        else
-            return R:Err(L["Unable to get the name, please check the input."])
-        end
+
     elseif item.type == const.ITEM_TYPE.SPELL then
-        local spellID = C_Spell.GetSpellIDForSpellIdentifier(val)
-        if spellID then
-            item.id = spellID
+        if Client:IsRetail() then
+            local spellID = C_Spell.GetSpellIDForSpellIdentifier(val)
+            if spellID then
+                item.id = spellID
+            else
+                return R:Err(L["Unable to get the id, please check the input."])
+            end
+            local spellName = C_Spell.GetSpellName(item.id)
+            if spellName then
+                item.name = spellName
+            else
+                return R:Err("Can not get the name, please check your input.")
+            end
+            local iconID, originalIconID = C_Spell.GetSpellTexture(item.id)
+            if iconID then
+                item.icon = iconID
+            else
+                return R:Err(L["Unable to get the icon, please check the input."])
+            end
         else
-            return R:Err(L["Unable to get the id, please check the input."])
-        end
-        local spellName = C_Spell.GetSpellName(item.id)
-        if spellName then
-            item.name = spellName
-        else
-            return R:Err("Can not get the name, please check your input.")
-        end
-        local iconID, originalIconID = C_Spell.GetSpellTexture(item.id)
-        if iconID then
-            item.icon = iconID
-        else
-            return R:Err(L["Unable to get the icon, please check the input."])
+            local spellInfo = Api.GetSpellInfo(val)
+            if spellInfo then
+                item.id = spellInfo.spellID
+                item.name = spellInfo.name
+                item.icon = spellInfo.iconID
+            else
+                return R:Err(L["Unable to get the id, please check the input."])
+            end
         end
     elseif item.type == const.ITEM_TYPE.MOUNT then
         item.id = tonumber(val)
@@ -1360,7 +1379,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 triggerSettingOrder = triggerSettingOrder + 1
                 local iconPath = 134400
                 if trigger.confine.spellId then
-                    iconPath = C_Spell.GetSpellTexture(trigger.confine.spellId)
+                    iconPath = Api.GetSpellTexture(trigger.confine.spellId)
                 end
                 triggerSettingArgs.auraIconId = {
                     order = triggerSettingOrder,
