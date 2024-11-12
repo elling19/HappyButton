@@ -60,8 +60,8 @@ Api.GetSpellCooldown = function (spellIdentifier)
 end
 
 ---@param unitId UnitToken
----@param index number UnitBuff 支持index和name，C_UnitAuras.GetBuffDataByIndex只支持number，
----@param filter string? UnitBuff 支持“|”和“空格”拆分，C_UnitAuras.GetBuffDataByIndex支持管道符和空格
+---@param index number UnitAura 支持index和name，C_UnitAuras.GetBuffDataByIndex只支持number，
+---@param filter string? UnitAura 支持“|”和“空格”拆分，C_UnitAuras.GetBuffDataByIndex支持管道符和空格
 ---@return {expirationTime: number, spellId: number}?
 Api.GetBuffDataByIndex = function (unitId, index, filter)
     if C_UnitAuras and C_UnitAuras.GetBuffDataByIndex then
@@ -75,12 +75,14 @@ Api.GetBuffDataByIndex = function (unitId, index, filter)
         }
         return result
     else
-        local name, rank, icon, count, debuffType, duration, expirationTime, unitCaster, isStealable, 
-        shouldConsolidate, spellId = UnitBuff(unitId, index, filter)
-        local result = {
-            expirationTime = expirationTime,
-            spellId = spellId
-        }
-        return result
+        local name, icon, count, dispelType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod = UnitAura(unitId, index, filter)
+        if name then
+            local result = {
+                expirationTime = expirationTime,
+                spellId = spellId
+            }
+            return result
+        end
+        return nil
     end
 end

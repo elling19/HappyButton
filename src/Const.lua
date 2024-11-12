@@ -357,6 +357,12 @@ const.ClassOptions = {
     [const.CLASS.EVOKER] = L["Evoker"],
 }
 
+-- 非正式服没有唤魔师、恶魔猎手、武僧
+if Client:IsRetail() == false then
+    const.ClassOptions[const.CLASS.MONK] = nil
+    const.ClassOptions[const.CLASS.DEMONHUNTER] = nil
+    const.ClassOptions[const.CLASS.EVOKER] = nil
+end
 
 --[[
 -- 自定义事件常量
