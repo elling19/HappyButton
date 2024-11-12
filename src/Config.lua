@@ -198,9 +198,9 @@ function Config.UpdateItemLocalizeName(item)
             end)
         end
     elseif item.extraAttr.type == const.ITEM_TYPE.SPELL then
-        local spellName = C_Spell.GetSpellName(item.extraAttr.id)
-        if spellName then
-            item.extraAttr.name = spellName
+        local spellInfo = Api.GetSpellInfo(item.extraAttr.id)
+        if spellInfo then
+            item.extraAttr.name = spellInfo.name
         else
             local syncSpell = Spell:CreateFromSpellID(item.extraAttr.id)
             syncSpell:ContinueOnSpellLoad(function()
