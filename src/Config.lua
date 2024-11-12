@@ -792,13 +792,143 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 end,
             }
         end
+        ---------------------------------------------------------
+        -- 按键绑定设置
+        ---------------------------------------------------------
+        if ele.type == const.ELEMENT_TYPE.ITEM or ele.type == const.ELEMENT_TYPE.ITEM_GROUP then
+            local bindkeySettingOrder = 1
+            local bindkeySettingArgs = {}
+            local bindkeySettingOptions = {
+                type = "group",
+                name = L["Bindkey Settings"],
+                inline = true,
+                order = 4,
+                args = bindkeySettingArgs
+            }
+            args.bindkeySetting = bindkeySettingOptions
+            bindkeySettingArgs.bindKey = {
+                order = bindkeySettingOrder,
+                type = "keybinding",
+                name = L["Bindkey"],
+                width = 1,
+                get = function()
+                    if ele.bindKey == nil then
+                        return nil
+                    end
+                    return ele.bindKey.key
+                end,
+                set = function(_, key)
+                    if key == nil or key == "" then
+                        ele.bindKey = nil
+                    else
+                        if ele.bindKey == nil then
+                            ele.bindKey = {}
+                        end
+                        ele.bindKey.key = key
+                    end
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end
+            }
+            bindkeySettingOrder = bindkeySettingOrder + 1
+            if ele.bindKey then
+                bindkeySettingArgs.bindAccount = {
+                    order = bindkeySettingOrder,
+                    type = "toggle",
+                    name = L["Bind For Account"],
+                    width = 1,
+                    set = function(_, val)
+                        if val == true then
+                            if ele.bindKey then
+                                ele.bindKey.characters = nil
+                                ele.bindKey.classes = nil
+                            end
+                        else
+                            if ele.bindKey then
+                                ele.bindKey.characters = {}
+                                ele.bindKey.classes = {}
+                            end
+                        end
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
+                    end,
+                    get = function(_)
+                        if ele.bindKey then
+                            if ele.bindKey.characters == nil and ele.bindKey.classes == nil then
+                                return true
+                            end
+                        else
+                            return true
+                        end
+                    end
+                }
+                bindkeySettingOrder = bindkeySettingOrder + 1
+            end
+            if ele.bindKey and ele.bindKey.characters ~= nil then
+                bindkeySettingArgs.bindCharacter = {
+                    order = bindkeySettingOrder,
+                    type = "toggle",
+                    name = L["Bind For Current Character"],
+                    width = 1,
+                    set = function(_, val)
+                        if val == true then
+                            if ele.bindKey then
+                                if ele.bindKey.characters == nil then
+                                    ele.bindKey.characters = {}
+                                end
+                                ele.bindKey.characters[UnitGUID("player")] = true
+                            end
+                        else
+                            if ele.bindKey and ele.bindKey.characters then
+                                ele.bindKey.characters[UnitGUID("player")] = nil
+                            end
+                        end
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
+                    end,
+                    get = function(_)
+                        if ele.bindKey and ele.bindKey.characters then
+                            return ele.bindKey.characters[UnitGUID("player")]
+                        end
+                    end
+                }
+                bindkeySettingOrder = bindkeySettingOrder + 1
+            end
+            if ele.bindKey and ele.bindKey.classes ~= nil then
+                local _, classId = UnitClassBase("player")
+                bindkeySettingArgs.bindClass = {
+                    order = bindkeySettingOrder,
+                    type = "toggle",
+                    name = L["Bind For Current Class"],
+                    width = 1,
+                    set = function(_, val)
+                        if val == true then
+                            if ele.bindKey then
+                                if ele.bindKey.classes == nil then
+                                    ele.bindKey.classes = {}
+                                end
+                                ele.bindKey.classes[classId] = true
+                            end
+                        else
+                            if ele.bindKey and ele.bindKey.classes then
+                                ele.bindKey.classes[classId] = nil
+                            end
+                        end
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
+                    end,
+                    get = function(_)
+                        if ele.bindKey and ele.bindKey.classes then
+                            return ele.bindKey.classes[classId]
+                        end
+                    end
+                }
+                bindkeySettingOrder = bindkeySettingOrder + 1
+            end
+        end
         local displaySettingOrder = 1
         local displaySettingArgs = {}
         local displaySettingOptions = {
             type = "group",
             name = L["Display Rule"],
             inline = true,
-            order = 4,
+            order = 5,
             args = displaySettingArgs
         }
         args.displaySetting = displaySettingOptions
@@ -946,7 +1076,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 type = "group",
                 name = L["Text Settings"],
                 inline = true,
-                order = 5,
+                order = 6,
                 args = textSettingArgs
             }
             args.textSetting = textSettingOptions
@@ -1036,7 +1166,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 type = "group",
                 name = L["Add Child Elements"],
                 inline = true,
-                order = 6,
+                order = 7,
                 args = addChildrenSettingArgs
             }
             args.addChildrenSetting = addChildrenSettingOptions
@@ -1161,7 +1291,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 type = "group",
                 name = L["Edit Child Elements"],
                 inline = true,
-                order = 7,
+                order = 8,
                 args = editChildrenSettingArgs
             }
             args.editChildrenSetting = editChildrenSettingOptions
@@ -1241,7 +1371,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 type = "group",
                 name = L["Trigger Settings"],
                 inline = true,
-                order = 8,
+                order = 9,
                 args = triggerSettingArgs
             }
             args.triggerSetting = triggerSettingOptions
@@ -1402,7 +1532,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 type = "group",
                 name = L["Condition Group Settings"],
                 inline = true,
-                order = 9,
+                order = 10,
                 args = condGroupSettingArgs
             }
             args.condGroupSetting = condGroupSettingOptions
@@ -1951,7 +2081,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 type = "group",
                 name = L["Event Settings"],
                 inline = true,
-                order = 8,
+                order = 11,
                 args = eventSettingArgs
             }
             args.eventSetting = eventSettingOptions

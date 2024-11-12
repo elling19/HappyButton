@@ -36,7 +36,8 @@
 ---@field condGroups ConditionGroupConfig[]  -- 触发器条件组
 ---@field configSelectedCondGroupIndex number -- 编辑条件设置的时候选中的下标
 ---@field configSelectedCondIndex number
----@field listenEvents table<EventString, {}> | nil -- 自定义监听事件，key为事件名称，value为事件参数的列表，暂时定位`{}`，后续需要优化的时候改成payload列表 
+---@field listenEvents table<EventString, {}> | nil -- 自定义监听事件，key为事件名称，value为事件参数的列表，暂时定位`{}`，后续需要优化的时候改成payload列表
+---@field bindKey BindKeyConfig | nil -- 自定义按键绑定
 local ElementConfig = {}
 
 

@@ -1,0 +1,4 @@
+---@class BindKeyConfig
+---@field key string | nil 按键
+---@field characters table<string, true> | nil -- 绑定指定角色table，key为角色playerGUID，value为true。nil表示不指定
+---@field classes table<Class, true> | nil -- 绑定指定职业，nil表示不指定

@@ -222,3 +222,10 @@ L["Monk"] = "武僧"
 L["Druid"] = "德鲁伊"
 L["Demon Hunter"] = "恶魔猎手"
 L["Evoker"] = "唤魔师"
+
+-- 按键绑定设置
+L["Bindkey Settings"] = "绑定按键设置"
+L["Bindkey"] = "绑定按键"
+L["Bind For Account"] = "为所有角色绑定"
+L["Bind For Current Character"] = "为当前角色绑定"
+L["Bind For Current Class"] = "为当前职业绑定"

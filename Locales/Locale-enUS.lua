@@ -220,3 +220,10 @@ L["Monk"] = true
 L["Druid"] = true
 L["Demon Hunter"] = true
 L["Evoker"] = true
+
+-- 按键绑定设置
+L["Bindkey Settings"] = true
+L["Bindkey"] = true
+L["Bind For Account"] = true
+L["Bind For Current Character"] = true
+L["Bind For Current Class"] = true
