@@ -71,7 +71,7 @@ Api.GetBuffDataByIndex = function (unitId, index, filter)
         end
         local result = {
             expirationTime = auraData.expirationTime,
-            spellID = auraData.spellId
+            spellId = auraData.spellId
         }
         return result
     else
