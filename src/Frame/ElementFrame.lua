@@ -117,13 +117,24 @@ end
 function ElementFrame:ReLoadUI()
     self.IconHeight = self.Config.iconHeight or addon.G.iconHeight
     self.IconWidth = self.Config.iconWidth or addon.G.iconWidth
+    -- 移除旧的Cbs中的按钮
+    if self.Cbs then
+        for _, cbs in ipairs(self.Cbs) do
+            if cbs.btns then
+                for i = #cbs.btns, 1, -1 do
+                    cbs.btns[i]:Delete()
+                    cbs.btns[i] = nil
+                end
+            end
+        end
+    end
     self.Cbs = self:GetCbs(self.Config)
     self.Events = E:GetEvents(self.Config)
     self:UpdateWindow()
     self:UpdateBar()
     self:CreateEditModeFrame()
     self:OutCombatUpdate()
-      -- 设置初始的时候是否隐藏
+    -- 设置初始的时候是否隐藏
     if self.Config.isDisplayMouseEnter == true then
         self:SetBarTransparency()
     end

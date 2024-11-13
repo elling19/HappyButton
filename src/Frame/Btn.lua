@@ -38,7 +38,7 @@ local LCG = LibStub("LibCustomGlow-1.0")
 ---@field CbResult CbResult
 ---@field CbInfo ElementCbInfo
 ---@field effects table<EffectType, boolean>
----@field bindkeyString FontString | nil  -- 显示绑定快捷键信息
+---@field BindkeyString FontString | nil  -- 显示绑定快捷键信息
 local Btn = addon:NewModule("Btn")
 
 ---@param eFrame ElementFrame
@@ -141,35 +141,66 @@ end
 function Btn:UpdateBindkey()
     local bindKey = self.CbInfo.p.bindKey
     if bindKey == nil or bindKey.key == nil or bindKey.key == "" then
-        if self.bindkeyString then
-            self.bindkeyString:SetText("")
+        if self.BindkeyString then
+            self.BindkeyString:SetText("")
         end
         return
     end
     if (bindKey.characters == nil or bindKey.classes == nil) or
-        (bindKey.characters ~= nil and bindKey.characters[UnitGUID("player")]) or
+        (bindKey.characters ~= nil and bindKey.characters[UnitGUID("player")] ~= nil) or
         (bindKey.characters ~= nil and bindKey.classes[select(2, UnitClassBase("player"))] ~= nil)
     then
-        if self.bindkeyString == nil then
-            self.bindkeyString = self.Button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            self.bindkeyString:SetTextColor(1, 1, 1)
-            self.bindkeyString:SetPoint("TOPRIGHT", self.Button, "TOPRIGHT", -2, 2)
+        if self.BindkeyString == nil then
+            self.BindkeyString = self.Button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            self.BindkeyString:SetTextColor(1, 1, 1)
+            local fontSize = self.EFrame.IconWidth / 4
+            self.BindkeyString:SetFont("Fonts\\FRIZQT__.TTF", fontSize, "OUTLINE")
+            self.BindkeyString:SetPoint("TOPRIGHT", self.Button, "TOPRIGHT", -2, -2)
         end
         local key = GetBindingKey("CLICK " .. self.Button:GetName() .. ":LeftButton")     -- 获取当前绑定的快捷键
         if key ~= bindKey.key then
             -- local result = SetBindingClick(bindKey.key, self.Button:GetName(), "LeftButton")
             local result = SetBinding(bindKey.key, "CLICK " .. self.Button:GetName() .. ":LeftButton")
             if result ~= nil then
-                self.bindkeyString:SetText(bindKey.key)
+                self.BindkeyString:SetText(self:GetBindKeyShort(bindKey.key))
             end
         else
-            self.bindkeyString:SetText(key)
+            self.BindkeyString:SetText(self:GetBindKeyShort(key))
         end
+    else
+        if self.BindkeyString ~= nil then
+            self.BindkeyString:SetText("")
+        end
+        return
     end
 end
 
-function Btn:UpdateBindkeyString()
+-- 获取绑定按键的缩写
+function Btn:GetBindKeyShort(bindkey)
+    -- 定义修饰键与简写的映射
+    local modifierMap = {
+        ["ALT"] = "A",
+        ["CTRL"] = "C",
+        ["SHIFT"] = "S",
+        ["MOUSEWHEELUP"] = "MU",
+        ["MOUSEWHEELDOWN"] = "MD"
+    }
 
+    -- 使用 "-" 来分割键位
+    local parts = {}
+    for modifier in string.gmatch(bindkey, "[^%-]+") do
+        table.insert(parts, modifier)
+    end
+
+    -- 处理修饰键部分并转换为简写
+    for i, part in ipairs(parts) do
+        if modifierMap[part] then
+            parts[i] = modifierMap[part]
+        end
+    end
+
+    -- 合并修饰键和数字/字母，使用"-"连接
+    return table.concat(parts, "-")
 end
 
 -- 创建图标Icon
@@ -484,7 +515,8 @@ function Btn:Delete()
     self.Border:ClearAllPoints()
     self.Border = nil
     self.Icon = nil
-    self.Text = nil
+    self.Texts = nil
+    self.BindkeyString = nil
     self.Cooldown = nil
     self.Button = nil
 end
