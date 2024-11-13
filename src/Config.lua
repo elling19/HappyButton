@@ -223,18 +223,23 @@ function Config.UpdateItemLocalizeName(item)
     end
 end
 
---[[
-对配置文件进行本地化处理
-]]
+---------------------------------------------------------
+-- 对配置文件进行处理：
+-- 1. 本地化处理
+-- 2. 按键处理：如果不导入配置则移除配置中的按键设置
+---------------------------------------------------------
 ---@param ele ElementConfig
-function Config.LocalizeConfig(ele)
+function Config.HandleConfig(ele)
+    if addon.G.tmpImportKeybind == false and ele.bindKey ~= nil then
+        ele.bindKey = nil
+    end
     if ele.type == const.ELEMENT_TYPE.ITEM then
         local item = E:ToItem(ele)
         Config.UpdateItemLocalizeName(item)
     end
     if ele.elements then
         for _, childEle in ipairs(ele.elements) do
-            Config.LocalizeConfig(childEle)
+            Config.HandleConfig(childEle)
         end
     end
 end
@@ -822,9 +827,10 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         ele.bindKey = nil
                     else
                         if ele.bindKey == nil then
-                            ele.bindKey = {}
+                            ele.bindKey = {key = key, characters = {}, classes = {}}  -- 默认选择不给任何角色绑定，防止误操作导致绑定到全部的角色上。
+                        else
+                            ele.bindKey.key = key
                         end
-                        ele.bindKey.key = key
                     end
                     HbFrame:ReloadEframeUI(updateFrameConfig)
                 end
@@ -2233,8 +2239,18 @@ function ConfigOptions.ElementsOptions()
                 type = 'header',
                 name = L["Import Configuration"]
             },
-            coverToggle = {
+            keyBindToggle = {
                 order = 8,
+                width = 2,
+                type = 'toggle',
+                name = L["Whether to import keybind settings."],
+                set = function(_, _)
+                    addon.G.tmpImportKeybind = not addon.G.tmpImportKeybind
+                end,
+                get = function(_) return addon.G.tmpImportKeybind end
+            },
+            coverToggle = {
+                order = 9,
                 width = 2,
                 type = 'toggle',
                 name = L["Whether to overwrite the existing configuration."],
@@ -2244,7 +2260,7 @@ function ConfigOptions.ElementsOptions()
                 get = function(_) return addon.G.tmpCoverConfig end
             },
             importEditBox = {
-                order = 9,
+                order = 10,
                 type = 'input',
                 name = L["Configuration string"],
                 multiline = 20,
@@ -2298,8 +2314,7 @@ function ConfigOptions.ElementsOptions()
                         U.Print.PrintErrorText(errorMsg)
                         return
                     end
-                    -- 对配置文件进行本地化处理
-                    Config.LocalizeConfig(eleConfig)
+                    Config.HandleConfig(eleConfig)
                     if Config.IsIdDuplicated(eleConfig.id,
                             addon.db.profile.elements) then
                         --- 如果覆盖配置
@@ -2417,6 +2432,7 @@ function addon:OnInitialize()
         iconWidth = 32,
         iconHeight = 32,
         IsEditMode = false,
+        tmpImportKeybind = false,           -- 默认选择不导入按键设置
         tmpCoverConfig = false,             -- 默认选择不覆盖配置，默认创建副本
         tmpImportElementConfigString = nil, -- 导入elementconfig配置字符串
         tmpConfigString = nil,              -- 全局配置编辑字符串

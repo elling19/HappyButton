@@ -28,11 +28,11 @@ local LoadCondition = addon:GetModule("LoadCondition")
 ---@field f fun(ele: ElementConfig, lastCbResults: CbResult[]): CbResult[]  -- f: function
 ---@field p ElementConfig -- p: params
 ---@field r CbResult[]
+---@field btns Btn[]  -- 按钮，数量和CbResult保持一致
 ---@field e table<string, boolean>
 
 ---@class Bar
 ---@field BarFrame nil|table|Button
----@field BarBtns (table|Btn)[]
 ---@field Icon string | number | nil
 
 ---@class ElementFrame: AceModule
@@ -121,7 +121,6 @@ function ElementFrame:ReLoadUI()
     self.Events = E:GetEvents(self.Config)
     self:UpdateWindow()
     self:UpdateBar()
-    self:UpdateBarFrame()
     self:CreateEditModeFrame()
     self:OutCombatUpdate()
       -- 设置初始的时候是否隐藏
@@ -139,24 +138,27 @@ function ElementFrame:GetCbs(eleConfig)
     if eleConfig.type == const.ELEMENT_TYPE.ITEM then
         local item = E:ToItem(eleConfig)
         ---@type ElementCbInfo
-        local cb = { f = ECB.CallbackOfSingleMode, p = item, r = {}, e = E:GetEvents(item) }
+        local cb = { f = ECB.CallbackOfSingleMode, p = item, r = {}, btns = {}, e = E:GetEvents(item) }
         return { cb, }
     elseif eleConfig.type == const.ELEMENT_TYPE.ITEM_GROUP then
         local itemGroup = E:ToItemGroup(eleConfig)
         ---@type ElementCbInfo
         local cb
         if itemGroup.extraAttr.mode == const.ITEMS_GROUP_MODE.RANDOM then
-            cb = { f = ECB.CallbackOfRandomMode, p = itemGroup, r = {}, e = E:GetEvents(itemGroup) }
+            cb = { f = ECB.CallbackOfRandomMode, p = itemGroup, r = {}, btns = {}, e = E:GetEvents(itemGroup) }
         end
         if itemGroup.extraAttr.mode == const.ITEMS_GROUP_MODE.SEQ then
-            cb = { f = ECB.CallbackOfSeqMode, p = itemGroup, r = {}, e = E:GetEvents(itemGroup) }
+            cb = { f = ECB.CallbackOfSeqMode, p = itemGroup, r = {}, btns = {}, e = E:GetEvents(itemGroup) }
         end
         return { cb, }
     elseif eleConfig.type == const.ELEMENT_TYPE.SCRIPT then
         local script = E:ToScript(eleConfig)
         if script.extraAttr.script then
-            local cb = { f = ECB.CallbackOfScriptMode, p = script, r = {}, e = E:GetEvents(script)  }
+            ---@type ElementCbInfo
+            local cb = { f = ECB.CallbackOfScriptMode, p = script, r = {}, btns = {}, e = E:GetEvents(script) }
             return { cb, }
+        else
+            return {}
         end
     elseif eleConfig.type == const.ELEMENT_TYPE.BAR then
         ---@type ElementCbInfo[]
@@ -178,15 +180,31 @@ end
 -- 创建Bar
 function ElementFrame:UpdateBar()
     if not self.Bar then
-        self.Bar = { BarFrame = nil, BarBtns = {}, Icon = self.Config.icon }
+        local barFrame = CreateFrame("Frame", ("HtBarFrame-%s"):format(self.Config.id), self.Window)
+        self.Bar = { BarFrame = barFrame, Icon = self.Config.icon }
     end
-    for i = #self.Bar.BarBtns, 1, -1 do
-        local btn = self.Bar.BarBtns[i]
-        if btn then
-            btn:Delete()
-            self.Bar.BarBtns[i] = nil
-        end
+    if self.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM then
+        self.Bar.BarFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.RIGHTTOP then
+        self.Bar.BarFrame:SetPoint("BOTTOMLEFT", self.Window, "BOTTOMLEFT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.LEFTBOTTOM then
+        self.Bar.BarFrame:SetPoint("TOPRIGHT", self.Window, "TOPRIGHT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.LEFTTOP then
+        self.Bar.BarFrame:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.TOPLEFT then
+        self.Bar.BarFrame:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.TOPRIGHT then
+        self.Bar.BarFrame:SetPoint("BOTTOMLEFT", self.Window, "BOTTOMLEFT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.BOTTOMLEFT then
+        self.Bar.BarFrame:SetPoint("TOPRIGHT", self.Window, "TOPRIGHT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.BOTTOMRIGHT then
+        self.Bar.BarFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
+    else
+        -- 默认右下
+        self.Bar.BarFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
     end
+    self.Bar.BarFrame:SetWidth(self.IconWidth)
+    self.Bar.BarFrame:SetHeight(self.IconHeight)
 end
 
 -- 更新
@@ -210,13 +228,17 @@ function ElementFrame:OutCombatUpdate(event)
         self:HideWindow()
         return
     end
-    local cbInfos = {} ---@type ElementCbInfo[]
     if self.Cbs then
+        local btnIndex = 1
         for _, cb in ipairs(self.Cbs) do
-            -- 判断是否通过展示条件判断
+            ---@type CbResult[]
+            local cbResults = {}
+            -- 判断是否通过展示条件判断，如果不通过，则相当于当前元素全部隐藏
             if LoadCondition:Pass(cb.p.loadCond) == true then
-                cb.r = cb.f(cb.p, cb.r)
-                for _, r in ipairs(cb.r) do
+                cbResults = cb.f(cb.p, cb.r)
+                -- 反向遍历 rs 数组
+                for i = #cbResults, 1, -1 do
+                    local r = cbResults[i]
                     ECB:UpdateSelfTrigger(r)
                     r.effects = ECB:UseTrigger(cb.p, r)
                     -- 战斗外更新，如果发现隐藏按钮则是移除按钮
@@ -229,31 +251,35 @@ function ElementFrame:OutCombatUpdate(event)
                             end
                         end
                     end
-                    if hideBtn == false then
-                        local cbInfo = { p = cb.p, f = cb.f, r = { r, }, e = cb.e } ---@type ElementCbInfo
-                        table.insert(cbInfos, cbInfo)
+                    if hideBtn == true then
+                        table.remove(cbResults, i)
                     end
                 end
+            else
+                cbResults = {}
             end
+            cb.r = cbResults
+            for cbIndex, _ in ipairs(cb.r) do
+                -- 如果图标不足，补全图标
+                if cbIndex > #cb.btns then
+                    local btn = Btn:New(self, cb, cbIndex)
+                    table.insert(cb.btns, btn)
+                end
+                local btn = cb.btns[cbIndex]
+                btn:UpdateByElementFrame(cbIndex, btnIndex, event)
+                btnIndex  = btnIndex + 1
+            end
+            -- 如果按钮过多，删除冗余按钮
+            if #cb.r < #cb.btns then
+                for i = #cb.btns, #cb.r + 1, -1 do
+                    cb.btns[i]:Delete()
+                    cb.btns[i] = nil
+                end
+            end
+
         end
     end
-    for cbIndex, cbInfo in ipairs(cbInfos) do
-        -- 如果图标不足，补全图标
-        if cbIndex > #self.Bar.BarBtns then
-            local btn = Btn:New(self, cbIndex)
-            table.insert(self.Bar.BarBtns, btn)
-        end
-        local btn = self.Bar.BarBtns[cbIndex]
-        btn:UpdateByElementFrame(cbInfo, event)
-    end
-    -- 如果按钮过多，删除冗余按钮
-    if #cbInfos < #self.Bar.BarBtns then
-        for i = #self.Bar.BarBtns, #cbInfos + 1, -1 do
-            local btn = self.Bar.BarBtns[i]
-            btn:Delete()
-            self.Bar.BarBtns[i] = nil
-        end
-    end
+
     self:SetWindowSize()
     if self.Config.loadCond and self.Config.loadCond.CombatCond == true then
         self:HideWindow()
@@ -271,9 +297,13 @@ function ElementFrame:InCombatUpdate(event)
     if LoadCondition:Pass(self.Config.loadCond) == false then
         return
     end
-    if self.Bar.BarBtns then
-        for _, btn in ipairs(self.Bar.BarBtns) do
-            btn:UpdateBySelf(event)
+    if self.Cbs then
+        for _, cb in ipairs(self.Cbs) do
+            if cb.btns then
+                for _, btn in ipairs(cb.btns) do
+                    btn:UpdateBySelf(event)
+                end
+            end
         end
     end
 end
@@ -360,33 +390,6 @@ function ElementFrame:UpdateWindow()
     self.Window:SetPoint(frameAnchorPos, attachFrame, attachFrameAnchorPos, x, y)
 end
 
-function ElementFrame:UpdateBarFrame()
-    local barFrame = CreateFrame("Frame", ("HtBarFrame-%s"):format(self.Config.id), self.Window)
-    if self.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM then
-        barFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
-    elseif self.Config.elesGrowth == const.GROWTH.RIGHTTOP then
-        barFrame:SetPoint("BOTTOMLEFT", self.Window, "BOTTOMLEFT", 0, 0)
-    elseif self.Config.elesGrowth == const.GROWTH.LEFTBOTTOM then
-        barFrame:SetPoint("TOPRIGHT", self.Window, "TOPRIGHT", 0, 0)
-    elseif self.Config.elesGrowth == const.GROWTH.LEFTTOP then
-        barFrame:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
-    elseif self.Config.elesGrowth == const.GROWTH.TOPLEFT then
-        barFrame:SetPoint("BOTTOMRIGHT", self.Window, "BOTTOMRIGHT", 0, 0)
-    elseif self.Config.elesGrowth == const.GROWTH.TOPRIGHT then
-        barFrame:SetPoint("BOTTOMLEFT", self.Window, "BOTTOMLEFT", 0, 0)
-    elseif self.Config.elesGrowth == const.GROWTH.BOTTOMLEFT then
-        barFrame:SetPoint("TOPRIGHT", self.Window, "TOPRIGHT", 0, 0)
-    elseif self.Config.elesGrowth == const.GROWTH.BOTTOMRIGHT then
-        barFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
-    else
-        -- 默认右下
-        barFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
-    end
-    barFrame:SetWidth(self.IconWidth)
-    barFrame:SetHeight(self.IconHeight)
-    self.Bar.BarFrame = barFrame
-end
-
 -- 创建编辑模式背景
 function ElementFrame:CreateEditModeFrame()
     self.EditModeBg = self.Window:CreateTexture(nil, "BACKGROUND")
@@ -420,8 +423,14 @@ end
 -- 设置窗口宽度：窗口会遮挡视图，会减少鼠标可点击范围，因此窗口宽度尽可能小
 function ElementFrame:SetWindowSize()
     local buttonNum = 1
-    if self.Bar then
-        buttonNum = #self.Bar.BarBtns
+    if self.Cbs then
+        buttonNum = 0
+        for _, cb in ipairs(self.Cbs) do
+            if cb.btns then
+                buttonNum = buttonNum + #cb.btns
+            end
+        end
+        buttonNum = buttonNum or 1
     end
     if self:IsHorizontal() then
         self.Window:SetWidth(self.IconWidth * buttonNum)

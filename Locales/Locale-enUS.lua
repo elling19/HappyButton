@@ -29,6 +29,7 @@ L["Export"] = true
 L["Import Configuration"] = true
 L["Configuration string"] = true
 L["Whether to overwrite the existing configuration."]= true
+L["Whether to import keybind settings."] = true
 L["Import failed: Invalid configuration string."] = true
 L["Wheter to use element title to replace item name."] = true
 L["Add Item"] = true

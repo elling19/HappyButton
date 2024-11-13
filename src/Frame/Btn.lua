@@ -38,34 +38,24 @@ local LCG = LibStub("LibCustomGlow-1.0")
 ---@field CbResult CbResult
 ---@field CbInfo ElementCbInfo
 ---@field effects table<EffectType, boolean>
+---@field bindkeyString FontString | nil  -- 显示绑定快捷键信息
 local Btn = addon:NewModule("Btn")
 
 ---@param eFrame ElementFrame
+--- @param cbInfo ElementCbInfo
 ---@param cbIndex number
 ---@return Btn
-function Btn:New(eFrame, cbIndex)
-    local bar = eFrame.Bar
+function Btn:New(eFrame, cbInfo, cbIndex)
     local obj = setmetatable({}, { __index = self })
     obj.EFrame = eFrame
-    obj.Button = CreateFrame("Button", ("Button-%s-%s"):format(eFrame.Config.id, cbIndex), bar.BarFrame,
+    obj.CbInfo = cbInfo
+    obj.CbResult = cbInfo.r[cbIndex]
+    obj.Button = CreateFrame("Button", ("Button-%s-%s-%s"):format(eFrame.Config.id, cbInfo.p.id, cbIndex), eFrame.Bar.BarFrame,
         "SecureActionButtonTemplate")
     obj.Button:SetSize(eFrame.IconWidth, eFrame.IconHeight)
     obj.effects = {}
     Btn.CreateIcon(obj)
     Btn.CreateBorder(obj)
-
-    if eFrame.Config.elesGrowth == const.GROWTH.LEFTTOP or eFrame.Config.elesGrowth == const.GROWTH.LEFTBOTTOM then
-        obj.Button:SetPoint("RIGHT", bar.BarFrame, "RIGHT", -eFrame.IconWidth * (cbIndex - 1), 0)
-    elseif eFrame.Config.elesGrowth == const.GROWTH.TOPLEFT or eFrame.Config.elesGrowth == const.GROWTH.TOPRIGHT then
-        obj.Button:SetPoint("BOTTOM", bar.BarFrame, "BOTTOM", 0, eFrame.IconHeight * (cbIndex - 1))
-    elseif eFrame.Config.elesGrowth == const.GROWTH.BOTTOMLEFT or eFrame.Config.elesGrowth == const.GROWTH.BOTTOMRIGHT then
-        obj.Button:SetPoint("TOP", bar.BarFrame, "TOP", 0, -eFrame.IconHeight * (cbIndex - 1))
-    elseif eFrame.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM or eFrame.Config.elesGrowth == const.GROWTH.RIGHTTOP then
-        obj.Button:SetPoint("LEFT", bar.BarFrame, "LEFT", eFrame.IconWidth * (cbIndex - 1), 0)
-    else
-        -- 默认右下
-        obj.Button:SetPoint("LEFT", bar.BarFrame, "LEFT", eFrame.IconWidth * (cbIndex - 1), 0)
-    end
 
     obj.Button:RegisterForClicks("AnyDown", "AnyUp")
     obj.Button:SetAttribute("type", "macro")
@@ -90,11 +80,24 @@ function Btn:New(eFrame, cbIndex)
 end
 
 --- 按钮🔘从Frame中获取CbResult并更新
---- @param cbInfo ElementCbInfo
+--- @param cbIndex number 当前callback的下标
+--- @param btnIndex number 当前按钮下标，用来更新位置
 --- @param event string | nil
-function Btn:UpdateByElementFrame(cbInfo, event)
-    self.CbInfo = cbInfo
-    self.CbResult = cbInfo.r[1]
+function Btn:UpdateByElementFrame(cbIndex, btnIndex, event)
+    self.CbResult = self.CbInfo.r[cbIndex]
+    local bar = self.EFrame.Bar
+    if self.EFrame.Config.elesGrowth == const.GROWTH.LEFTTOP or self.EFrame.Config.elesGrowth == const.GROWTH.LEFTBOTTOM then
+        self.Button:SetPoint("RIGHT", bar.BarFrame, "RIGHT", -self.EFrame.IconWidth * (btnIndex - 1), 0)
+    elseif self.EFrame.Config.elesGrowth == const.GROWTH.TOPLEFT or self.EFrame.Config.elesGrowth == const.GROWTH.TOPRIGHT then
+        self.Button:SetPoint("BOTTOM", bar.BarFrame, "BOTTOM", 0, self.EFrame.IconHeight * (btnIndex - 1))
+    elseif self.EFrame.Config.elesGrowth == const.GROWTH.BOTTOMLEFT or self.EFrame.Config.elesGrowth == const.GROWTH.BOTTOMRIGHT then
+        self.Button:SetPoint("TOP", bar.BarFrame, "TOP", 0, -self.EFrame.IconHeight * (btnIndex - 1))
+    elseif self.EFrame.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM or self.EFrame.Config.elesGrowth == const.GROWTH.RIGHTTOP then
+        self.Button:SetPoint("LEFT", bar.BarFrame, "LEFT", self.EFrame.IconWidth * (btnIndex - 1), 0)
+    else
+        -- 默认右下
+        self.Button:SetPoint("LEFT", bar.BarFrame, "LEFT", self.EFrame.IconWidth * (btnIndex - 1), 0)
+    end
     if event and self.CbInfo.e[event] == nil then
         return
     end
@@ -113,6 +116,9 @@ function Btn:UpdateBySelf(event)
 end
 
 function Btn:Update()
+    if not InCombatLockdown() then
+        self:UpdateBindkey()
+    end
     if self.CbResult == nil then
         return
     end
@@ -129,6 +135,41 @@ function Btn:Update()
     end
     self:UpdateTexts()
     self:UpdateEffects()
+end
+
+-- 按键绑定
+function Btn:UpdateBindkey()
+    local bindKey = self.CbInfo.p.bindKey
+    if bindKey == nil or bindKey.key == nil or bindKey.key == "" then
+        if self.bindkeyString then
+            self.bindkeyString:SetText("")
+        end
+        return
+    end
+    if (bindKey.characters == nil or bindKey.classes == nil) or
+        (bindKey.characters ~= nil and bindKey.characters[UnitGUID("player")]) or
+        (bindKey.characters ~= nil and bindKey.classes[select(2, UnitClassBase("player"))] ~= nil)
+    then
+        if self.bindkeyString == nil then
+            self.bindkeyString = self.Button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            self.bindkeyString:SetTextColor(1, 1, 1)
+            self.bindkeyString:SetPoint("TOPRIGHT", self.Button, "TOPRIGHT", -2, 2)
+        end
+        local key = GetBindingKey("CLICK " .. self.Button:GetName() .. ":LeftButton")     -- 获取当前绑定的快捷键
+        if key ~= bindKey.key then
+            -- local result = SetBindingClick(bindKey.key, self.Button:GetName(), "LeftButton")
+            local result = SetBinding(bindKey.key, "CLICK " .. self.Button:GetName() .. ":LeftButton")
+            if result ~= nil then
+                self.bindkeyString:SetText(bindKey.key)
+            end
+        else
+            self.bindkeyString:SetText(key)
+        end
+    end
+end
+
+function Btn:UpdateBindkeyString()
+
 end
 
 -- 创建图标Icon
@@ -268,7 +309,7 @@ function Btn:CreateBorder()
             edgeFile = "Interface\\Buttons\\WHITE8x8", -- 边框纹理
             tile = false,
             tileSize = 0,
-            edgeSize = 1,                              -- 边框大小
+            edgeSize = 1, -- 边框大小
             insets = { left = 0, right = 0, top = 0, bottom = 0 },
         })
         self.Border:SetBackdropColor(0, 0, 0, 0) -- 背景透明（灰色）
