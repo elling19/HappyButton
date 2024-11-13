@@ -10,7 +10,7 @@ Welcome to the **HappyButton** plugin! This is a **World of Warcraft** plugin th
 
 ## Features
 - **Custom Item Bars**: You can create item bar in the settings interface, and create items, item groups, and scripts for them.
-- **Custom Settings**: You can add settings to your defined item bars, including frame attachment, position, load conditions, and display conditions.
+- **Custom Settings**: You can add settings to your defined item bars, including key binding，frame attachment, position, load conditions, and display conditions.
 - **Configuration Strings**: You can share the item bars you create with other players in the form of strings.
 
 ## Installation
