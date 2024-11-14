@@ -2401,7 +2401,7 @@ function ConfigOptions.Options()
                         order = 4,
                         width = 2,
                         type = "description",
-                        name = L["Version"] .. ": " .. "Beta-0.1.0"
+                        name = L["Version"] .. ": " .. "Beta-0.1.1"
                     }
                 }
             },
