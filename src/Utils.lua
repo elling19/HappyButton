@@ -26,6 +26,7 @@ local UtilsTable = {}
 local UtilsPrint = {}
 
 ---@class UtilsString
+---@field Utf8ToTable fun(str: string): table 将字符串转为字符列表
 ---@field ToVertical fun(text: string | nil): string 将字符串转为竖形结构
 ---@field GenerateID fun(): string 返回随机ID
 local UtilsString = {}
@@ -194,7 +195,9 @@ function UtilsPrint.PrintDictType(tbl, indent)
 end
 
 -- 函数：将 UTF-8 字符串拆分为单个字符表
-local function Utf8ToTable(str)
+---@param str string
+---@return table
+function UtilsString.Utf8ToTable(str)
     local charTable = {}
     local i = 1
     local length = #str
@@ -226,7 +229,7 @@ function UtilsString.ToVertical(str)
     if str == nil then
         return ""
     end
-    local chars = Utf8ToTable(str)
+    local chars = UtilsString.Utf8ToTable(str)
     local verticalStr = ""
     for _, char in ipairs(chars) do
         verticalStr = verticalStr .. char .. "\n"

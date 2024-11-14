@@ -10,7 +10,7 @@ set TEMP_DIR=%BASE_DIR%
 mkdir "%TEMP_DIR%"
 
 :: use robocpy copy file exculde some dir
-robocopy . "%TEMP_DIR%" /E /XD ".git" ".idea" ".vscode" "%TEMP_DIR%" /XF "pack.cmd"
+robocopy . "%TEMP_DIR%" /E /XD ".git" ".idea" ".vscode" "Script" "%TEMP_DIR%" /XF "pack.cmd"
 
 :: use 7zip 
 7z a -tzip "%ZIPFILE%" "%TEMP_DIR%\*"
