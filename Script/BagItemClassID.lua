@@ -15,8 +15,8 @@ return function()
     local IsUsableItem = (C_Item and C_Item.IsUsableItem) and C_Item.IsUsableItem or IsUsableItem
 
     ---@param classId number 物品类别
-    ---@param subclassIds table[] | nil 物品子类别
-    ---@param isUsable boolean | nil 是否可点击
+    ---@param subclassIds table | nil 物品子类别
+    ---@param isUsable boolean | nil 是否可使用
     local function GetItems(classId, subclassIds, isUsable)
         local items = {} ---@type table[]
         local itemIds = {} ---@type table<number, true>
