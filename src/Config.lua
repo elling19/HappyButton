@@ -435,6 +435,12 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 table.insert(moveToSelectGroups, "elementMenu" .. val)
                 table.insert(moveToSelectGroups, "elementMenu" .. #(elements[val].elements))
                 table.remove(elements, i)
+                if topEleConfig == nil then
+                    HbFrame:DeleteEframe(ele)
+                    HbFrame:ReloadEframeUI(elements[val])
+                else
+                    HbFrame:ReloadEframeUI(topEleConfig)
+                end
                 AceConfigDialog:SelectGroup(addonName, unpack(moveToSelectGroups))
             end
         }

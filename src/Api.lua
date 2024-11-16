@@ -8,13 +8,21 @@ local Client = addon:GetModule("Client")
 ---@class Api: AceModule
 local Api = addon:NewModule("Api")
 
+---@diagnostic disable-next-line: deprecated
 Api.GetItemInfoInstant = (C_Item and C_Item.GetItemInfoInstant) and C_Item.GetItemInfoInstant or GetItemInfoInstant
+---@diagnostic disable-next-line: deprecated
 Api.GetItemInfo = (C_Item and C_Item.GetItemInfo) and C_Item.GetItemInfo or GetItemInfo
+---@diagnostic disable-next-line: deprecated
 Api.GetItemCooldown = (C_Item and C_Item.GetItemCooldown) and C_Item.GetItemCooldown or C_Container.GetItemCooldown or GetItemCooldown
+---@diagnostic disable-next-line: deprecated
 Api.GetItemCount = (C_Item and C_Item.GetItemCount) and C_Item.GetItemCount or GetItemCount
+---@diagnostic disable-next-line: deprecated
 Api.IsUsableItem = (C_Item and C_Item.IsUsableItem) and C_Item.IsUsableItem or IsUsableItem
+---@diagnostic disable-next-line: deprecated
 Api.GetSpellCharges = (C_Spell and C_Spell.GetSpellCharges) and C_Spell.GetSpellCharges or GetSpellCharges
+---@diagnostic disable-next-line: deprecated
 Api.IsSpellUsable = (C_Spell and C_Spell.IsSpellUsable) and C_Spell.IsSpellUsable or IsUsableSpell
+---@diagnostic disable-next-line: deprecated
 Api.GetSpellTexture = (C_Spell and C_Spell.GetSpellTexture) and C_Spell.GetSpellTexture or GetSpellTexture
 
 ---@param spellIdentifier string | number
@@ -23,6 +31,7 @@ Api.GetSpellInfo = function (spellIdentifier)
     if C_Spell and C_Spell.GetSpellInfo then
         return C_Spell.GetSpellInfo(spellIdentifier)
     else
+        ---@diagnostic disable-next-line: deprecated
         local name, rank, icon, castTime, minRange, maxRange, spellID, originalIcon = GetSpellInfo(spellIdentifier)
         if spellID == nil then
             return nil
@@ -47,6 +56,7 @@ Api.GetSpellCooldown = function (spellIdentifier)
     if C_Spell and C_Spell.GetSpellCooldown then
         return C_Spell.GetSpellCooldown(spellIdentifier)
     else
+        ---@diagnostic disable-next-line: deprecated
         local start, duration, enabled, modRate = GetSpellCooldown(spellIdentifier)
         ---@type SpellCooldownInfo
         local spellCooldownInfo = {
@@ -75,6 +85,7 @@ Api.GetBuffDataByIndex = function (unitId, index, filter)
         }
         return result
     else
+        ---@diagnostic disable-next-line: deprecated
         local name, icon, count, dispelType, duration, expirationTime, source, isStealable, nameplateShowPersonal, spellId, canApplyAura, isBossDebuff, castByPlayer, nameplateShowAll, timeMod = UnitAura(unitId, index, filter)
         if name then
             local result = {
