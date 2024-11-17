@@ -65,6 +65,12 @@ function E:ToScript(config)
 end
 
 ---@param config ElementConfig
+---@return MacroConfig
+function E:ToMacro(config)
+    return E:InitExtraAttr(config) ---@type MacroConfig
+end
+
+---@param config ElementConfig
 ---@return ItemGroupConfig
 function E:ToItemGroup(config)
     return E:InitExtraAttr(config) ---@type ItemGroupConfig
@@ -95,7 +101,7 @@ end
 ---@param config ElementConfig
 ---@return boolean
 function E:IsLeaf(config)
-    if config.type == const.ELEMENT_TYPE.ITEM or config.type == const.ELEMENT_TYPE.ITEM_GROUP or config.type == const.ELEMENT_TYPE.SCRIPT then
+    if config.type == const.ELEMENT_TYPE.ITEM or config.type == const.ELEMENT_TYPE.ITEM_GROUP or config.type == const.ELEMENT_TYPE.SCRIPT or config.type == const.ELEMENT_TYPE.MACRO then
         return true
     end
     return false

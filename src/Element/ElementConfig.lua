@@ -11,6 +11,10 @@
 ---@class ScriptAttr
 ---@field script string | nil  -- 原始脚本文件
 
+---@class MacroAttr
+---@field stats MacroStat[] | nil -- 宏语句列表
+
+
 ---@class ElementConfig
 ---@field id string
 ---@field isDisplayMouseEnter boolean --是否鼠标移入显示
@@ -48,6 +52,10 @@ local ItemConfig = {}
 ---@class ScriptConfig: ElementConfig
 ---@field extraAttr ScriptAttr
 local ScriptConfig = {}
+
+---@class MacroConfig: ElementConfig
+---@field extraAttr MacroAttr
+local MacroConfig = {}
 
 ---@class ItemGroupConfig: ElementConfig
 ---@field extraAttr ItemGroupAttr

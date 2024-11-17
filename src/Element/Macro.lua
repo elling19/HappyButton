@@ -3,16 +3,104 @@ local addonName, _ = ...
 ---@class HappyButton: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
-local E = addon:GetModule("Element", true)
-
 ---@class Utils: AceModule
 local U = addon:GetModule('Utils')
 
 ---@class Result: AceModule
 local R = addon:GetModule("Result")
 
----@class Macro: E
-local Macro = addon:NewModule("Macro", E)
+---@class Macro: AceModule
+local Macro = addon:NewModule("Macro")
+
+---@class MacroCond
+---@field targets string[] | nil
+---@field conds string[] | nil
+
+---@class MacroParam
+---@field reset string | nil  -- 队列宏使用
+---@field slot  number | nil  -- 装备装备使用
+---@field script string | nil -- 非cast/use/castsqueue/equit宏使用，例如/click、/say
+---@field items ItemAttr[] | nil
+
+---@class MacroStat
+---@field commmand string
+---@field conds nil | MacroCond[]
+---@field params MacroParam
+
+--- 根据语句生成条件
+---@param cond MacroCond
+---@return string
+function Macro:BuildMacroCondString(cond)
+    local condString = "["
+    if cond.targets and #cond.targets > 0 then
+        condString = condString .. "@" .. cond.targets[1]
+    end
+    if cond.conds and #cond.conds > 0 then
+        if cond.targets and #cond.targets > 0 then
+            condString = condString .. ","
+        end
+        for _, condCond in ipairs(cond.conds) do
+            condString = condString .. condCond .. ","
+        end
+    end
+    condString = condString .. "]"
+    return condString
+end
+
+--- 根据语句生成宏语句
+---@param stat MacroStat
+---@return string
+function Macro:BuildMacroString(stat)
+    local statDesc = ""
+    statDesc = statDesc .. "/" .. stat.commmand .. " "
+    if stat.conds ~= nil and #stat.conds > 0 then
+        for _, cond in ipairs(stat.conds) do
+            local condDesc = Macro:BuildMacroCondString(cond)
+            statDesc = statDesc .. condDesc
+        end
+        statDesc = statDesc .. " "
+    end
+    if stat.params.reset then
+        statDesc = statDesc .. "reset=" + stat.params.reset .. " "
+    end
+    if stat.params.script then
+        statDesc = statDesc .. stat.params.reset .. " "
+    end
+    if stat.params.slot then
+        statDesc = statDesc .. stat.params.slot .. " "
+    end
+    if stat.params.items then
+        local itemDesc = ""
+        for _, item in ipairs(stat.params.items) do
+            itemDesc = itemDesc .. item.name .. ","
+        end
+        itemDesc = string.sub(itemDesc, 1, -2)  -- 移除最后一个字符
+        statDesc = statDesc .. itemDesc
+    end
+    return statDesc
+end
+
+---@return MacroStat
+function Macro:NewStat()
+    ---@type MacroStat
+    local stat = {
+        commmand = "cast",
+        conds = nil,
+        params = {
+        }
+    }
+    return stat
+end
+
+---return MacroCond
+function Macro:NewCond()
+    ---@type MacroCond
+    local cond = {
+        targets = nil,
+        conds = nil
+    }
+    return cond
+end
 
 ---@class MacroParseResult
 ---@field cmd string[]

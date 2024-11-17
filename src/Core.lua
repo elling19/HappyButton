@@ -39,6 +39,7 @@ function BarCore:Start()
     BarCore.Frame:SetScript("OnEvent", function(self, event, arg1)
         if event == "PLAYER_LOGIN" then
             BarCore:Initial()
+            IsAltKeyDown()
         end
         if event == "SPELL_UPDATE_COOLDOWN" or
             event == "PLAYER_EQUIPMENT_CHANGED" or

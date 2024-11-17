@@ -14,6 +14,7 @@ const.ELEMENT_TYPE = {
     ITEM_GROUP = 2,
     SCRIPT = 3,
     BAR = 4,
+    MACRO = 5,
 }
 
 -- 元素分类选项
@@ -104,6 +105,17 @@ const.ITEMS_GROUP_MODE = {
 const.ItemsGroupModeOptions = {
     [const.ITEMS_GROUP_MODE.RANDOM] = L["Display one item, randomly selected."],
     [const.ITEMS_GROUP_MODE.SEQ] = L["Display one item, selected sequentially."],
+}
+
+-- 宏目标条件选项
+---@class MacroTargetOptions
+---@type table<string, string>
+const.MacroTargetOptions = {
+    ["target"] = "target",
+    ["player"] = "player",
+    ["focus"] = "focus",
+    ["cursor"] = "cursor",
+    ["mouseover"] = "mouseover",
 }
 
 --[[

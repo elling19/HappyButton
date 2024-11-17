@@ -22,9 +22,7 @@ L["New"] = true
 L["Delete"] = true
 L["Mode"] = true
 L["Select items to display"] = true
-L["Items Source"] = true
-L["Items Group"] = true
-L["New Items Group"] = true
+L["Macro"] = true
 L["Export"] = true
 L["Import Configuration"] = true
 L["Configuration string"] = true
@@ -77,6 +75,7 @@ L["New Bar"] = true
 L["New ItemGroup"] = true
 L["New Item"] = true
 L["New Script"] = true
+L["New Macro"] = true
 L["Select type"] = true
 L["Element Title"] = true
 L["Element Icon ID or Path"] = true
@@ -93,6 +92,12 @@ L["Load Rule"] = true
 L["Add Child Elements"] = true
 L["Edit Child Elements"] = true
 L["Select Item"] = true
+
+-- 宏设置
+L["Macro Statement Settings"] = true
+L["Temporary Targeting"] = true
+L["Boolean Conditions"] = true
+
 -- 位置
 L["TOPLEFT"] = true
 L["TOPRIGHT"] = true
@@ -187,6 +192,7 @@ L["isLearned"] = "Is Learned"
 L["isUsable"] = "Is Usable"
 L["remainingTime"] = "Remaining Time"
 L["targetIsEnemy"] = "Target Is Enemy"
+L["exist"] = true
 
 -- 触发器效果
 L["Border Glow"] = true
