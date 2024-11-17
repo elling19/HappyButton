@@ -11,7 +11,9 @@ return function()
 		return false
 	end
 
+    ---@diagnostic disable-next-line: deprecated
     local GetItemInfo = (C_Item and C_Item.GetItemInfo) and C_Item.GetItemInfo or GetItemInfo
+    ---@diagnostic disable-next-line: deprecated
     local IsUsableItem = (C_Item and C_Item.IsUsableItem) and C_Item.IsUsableItem or IsUsableItem
 
     ---@param classId number 物品类别

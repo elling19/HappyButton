@@ -68,7 +68,8 @@ function Trigger:GetConditions(triggerType)
     if triggerType == "aura" then
         return {
             remainingTime = "number",
-            targetIsEnemy = "boolean"
+            targetIsEnemy = "boolean",
+            exist = "boolean"
         } ---@type table<AuraTriggerCond, type>
     end
     if triggerType == "item" then
@@ -120,17 +121,17 @@ function Trigger:GetAuraTriggerCond(triggerConfig)
     else
         result.targetIsEnemy = false
     end
+    result.exist = false
+    result.remainingTime = 0
     if UnitExists(target) then
         for i = 1, 100 do
             local aura = Api.GetBuffDataByIndex(target, i, filter)
             if aura and aura.spellId == auraId then
+                result.exist = true
                 result.remainingTime = aura.expirationTime - GetTime()
                 break
             end
         end
-    end
-    if result.remainingTime == nil then
-        result.remainingTime = 0
     end
     return result
 end
