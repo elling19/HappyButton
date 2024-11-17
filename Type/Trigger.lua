@@ -1,6 +1,6 @@
 ---@alias TriggerType  -- 触发器类型
---- | "self"
 --- | "aura"
+--- | "item"
 
 ---@alias TriggerTarget  -- 触发器目标
 --- | "player"
@@ -35,12 +35,17 @@
 --- | "btnDesaturate"  -- 按钮褪色
 --- | "btnVertexColor"  -- 按钮顶点上色
 
-
----@alias SelfTriggerCond
+----------------------------------------------
+--- 物品触发器条件
+----------------------------------------------
+---@alias ItemTriggerCond
 --- | "count"
 --- | "isLearned"
 --- | "isUsable"
 
+----------------------------------------------
+--- 光环触发器条件
+----------------------------------------------
 ---@alias AuraTriggerCond
 --- | "remainingTime"
 --- | "targetIsEnemy"

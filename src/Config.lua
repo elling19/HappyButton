@@ -1431,7 +1431,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 type = "execute",
                 name = L["New"],
                 func = function()
-                    local trigger = Trigger:NewSelfTriggerConfig()
+                    local trigger = Trigger:NewItemTriggerConfig()
                     if ele.triggers == nil then
                         ele.triggers = {}
                     end
@@ -1531,8 +1531,37 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 }
                 triggerSettingOrder = triggerSettingOrder + 1
             end
-            if editTrigger and editTrigger.type == "self" then
-                local trigger = Trigger:ToSelfTriggerConfig(editTrigger)
+            if editTrigger and editTrigger.type == "item" then
+                local trigger = Trigger:ToItemTriggerConfig(editTrigger)
+                local itemOptions = {}  ---@type string[]
+                local items = {} ---@type ItemAttr[]
+                if ele.type == const.ELEMENT_TYPE.ITEM then
+                    local item = E:ToItem(ele)
+                    table.insert(itemOptions, item.extraAttr.name)
+                    table.insert(items, item.extraAttr)
+                end
+                triggerSettingArgs.selectItem = {
+                    order = triggerSettingOrder,
+                    width = 1,
+                    type = "select",
+                    name = L["Select Item"],
+                    values = itemOptions,
+                    set = function(_, val)
+                        trigger.confine.item = items[val]
+                    end,
+                    get = function()
+                        if trigger.confine.item == nil then
+                            return nil
+                        end
+                        for v_index, v in ipairs(items) do
+                            if trigger.confine.item.id == v.id and trigger.confine.item.name == v.name then
+                                return v_index
+                            end
+                        end
+                        return nil
+                    end
+                }
+                triggerSettingOrder = triggerSettingOrder + 1
             end
         end
 
@@ -2453,6 +2482,12 @@ function addon:OnInitialize()
             elements = {} ---@type ElementConfig[]
         }
     }, true)
+    -- 对配置文件进行兼容性处理
+    if self.db.profile.elements then
+        for _, element in ipairs(self.db.profile.elements) do
+            self:compatibilizeConfig(element)
+        end 
+    end
     -- 注册选项表
     AceConfig:RegisterOptionsTable(addonName, ConfigOptions.Options)
     -- 在Blizzard界面选项中添加一个子选项
@@ -2478,4 +2513,29 @@ end
 function addon:UpdateOptions()
     -- 重新注册配置表来更新菜单栏
     -- LibStub("AceConfigRegistry-3.0"):NotifyChange(addonName)
+end
+
+---@param element ElementConfig
+function addon:compatibilizeConfig(element)
+    if element == nil then
+        return
+    end
+    if element.elements and #element.elements then
+        for _, child in ipairs(element.elements) do
+            addon:compatibilizeConfig(child)
+        end
+    end
+    if element.triggers then
+        for i = #element.triggers, 1, -1 do
+            local trigger = element.triggers[i]
+            if element.type == const.ELEMENT_TYPE.ITEM then
+                element = E:ToItem(element)
+                if trigger.type == "self" then
+                    trigger.type = "item"
+                    trigger = Trigger:ToItemTriggerConfig(trigger)
+                    trigger.confine.item = U.Table.DeepCopyDict(element.extraAttr)
+                end
+            end
+        end
+    end
 end

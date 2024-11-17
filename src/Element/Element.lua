@@ -45,60 +45,6 @@ function E:New(title, type)
         configSelectedCondGroupIndex = 1,
         configSelectedCondIndex = 1,
     }
-
-    -- 🍃 创建叶子节点时：
-    -- 🍃 默认创建“自身触发器”，并且同时添加两个条件组：
-    --    1. “是否学会为假”的条件，并且添加上“隐藏”的特效；
-    --    2. 添加上“是否可用为假”的条件，并且添加上“图标褪色”的特效；
-    -- 🍃 也就是创建物品的时候，当物品不存在或者没有学习的时候，默认不显示。当物品不可用，图标褪色
-    if self:IsLeaf(config) then
-        local defaultTriiger = Trigger:NewSelfTriggerConfig()
-        ---@type ConditionConfig
-        local isLearnedCond = {
-            leftTriggerId = defaultTriiger.id,
-            leftVal = "isLearned",
-            operator = "=",
-            rightValue = false,
-        }
-        ---@type EffectConfig
-        local btnHideEffectConfig = {
-            type = "btnHide",
-            attr = {},
-            status = true
-        }
-        ---@type ConditionGroupConfig
-        local btnHideCondGroupConfig = {
-            conditions = {
-                isLearnedCond,
-            },
-            expression = "%cond.1",
-            effects = {btnHideEffectConfig, },
-        }
-        ---@type ConditionConfig
-        local isUsableCond = {
-            leftTriggerId = defaultTriiger.id,
-            leftVal = "isUsable",
-            operator = "=",
-            rightValue = false,
-        }
-        ---@type EffectConfig
-        local btnDesaturateEffectConfig = {
-            type = "btnDesaturate",
-            attr = {},
-            status = true
-        }
-        ---@type ConditionGroupConfig
-        local btnDesaturateCondGroupConfig = {
-            conditions = {
-                isUsableCond,
-            },
-            expression = "%cond.1",
-            effects = {btnDesaturateEffectConfig, },
-        }
-
-        config.triggers = {defaultTriiger, }
-        config.condGroups = {btnHideCondGroupConfig, btnDesaturateCondGroupConfig}
-    end
     return config
 end
 

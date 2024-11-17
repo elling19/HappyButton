@@ -277,20 +277,18 @@ function ECB:UseTrigger(eleConfig, cbResult)
                 local condResult = false ---@type boolean
                 if cond.leftTriggerId and cond.leftVal and triggers[cond.leftTriggerId] then
                     local leftTrigger = triggers[cond.leftTriggerId] ---@type TriggerConfig
-                    if leftTrigger.type == "self" then
-                        local leftValue = cbResult[cond.leftVal]
-                        if type(cond.rightValue) == "number" or type(cond.rightValue) == "boolean" then
-                            -- 判断条件返回真/假
-                            ---@diagnostic disable-next-line: param-type-mismatch
-                            local r = Condition:ExecOperator(leftValue, cond.operator, cond.rightValue)
-                            if r:is_ok() then
-                                condResult = r:unwrap()
-                            end
-                        end
-                    end
                     if leftTrigger.type == "aura" then
                         local auraTriggerCond = Trigger:GetAuraTriggerCond(leftTrigger)
                         local leftValue = auraTriggerCond[cond.leftVal]
+                        ---@diagnostic disable-next-line: param-type-mismatch
+                        local r = Condition:ExecOperator(leftValue, cond.operator, cond.rightValue)
+                        if r:is_ok() then
+                            condResult = r:unwrap()
+                        end
+                    end
+                    if leftTrigger.type == "item" then
+                        local itemTriggerCond = Trigger:GetItemTriggerCond(leftTrigger)
+                        local leftValue = itemTriggerCond[cond.leftVal]
                         ---@diagnostic disable-next-line: param-type-mismatch
                         local r = Condition:ExecOperator(leftValue, cond.operator, cond.rightValue)
                         if r:is_ok() then

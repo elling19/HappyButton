@@ -4,13 +4,12 @@ local addonName, _ = ...
 ---@class HappyButton: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
-local E = addon:GetModule("Element", true)
 
 ---@class CONST: AceModule
 local const = addon:GetModule('CONST')
 
----@class Item: E
-local Item = addon:NewModule("Item", E)
+---@class Item: AceModule
+local Item = addon:NewModule("Item")
 
 ---@class Api: AceModule
 local Api = addon:GetModule("Api")

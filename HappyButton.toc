@@ -23,6 +23,7 @@ Src\Const.lua
 Src\Result.lua
 Src\Utils.lua
 Src\Api.lua
+Src\Item.lua
 Src\Trigger\TriggerConfig.lua
 Src\Trigger\Trigger.lua
 Src\Trigger\EffectConfig.lua
@@ -34,7 +35,6 @@ Src\Element\TextConfig.lua
 Src\Element\Text.lua
 Src\Element\Element.lua
 Src\Element\ItemGroup.lua
-Src\Element\Item.lua
 Src\Element\Script.lua
 Src\Element\Macro.lua
 Src\Element\Bar.lua

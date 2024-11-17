@@ -145,10 +145,6 @@ L["Select Trigger"] = "选择触发器"
 L["Select Target"] = "选择目标"
 L["Select Trigger Type"] = "选择触发器类型"
 
-L["Self Trigger"] = "自身触发器"
-L["Count/Charge"] = "数量/充能"
-L["Is Learned"] = "已学会"
-
 L["Aura Trigger"] = "光环触发器"
 L["Aura ID"] = "光环ID"
 L["Aura Remaining Time"] = "光环剩余时间"
@@ -157,6 +153,9 @@ L["Player"] = "玩家"
 L["Target"] = "目标"
 L["Buff"] = "增益"
 L["Debuff"] = "减益"
+
+L["Item Trigger"] = "物品触发器"
+L["Select Item"] = "选择物品"
 
 L["Condition Group Settings"] = "条件组设置"
 L["Condition Settings"] = "条件设置"

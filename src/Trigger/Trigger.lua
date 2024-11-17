@@ -13,6 +13,9 @@ local U = addon:GetModule('Utils')
 ---@class Api: AceModule
 local Api = addon:GetModule("Api")
 
+---@class Item: AceModule
+local Item = addon:GetModule("Item")
+
 ---@class Trigger: AceModule
 local Trigger = addon:NewModule("Trigger")
 
@@ -20,21 +23,14 @@ local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 
 -- 创建自身触发器
 ---@return TriggerConfig
-function Trigger:NewSelfTriggerConfig()
+function Trigger:NewItemTriggerConfig()
     ---@type TriggerConfig
     local triggerConfig = {
         id = U.String.GenerateID(),
-        type = "self",
+        type = "item",
         confine = {}
     }
     return triggerConfig
-end
-
-
----@param config TriggerConfig
----@return SelfTriggerConfig
-function Trigger:ToSelfTriggerConfig(config)
-    return config --- @type SelfTriggerConfig
 end
 
 
@@ -44,15 +40,21 @@ function Trigger:ToAuraTriggerConfig(config)
     return config --- @type AuraTriggerConfig
 end
 
+---@param config TriggerConfig
+---@return ItemTriggerConfig
+function Trigger:ToItemTriggerConfig(config)
+    return config --- @type ItemTriggerConfig
+end
+
 -- 获取触发器名称
 ---@param triggerType  TriggerType
 ---@return string
 function Trigger:GetTriggerName(triggerType)
-    if triggerType == "self" then
-        return L["Self Trigger"]
-    end
     if triggerType == "aura" then
         return L["Aura Trigger"]
+    end
+    if triggerType == "item" then
+        return L["Item Trigger"]
     end
     return "Unknown"
 end
@@ -63,18 +65,18 @@ end
 ---@param triggerType TriggerType
 ---@return table<string, type>
 function Trigger:GetConditions(triggerType)
-    if triggerType == "self" then
-        return {
-            count = "number",
-            isLearned = "boolean",
-            isUsable = "boolean"
-        } ---@type table<SelfTriggerCond, type>
-    end
     if triggerType == "aura" then
         return {
             remainingTime = "number",
             targetIsEnemy = "boolean"
         } ---@type table<AuraTriggerCond, type>
+    end
+    if triggerType == "item" then
+        return {
+            count = "number",
+            isLearned = "boolean",
+            isUsable = "boolean"
+        } ---@type table<ItemTriggerCond, type>
     end
     return {}
 end
@@ -118,15 +120,45 @@ function Trigger:GetAuraTriggerCond(triggerConfig)
     else
         result.targetIsEnemy = false
     end
-    for i = 1, 100 do
-        local aura = Api.GetBuffDataByIndex(target, i, filter)
-        if aura and aura.spellId == auraId then
-            result.remainingTime = aura.expirationTime - GetTime()
-            break
+    if UnitExists(target) then
+        for i = 1, 100 do
+            local aura = Api.GetBuffDataByIndex(target, i, filter)
+            if aura and aura.spellId == auraId then
+                result.remainingTime = aura.expirationTime - GetTime()
+                break
+            end
         end
     end
     if result.remainingTime == nil then
         result.remainingTime = 0
+    end
+    return result
+end
+
+---@param triggerConfig TriggerConfig
+---@return table<ItemTriggerCond, any>
+function Trigger:GetItemTriggerCond(triggerConfig)
+    ---@type table<ItemTriggerCond, any>
+    local result = {}
+    local trigger = Trigger:ToItemTriggerConfig(triggerConfig)
+    if not trigger.confine then
+        return result
+    end
+    local item = trigger.confine.item
+    if item == nil then
+        return result
+    end
+    result.isLearned = Item:IsLearned(item.id, item.type)
+    result.isUsable = Item:IsLearnedAndUsable(item.id, item.type)
+    if item.type == const.ITEM_TYPE.ITEM then
+        result.count = Api.GetItemCount(item.id, false)
+    elseif item.type == const.ITEM_TYPE.SPELL then
+        local chargeInfo = Api.GetSpellCharges(item.id)
+        if chargeInfo then
+            result.count = chargeInfo.currentCharges
+        end
+    else
+        result.count = 1
     end
     return result
 end

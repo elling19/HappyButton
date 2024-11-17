@@ -144,10 +144,6 @@ L["Select Trigger"] = true
 L["Select Target"] = true
 L["Select Trigger Type"] = true
 
-L["Self Trigger"] = true
-L["Count/Charge"] = true
-L["Is Learned"] = true
-
 L["Aura Trigger"] = true
 L["Aura ID"] = true
 L["Aura Remaining Time"] = true
@@ -156,6 +152,9 @@ L["Player"] = true
 L["Target"] = true
 L["Buff"] = true
 L["Debuff"] = true
+
+L["Item Trigger"] = true
+L["Select Item"] = true
 
 L["Condition Group Settings"] = true
 L["Condition Settings"] = true
