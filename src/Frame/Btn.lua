@@ -57,7 +57,7 @@ function Btn:New(eFrame, cbInfo, cbIndex)
     Btn.CreateIcon(obj)
     Btn.CreateBorder(obj)
 
-    obj.Button:RegisterForClicks("AnyDown")
+    obj.Button:RegisterForClicks("AnyUp")
     obj.Button:SetAttribute("type", "macro")
     obj.Button:SetAttribute("macrotext", "")
 
