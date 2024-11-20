@@ -55,6 +55,19 @@ function Effect:NewBtnDesaturateEffect(status)
     return effect
 end
 
+-- 创建图标透明
+---@param status nil | boolean
+---@return EffectConfig
+function Effect:NewBtnAlphaEffect(status)
+    ---@type EffectConfig
+    local effect = {
+        type = "btnAlpha",
+        attr = {},
+        status = status
+    }
+    return effect
+end
+
 -- 创建图标顶点红色🔴
 ---@param status nil | boolean
 ---@return EffectConfig

@@ -199,6 +199,7 @@ L["Border Glow"] = true
 L["Btn Hide"] = true
 L["Btn Desaturate"] = true
 L["Btn Vertex Red Color"] = true
+L["Btn Alpha"] = true
 
 L["Open"] = true
 L["Close"] = true

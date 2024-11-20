@@ -200,6 +200,7 @@ L["Border Glow"] = "边框发光"
 L["Btn Hide"] = "按钮隐藏"
 L["Btn Desaturate"] = "按钮褪色"
 L["Btn Vertex Red Color"] = "顶点红色"
+L["Btn Alpha"] = "按钮半透明"
 
 L["Open"] = "开启"
 L["Close"] = "关闭"

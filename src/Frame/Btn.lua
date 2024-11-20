@@ -283,16 +283,17 @@ function Btn:UpdateEffects()
     end
     local btnDesaturate = effects["btnDesaturate"]
     local btnHide = effects["btnHide"]
+    local btnAlpha = effects["btnAlpha"]
     local btnVertexColor = effects["btnVertexColor"]
     local borderGlow = effects["borderGlow"]
-    -- 褪色和隐藏需要在一起处理，因为都是改变button的透明度
-    if btnDesaturate or btnHide then
+    -- 透明和隐藏需要在一起处理，因为都是改变button的透明度
+    if btnAlpha or btnHide then
         if btnHide and btnHide.status == true then
             -- ⚠️ 关于按钮隐藏的特殊说明：
             -- 如果设置了按钮隐藏，当在战斗外的时候ElementFrame🍃会监测到隐藏按钮并且会移除按钮，因此战斗外的按钮隐藏等于🟰移除按钮
             -- 当战斗中的时候，由于API限制，无法设置移除按钮，因此战斗中隐藏按钮的设置为“透明度为0”，这样同样实现了按钮隐藏，但是实际上按钮还是可以被点击的
             self.Button:SetAlpha(0)
-        elseif btnDesaturate and btnDesaturate.status == true then
+        elseif btnAlpha and btnAlpha.status == true then
             self.Button:SetAlpha(0.5)
         else
             self.Button:SetAlpha(1)
@@ -300,10 +301,15 @@ function Btn:UpdateEffects()
     else
         self.Button:SetAlpha(1)
     end
-    if btnVertexColor and btnVertexColor.status == true then
-        self.Icon:SetVertexColor(1, 0, 0, 1) -- 红色背景
+    if btnDesaturate and btnDesaturate.status == true then
+        self.Icon:SetDesaturated(true)
     else
-        self.Icon:SetVertexColor(1, 1, 1, 1) -- 清除效果
+        self.Icon:SetDesaturated(false)
+    end
+    if btnVertexColor and btnVertexColor.status == true then
+        self.Icon:SetVertexColor(1, 0, 0, 1)  -- 红色背景
+    else
+        self.Icon:SetVertexColor(1, 1, 1, 1)  -- 清除效果
     end
     if borderGlow and borderGlow.status == true then
         if Client:IsRetail() then

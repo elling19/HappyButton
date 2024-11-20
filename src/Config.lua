@@ -2279,6 +2279,57 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 end
                 effectSettingOrder = effectSettingOrder + 1
 
+                -- 设置图标透明
+                local btnAlpha = GetEffect("btnAlpha")
+                effectSettingArgs.btnAlphaStatus = {
+                    order = effectSettingOrder,
+                    width = GetWidth("btnAlpha"),
+                    type = 'toggle',
+                    name = L["Btn Alpha"],
+                    set = function(_, val)
+                        if btnAlpha == nil then
+                            btnAlpha = Effect:NewBtnAlphaEffect()
+                            if val == true then
+                                btnAlpha.status = true
+                            else
+                                btnAlpha.status = nil
+                            end
+                            table.insert(editCondGroup.effects, btnAlpha)
+                        else
+                            if val == true then
+                                btnAlpha.status = true
+                            else
+                                btnAlpha.status = nil
+                            end
+                        end
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
+                    end,
+                    get = function(_)
+                        if btnAlpha and btnAlpha.status ~= nil then
+                            return true
+                        end
+                        return false
+                    end
+                }
+                effectSettingOrder = effectSettingOrder + 1
+                if btnAlpha and btnAlpha.status ~= nil then
+                    effectSettingArgs.btnAlpha = {
+                        order = effectSettingOrder,
+                        width = 1,
+                        type = "select",
+                        name = "",
+                        values = const.OpenEffectOptions,
+                        set = function(_, val)
+                            btnAlpha.status = val
+                            HbFrame:ReloadEframeUI(updateFrameConfig)
+                        end,
+                        get = function()
+                            return btnAlpha.status
+                        end
+                    }
+                end
+                effectSettingOrder = effectSettingOrder + 1
+
 
                 local btnVertexColor = GetEffect("btnVertexColor")
                 effectSettingArgs.btnVertexColorStatus = {
