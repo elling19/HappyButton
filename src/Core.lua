@@ -26,6 +26,7 @@ end)
 function BarCore:Start()
     -- 注册相关事件以立即更新宏（如玩家登录或冷却更新）
     BarCore.Frame:RegisterEvent("ADDON_LOADED")             -- 插件加载
+    BarCore.Frame:RegisterEvent("CVAR_UPDATE")              -- 改变cvar的值
     BarCore.Frame:RegisterEvent("PLAYER_LOGIN")             -- 登录
     BarCore.Frame:RegisterEvent("SPELL_UPDATE_COOLDOWN")    -- 触发冷却
     BarCore.Frame:RegisterEvent("PLAYER_REGEN_DISABLED")    -- 进入战斗事件
@@ -36,9 +37,16 @@ function BarCore:Start()
     BarCore.Frame:RegisterEvent("PLAYER_TARGET_CHANGED")    -- 目标改变（脚本、触发器）
     BarCore.Frame:RegisterEvent("BAG_UPDATE")               -- 背包物品改变(物品、装备)
     -- BarCore.Frame:RegisterEvent("UNIT_AURA")
-    BarCore.Frame:SetScript("OnEvent", function(self, event, arg1)
+    BarCore.Frame:SetScript("OnEvent", function(self, event, ...)
+        local args = {...}
         if event == "PLAYER_LOGIN" then
             BarCore:Initial()
+        end
+        if event == "CVAR_UPDATE" then
+            local cvar_name = args[1]
+            if cvar_name == "ActionButtonUseKeyDown" then
+                HbFrame:UpdateRegisterForClicks()
+            end
         end
         if event == "SPELL_UPDATE_COOLDOWN" or
             event == "PLAYER_EQUIPMENT_CHANGED" or

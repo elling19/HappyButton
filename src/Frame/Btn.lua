@@ -56,11 +56,9 @@ function Btn:New(eFrame, cbInfo, cbIndex)
     obj.effects = {}
     Btn.CreateIcon(obj)
     Btn.CreateBorder(obj)
-
-    obj.Button:RegisterForClicks("AnyUp")
+    Btn.UpdateRegisterForClicks(obj)
     obj.Button:SetAttribute("type", "macro")
     obj.Button:SetAttribute("macrotext", "")
-
     if addon.G.ElvUI then
         obj.Button:SetHighlightTexture(addon.G.ElvUI.Media.Textures.White8x8)
         obj.Button:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.3)
@@ -135,6 +133,17 @@ function Btn:Update()
     end
     self:UpdateTexts()
     self:UpdateEffects()
+end
+
+-- 当修改Cvar的时候改变绑定事件
+function Btn:UpdateRegisterForClicks()
+    if (C_CVar.GetCVar("ActionButtonUseKeyDown") == "1") then
+        -- 鼠标点击执行
+        self.Button:RegisterForClicks("AnyDown")
+    else
+        -- 鼠标弹起执行
+        self.Button:RegisterForClicks("AnyUp")
+    end
 end
 
 -- 按键绑定

@@ -105,6 +105,24 @@ function HbFrame:UpdateAllEframes(event)
     end
 end
 
+-- 更新按键设置
+function HbFrame:UpdateRegisterForClicks()
+    if not self.EFrames then
+        return
+    end
+    for _, eFrame in pairs(self.EFrames) do
+        if eFrame and eFrame.Cbs then
+            for _, cb in ipairs(eFrame.Cbs) do
+                if cb.btns then
+                    for _, btn in ipairs(cb.btns) do
+                        btn:UpdateRegisterForClicks()
+                    end
+                end
+            end
+        end
+    end
+end
+
 -- 开启编辑模式
 function HbFrame:OpenEditMode()
     if not self.EFrames then
