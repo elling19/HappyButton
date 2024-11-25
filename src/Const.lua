@@ -265,6 +265,7 @@ const.DefaultItemColor = { 0.2, 0.2, 0.2, 1 }
 -- 触发器类型选项
 ---@type table<TriggerType, string>
 const.TriggerTypeOptions = {
+    ["self"] = L["Self Trigger"],
     ["aura"] = L["Aura Trigger"],
     ["item"] = L["Item Trigger"]
 }

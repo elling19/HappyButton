@@ -149,6 +149,11 @@ L["Select Trigger"] = true
 L["Select Target"] = true
 L["Select Trigger Type"] = true
 
+L["Self Trigger"] = true
+L["Count/Charge"] = true
+L["Is Learned"] = true
+L["Is Cooldown"] = true
+
 L["Aura Trigger"] = true
 L["Aura ID"] = true
 L["Aura Remaining Time"] = true
@@ -190,6 +195,7 @@ L["(Cond1 or Cond2) and Cond3"] = true
 L["count"] = "Count"
 L["isLearned"] = "Is Learned"
 L["isUsable"] = "Is Usable"
+L["isCooldown"] = "Is Cooldown"
 L["remainingTime"] = "Remaining Time"
 L["targetIsEnemy"] = "Target Is Enemy"
 L["exist"] = true

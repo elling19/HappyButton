@@ -23,6 +23,19 @@ local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 
 -- 创建自身触发器
 ---@return TriggerConfig
+function Trigger:NewSelfTriggerConfig()
+    ---@type TriggerConfig
+    local triggerConfig = {
+        id = U.String.GenerateID(),
+        type = "self",
+        confine = {}
+    }
+    return triggerConfig
+end
+
+
+-- 创建物品触发器
+---@return TriggerConfig
 function Trigger:NewItemTriggerConfig()
     ---@type TriggerConfig
     local triggerConfig = {
@@ -31,6 +44,12 @@ function Trigger:NewItemTriggerConfig()
         confine = {}
     }
     return triggerConfig
+end
+
+---@param config TriggerConfig
+---@return SelfTriggerConfig
+function Trigger:ToSelfTriggerConfig(config)
+    return config --- @type SelfTriggerConfig
 end
 
 
@@ -50,6 +69,9 @@ end
 ---@param triggerType  TriggerType
 ---@return string
 function Trigger:GetTriggerName(triggerType)
+    if triggerType == "self" then
+        return L["Self Trigger"]
+    end
     if triggerType == "aura" then
         return L["Aura Trigger"]
     end
@@ -65,6 +87,14 @@ end
 ---@param triggerType TriggerType
 ---@return table<string, type>
 function Trigger:GetConditions(triggerType)
+    if triggerType == "self" then
+        return {
+            count = "number",
+            isLearned = "boolean",
+            isUsable = "boolean",
+            isCooldown = "boolean"
+        } ---@type table<SelfTriggerCond, type>
+    end
     if triggerType == "aura" then
         return {
             remainingTime = "number",
@@ -76,7 +106,8 @@ function Trigger:GetConditions(triggerType)
         return {
             count = "number",
             isLearned = "boolean",
-            isUsable = "boolean"
+            isUsable = "boolean",
+            isCooldown = "boolean"
         } ---@type table<ItemTriggerCond, type>
     end
     return {}
@@ -151,6 +182,7 @@ function Trigger:GetItemTriggerCond(triggerConfig)
     end
     result.isLearned = Item:IsLearned(item.id, item.type)
     result.isUsable = Item:IsLearnedAndUsable(item.id, item.type)
+    result.isCooldown = Item:IsUseableAndCooldown(item.id, item.type)
     if item.type == const.ITEM_TYPE.ITEM then
         result.count = Api.GetItemCount(item.id, false)
     elseif item.type == const.ITEM_TYPE.SPELL then

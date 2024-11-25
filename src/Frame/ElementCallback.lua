@@ -36,6 +36,7 @@ local ECB = addon:NewModule("ElementCallback")
 ---@field borderColor RGBAColor | nil
 ---@field isLearned boolean | nil 是否学习或者拥有
 ---@field isUsable boolean | nil 是否可以使用
+---@field isCooldown boolean | nil 是否冷却中
 ---@field count number | nil 物品堆叠数量|技能充能次数
 ---@field item ItemAttr | nil
 ---@field macro string | nil
@@ -222,6 +223,12 @@ function ECB:UpdateSelfTrigger(cbResult)
     else
         cbResult.isUsable = false
     end
+    -- 更新物品冷却
+    if cbResult.item then
+        cbResult.isCooldown = Item:IsUseableAndCooldown(cbResult.item.id, cbResult.item.type)
+    else
+        cbResult.isCooldown = false
+    end
     -- 更新物品数量
     if cbResult.item then
         if cbResult.item.type == const.ITEM_TYPE.ITEM then
@@ -277,6 +284,17 @@ function ECB:UseTrigger(eleConfig, cbResult)
                 local condResult = false ---@type boolean
                 if cond.leftTriggerId and cond.leftVal and triggers[cond.leftTriggerId] then
                     local leftTrigger = triggers[cond.leftTriggerId] ---@type TriggerConfig
+                    if leftTrigger.type == "self" then
+                        local leftValue = cbResult[cond.leftVal]
+                        if type(cond.rightValue) == "number" or type(cond.rightValue) == "boolean" then
+                            -- 判断条件返回真/假
+                            ---@diagnostic disable-next-line: param-type-mismatch
+                            local r = Condition:ExecOperator(leftValue, cond.operator, cond.rightValue)
+                            if r:is_ok() then
+                                condResult = r:unwrap()
+                            end
+                        end
+                    end
                     if leftTrigger.type == "aura" then
                         local auraTriggerCond = Trigger:GetAuraTriggerCond(leftTrigger)
                         local leftValue = auraTriggerCond[cond.leftVal]

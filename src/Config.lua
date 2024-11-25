@@ -1692,6 +1692,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 }
                 triggerSettingOrder = triggerSettingOrder + 1
             end
+            if editTrigger and editTrigger.type == "self" then
+                local trigger = Trigger:ToSelfTriggerConfig(editTrigger)
+            end
             if editTrigger and editTrigger.type == "aura" then
                 local trigger = Trigger:ToAuraTriggerConfig(editTrigger)
                 triggerSettingArgs.selectAuraType = {
@@ -1760,30 +1763,51 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             end
             if editTrigger and editTrigger.type == "item" then
                 local trigger = Trigger:ToItemTriggerConfig(editTrigger)
-                local itemOptions = {}  ---@type string[]
-                local items = {} ---@type ItemAttr[]
-                if ele.type == const.ELEMENT_TYPE.ITEM then
-                    local item = E:ToItem(ele)
-                    table.insert(itemOptions, item.extraAttr.name)
-                    table.insert(items, item.extraAttr)
-                end
-                triggerSettingArgs.selectItem = {
+                triggerSettingArgs.itemTriggeritemType = {
                     order = triggerSettingOrder,
-                    width = 1,
-                    type = "select",
-                    name = L["Select Item"],
-                    values = itemOptions,
+                    type = 'select',
+                    name = L["Item Type"],
+                    values = const.ItemTypeOptions,
                     set = function(_, val)
-                        trigger.confine.item = items[val]
+                        if trigger.confine.item == nil then
+                            trigger.confine.item = {}
+                        end
+                        trigger.confine.item.type = val
                     end,
                     get = function()
-                        if trigger.confine.item == nil then
-                            return nil
+                        if trigger.confine and trigger.confine.item then
+                            return trigger.confine.item.type
                         end
-                        for v_index, v in ipairs(items) do
-                            if trigger.confine.item.id == v.id and trigger.confine.item.name == v.name then
-                                return v_index
+                        return nil
+                    end
+                }
+                triggerSettingOrder = triggerSettingOrder + 1
+                triggerSettingArgs.itemTriggeritemVal = {
+                    order = triggerSettingOrder,
+                    type = 'input',
+                    name = L["Item name or item id"],
+                    validate = function(_, val)
+                        local r = Config.VerifyItemAttr(trigger.confine.item.type, val)
+                        if r:is_err() then
+                            return r:unwrap_err()
+                        else
+                            addon.G.tmpNewItem = r:unwrap()
+                        end
+                        return true
+                    end,
+                    set = function(_, _)
+                        trigger.confine.item = U.Table.DeepCopyDict(addon.G.tmpNewItem)
+                        HbFrame:ReloadEframeUI(updateFrameConfig)
+                        addon.G.tmpNewItemVal = nil
+                        addon.G.tmpNewItem = {}
+                    end,
+                    get = function()
+                        if trigger.confine and trigger.confine.item and trigger.confine.item.name then
+                            local itemTriggerCconPath = 134400 ---@type string | number
+                            if trigger.confine.item.icon then
+                                itemTriggerCconPath = trigger.confine.item.icon
                             end
+                            return "|T" .. itemTriggerCconPath .. ":16|t" .. trigger.confine.item.name
                         end
                         return nil
                     end
@@ -2734,7 +2758,7 @@ function ConfigOptions.Options()
                         order = 4,
                         width = 2,
                         type = "description",
-                        name = L["Version"] .. ": " .. "Beta-0.1.5"
+                        name = L["Version"] .. ": " .. "Beta-0.1.6"
                     }
                 }
             },
@@ -2823,19 +2847,6 @@ function addon:compatibilizeConfig(element)
     if element.elements and #element.elements then
         for _, child in ipairs(element.elements) do
             addon:compatibilizeConfig(child)
-        end
-    end
-    if element.triggers then
-        for i = #element.triggers, 1, -1 do
-            local trigger = element.triggers[i]
-            if element.type == const.ELEMENT_TYPE.ITEM then
-                element = E:ToItem(element)
-                if trigger.type == "self" then
-                    trigger.type = "item"
-                    trigger = Trigger:ToItemTriggerConfig(trigger)
-                    trigger.confine.item = U.Table.DeepCopyDict(element.extraAttr)
-                end
-            end
         end
     end
 end

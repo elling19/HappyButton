@@ -7,6 +7,17 @@
 ---@field type TriggerType -- 触发器类型
 ---@field confine TriggerConfine  -- 触发器限制
 
+
+---------------------------------------------
+--- 自身触发器配置
+---------------------------------------------
+---@class SelfTriggerConfine: TriggerConfine
+---@class SelfTriggerConfig: TriggerConfig
+---@field id string
+---@field type TriggerType
+---@field confine SelfTriggerConfine
+
+
 ---------------------------------------------
 --- 光环触发器配置
 ---------------------------------------------

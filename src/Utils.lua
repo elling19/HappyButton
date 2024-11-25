@@ -13,6 +13,7 @@ local const = addon:GetModule('CONST')
 ---@field IsInArray fun(array: table, element: any): boolean
 ---@field GetArrayIndex fun(table: table, element: any): number
 ---@field DeepCopy fun(original: table): table
+---@field SafeGet fun(table: table, ...: string|number): any?
 local UtilsTable = {}
 
 ---@class UtilsPrint
@@ -112,6 +113,19 @@ function UtilsTable.DeepCopyList(original)
         end
     end
     return copy
+end
+
+-- 安全的get语法
+function UtilsTable.SafeGet(t, ...)
+    local v = t
+    for _, key in ipairs({...}) do
+        if v then
+            v = v[key]
+        else
+            return nil  -- 如果中间有任何一部分为 nil，直接返回 nil
+        end
+    end
+    return v
 end
 
 -- 修改全局打印方法，在打印信息前加上插件名称
