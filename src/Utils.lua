@@ -27,7 +27,7 @@ local UtilsTable = {}
 local UtilsPrint = {}
 
 ---@class UtilsString
----@field Utf8ToTable fun(str: string): table 将字符串转为字符列表
+---@field Utf8ToTable fun(str: string): string[] 将字符串转为字符列表
 ---@field ToVertical fun(text: string | nil): string 将字符串转为竖形结构
 ---@field GenerateID fun(): string 返回随机ID
 local UtilsString = {}
@@ -210,9 +210,9 @@ end
 
 -- 函数：将 UTF-8 字符串拆分为单个字符表
 ---@param str string
----@return table
+---@return string[]
 function UtilsString.Utf8ToTable(str)
-    local charTable = {}
+    local charTable = {} ---@type string[]
     local i = 1
     local length = #str
 

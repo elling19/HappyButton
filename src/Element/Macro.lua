@@ -12,6 +12,9 @@ local R = addon:GetModule("Result")
 ---@class Macro: AceModule
 local Macro = addon:NewModule("Macro")
 
+---@alias MC string  --- MC:MacroChar宏字符的简称，用来将宏字符串按UTF-8格式拆分成一个个字符
+---@alias MCList MC[]
+
 ---@class MacroCond
 ---@field targets string[] | nil
 ---@field conds string[] | nil
@@ -110,7 +113,9 @@ end
 
 ---@class MacroCommand
 ---@field cmd string           -- 宏命令类型
----@field conds string[]      -- 条件
+---@field conds string[] | nil     -- 条件
+---@field targets string[] | nil    -- 目标
+---@field mod string[] | nil         -- 组合按键
 ---@field items ItemAttr[]      -- 存储技能、物品或装备槽位的列表
 ---@field reset number | nil      -- reset 参数（可选）
 
@@ -120,6 +125,16 @@ local function pT(t)
         s = s .. _t
     end
     print(s)
+end
+
+---@param mcList MCList
+---@return string
+function Macro:MCListToString(mcList)
+    local s = ""
+    for _, _t in ipairs(mcList) do
+        s = s .. _t
+    end
+    return s
 end
 
 ---@param macro string
@@ -137,7 +152,7 @@ function Macro:Ast(macro)
             break
         end
     end
-    local macroString = {}
+    local macroString = {} ---@type MC[]
     for i = startIndex, #_macroString do
         table.insert(macroString, _macroString[i])
     end
@@ -211,17 +226,17 @@ end
 --- 生成conds：例如["@target", "@mouseover, dead"]
 --- 生成remaining：例如"reset=60 item:224464, item:211880; reset=60 item:5512, item:211880"、"疾跑"
 --------------------
----@param statement string[]
+---@param statement MC[]
 ---@return Result
 function Macro:AstParse(statement)
-    local cmd = {}  ---@type string[]
+    local cmd = {}  ---@type MC[]
     local cmdEnd = false
-    local conds = {} ---@type string[][]
+    local conds = {} ---@type MC[][]
     local condsEnd = false
-    local cond = {}---@type string[]
+    local cond = {}---@type MC[]
     local condStart = false
-    local remainings = {} ---@type string[][]
-    local remaining = {} ---@type string[]
+    local remainings = {} ---@type MC[][]
+    local remaining = {} ---@type MC[]
     local remainingStart = false
     if statement and #statement ~= 0 or statement[1] == "/" then
         for _, s in ipairs(statement) do
@@ -313,26 +328,6 @@ function Macro:AstParse(statement)
                 end
             end
         end
-        print("cmd: ")
-        local cmdString = ""
-        for _, c in ipairs(cmd) do
-            cmdString = cmdString .. c
-        end
-        print(cmdString)
-        print("conds: ")
-        for _, cond in ipairs(conds) do
-            local condString = ""
-            for _, d in ipairs(cond) do
-                condString = condString .. d
-            end
-            print(condString)
-        end
-        print("remaining:")
-        local remaingString = ""
-        for _, r in ipairs(remaining) do
-            remaingString = remaingString .. r
-        end
-        print(remaingString)
     end
     ---@type MacroParseResult
     local result = {
@@ -341,4 +336,36 @@ function Macro:AstParse(statement)
         remaining = remaining
     }
     return R:Ok(result)
+end
+
+--- 将宏语句中的条件分解成宏target、宏mod、宏cond
+---@param cond MCList
+---@return string | nil, string | nil, string | nil  -- 返回列表第一个表示宏target， 第二个表示宏组合按键mod，第三个表示宏cond
+function Macro:AstCondition(cond)
+    if cond == nil or #cond == 0 then
+        return nil, nil, nil
+    end
+    local c = Macro:MCListToString(cond)
+    -- 如果以target=开头，则将target=换成@
+    if string.sub(c, 1, 7) == "target=" then
+        c = "@" .. string.sub(c, 8)
+    end
+    if string.sub(c, 1, 1) == "@" then
+        return c, nil, nil
+    end
+    if string.sub(c, 1, 8) == "modifier" then
+        c = "mod" .. string.sub(c, 9)
+    end
+    if string.sub(c, 1, 4) == "mod:" then
+        return nil, c, nil
+    end
+    return nil, nil, c
+end
+
+-----------------------------
+--- 测试宏功能
+-----------------------------
+function Macro:Test()
+    local macro = "#showtooltip 疾跑\n/cast [nomod] 疾跑\n/use [mod:alt, target=player] 佯攻"
+    Macro:Ast(macro)
 end
