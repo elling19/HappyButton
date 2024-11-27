@@ -1,0 +1,2 @@
+---@alias spellName string
+---@alias spellID number

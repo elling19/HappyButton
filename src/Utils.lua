@@ -30,6 +30,8 @@ local UtilsPrint = {}
 ---@field Utf8ToTable fun(str: string): string[] 将字符串转为字符列表
 ---@field ToVertical fun(text: string | nil): string 将字符串转为竖形结构
 ---@field GenerateID fun(): string 返回随机ID
+---@field Trim fun(str: string): string
+---@field Split fun(str: string, delimiter: string): string[]
 local UtilsString = {}
 
 ---@class Utils: AceModule
@@ -252,9 +254,7 @@ function UtilsString.ToVertical(str)
 end
 
 
---[[
-生成时间戳+8位随机字符串来标识配置的唯一性
-]]
+-- 生成时间戳+8位随机字符串来标识配置的唯一性
 ---@return string
 function UtilsString.GenerateID()
     local chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
@@ -268,4 +268,25 @@ function UtilsString.GenerateID()
     local timestamp = time()
     -- 拼接随机字符串和时间戳
     return timestamp .. '_' .. table.concat(result)
+end
+
+
+-- 去除首尾空格
+---@param str string
+---@return string
+function UtilsString.Trim(str)
+    return string.match(str, "^%s*(.-)%s*$")
+end
+
+
+-- 按特殊字符拆分字符串
+---@param str string 需要拆分的字符串
+---@param delimiter string 分隔符
+---@return string[]
+function UtilsString.Split(str, delimiter)
+    local result = {}
+    for part in string.gmatch(str, "([^" .. delimiter .. "]+)") do
+        table.insert(result, part)
+    end
+    return result
 end

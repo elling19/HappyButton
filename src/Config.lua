@@ -713,214 +713,23 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
         -----------------------------------------
         if ele.type == const.ELEMENT_TYPE.MACRO then
             local macro = E:ToMacro(ele)
-            local macroSettingOrder = 1
-            local macroSettingArgs = {}
-            local macroSettingOptions = {
-                type = "group",
-                name = L["Macro Statement Settings"],
-                inline = true,
-                order = settingOrder,
-                args = macroSettingArgs
-            }
-            settingOrder = settingOrder + 1
-            args.macroSetting = macroSettingOptions
-            local statOptions = {}
-            if macro.extraAttr.stats and #macro.extraAttr.stats > 0 then
-                for statIndex, stat in ipairs(macro.extraAttr.stats) do
-                    table.insert(statOptions, statIndex .. ": "  .. Macro:BuildMacroString(stat))
-                end
-            end
-            if macro.extraAttr.stats and #macro.extraAttr.stats > 0 then
-                macroSettingArgs.selectStat = {
-                    order = macroSettingOrder,
-                    width = 1,
-                    type = "select",
-                    name = "",
-                    values = statOptions,
-                    set = function(_, val)
-                        addon.G.tmpMacroSelectIndex = val
-                    end,
-                    get = function() return addon.G.tmpMacroSelectIndex end
-                }
-                macroSettingOrder = macroSettingOrder + 1
-                macroSettingArgs.deleteStat = {
-                    order = macroSettingOrder,
-                    width = 0.5,
-                    type = "execute",
-                    name = L["Delete"],
-                    confirm = true,
-                    func = function()
-                        if addon.G.tmpMacroSelectIndex then
-                            table.remove(macro.extraAttr.stats, addon.G.tmpMacroSelectIndex)
-                            if addon.G.tmpMacroSelectIndex > #macro.extraAttr.stats then
-                                addon.G.tmpMacroSelectIndex = #macro.extraAttr.stats
-                            end
-                            HbFrame:UpdateEframe(updateFrameConfig)
-                            addon:UpdateOptions()
-                        end
-                    end
-                }
-                macroSettingOrder = macroSettingOrder + 1
-            end
-            macroSettingArgs.addStat = {
-                order = macroSettingOrder,
-                width = 0.5,
-                type = "execute",
-                name = L["New"],
-                func = function()
-                    local stat = Macro:NewStat()
-                    if macro.extraAttr.stats == nil then
-                        macro.extraAttr.stats = {}
-                    end
-                    table.insert(macro.extraAttr.stats, stat)
-                    addon.G.tmpMacroSelectIndex = #macro.extraAttr.stats
-                    HbFrame:UpdateEframe(updateFrameConfig)
+            elementSettingArgs.edit = {
+                order = elementSettingOrder,
+                type = 'input',
+                name = L["Script"],
+                multiline = 20,
+                width = "full",
+                validate = function(_, val)
+                    return true
+                end,
+                set = function(_, val)
+                    macro.extraAttr.macro = val
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
                     addon:UpdateOptions()
-                end
+                end,
+                get = function() return macro.extraAttr.macro end
             }
-            macroSettingOrder = macroSettingOrder + 1
-            if macro.extraAttr.stats and macro.extraAttr.stats[addon.G.tmpMacroSelectIndex] then
-                local condSettingOrder = 1
-                local condSettingArgs = {}
-                local condSettingOptions = {
-                    type = "group",
-                    name = L["Condition Settings"],
-                    inline = true,
-                    order = macroSettingOrder,
-                    args = condSettingArgs
-                }
-                macroSettingArgs.condSetting = condSettingOptions
-                macroSettingOrder = macroSettingOrder + 1
-                local statCondOptions = {}
-                local stat = macro.extraAttr.stats[addon.G.tmpMacroSelectIndex]
-                if stat.conds and #stat.conds > 0 then
-                    for _, cond in ipairs(stat.conds) do
-                        table.insert(statCondOptions, Macro:BuildMacroCondString(cond))
-                    end
-                end
-                if #statCondOptions > 0 then
-                    condSettingArgs.selectCond = {
-                        order = condSettingOrder,
-                        width = 1,
-                        type = "select",
-                        name = "",
-                        values = statCondOptions,
-                        set = function(_, val)
-                            addon.G.tmpMacroCondSelectIndex = val
-                        end,
-                        get = function() return addon.G.tmpMacroCondSelectIndex end
-                    }
-                    condSettingOrder = condSettingOrder + 1
-                    condSettingArgs.deleteCond = {
-                        order = condSettingOrder,
-                        width = 0.5,
-                        type = "execute",
-                        name = L["Delete"],
-                        confirm = true,
-                        func = function()
-                            if addon.G.tmpMacroCondSelectIndex then
-                                table.remove(stat.conds, addon.G.tmpMacroCondSelectIndex)
-                                if addon.G.tmpMacroCondSelectIndex > #stat.conds then
-                                    addon.G.tmpMacroCondSelectIndex = #stat.conds
-                                end
-                                HbFrame:UpdateEframe(updateFrameConfig)
-                                addon:UpdateOptions()
-                            end
-                        end
-                    }
-                    macroSettingOrder = condSettingOrder + 1
-                end
-                condSettingArgs.addCond = {
-                    order = condSettingOrder,
-                    width = 0.5,
-                    type = "execute",
-                    name = L["New"],
-                    func = function()
-                        local cond = Macro:NewCond()
-                        if stat.conds == nil then
-                            stat.conds = {}
-                        end
-                        table.insert(stat.conds, cond)
-                        addon.G.tmpMacroCondSelectIndex = #stat.conds
-                        HbFrame:UpdateEframe(updateFrameConfig)
-                        addon:UpdateOptions()
-                    end
-                }
-                condSettingOrder = condSettingOrder + 1
-                local statCond
-                if stat.conds and stat.conds[addon.G.tmpMacroCondSelectIndex] then
-                    statCond = stat.conds[addon.G.tmpMacroCondSelectIndex]
-                end
-                if statCond then
-                    condSettingArgs.targetToggle = {
-                        order = condSettingOrder,
-                        type = "toggle",
-                        name = L["Temporary Targeting"],
-                        width = 1,
-                        set = function(_, val)
-                            if val == true then
-                                if statCond.targets == nil then
-                                    statCond.targets = {}
-                                end
-                            else
-                                statCond.targets = nil
-                            end
-                            HbFrame:ReloadEframeUI(updateFrameConfig)
-                        end,
-                        get = function(_)
-                            if statCond.targets == nil then
-                                return false
-                            else
-                                return true
-                            end
-                        end
-                    }
-                    condSettingOrder = condSettingOrder + 1
-                    if statCond.targets ~= nil then
-                        condSettingArgs.selectTarget = {
-                            order = condSettingOrder,
-                            width = 1,
-                            type = "select",
-                            name = "",
-                            values = const.MacroTargetOptions,
-                            set = function(_, val)
-                                statCond.targets = {val, }
-                            end,
-                            get = function()
-                                if statCond.targets == nil then
-                                    return nil
-                                end
-                                return statCond.targets[1]
-                            end
-                        }
-                        condSettingOrder = condSettingOrder + 1
-                    end
-                    condSettingArgs.condToggle = {
-                        order = condSettingOrder,
-                        type = "toggle",
-                        name = L["Boolean Conditions"],
-                        width = 1,
-                        set = function(_, val)
-                            if val == true then
-                                if statCond.conds == nil then
-                                    statCond.conds = {}
-                                end
-                            else
-                                statCond.conds = nil
-                            end
-                            HbFrame:ReloadEframeUI(updateFrameConfig)
-                        end,
-                        get = function(_)
-                            if statCond.conds == nil then
-                                return false
-                            else
-                                return true
-                            end
-                        end
-                    }
-                    condSettingOrder = condSettingOrder + 1
-                end
-            end
+            elementSettingOrder = elementSettingOrder + 1
         end
         if isRoot then
             local positionSettingOrder = 1

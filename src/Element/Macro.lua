@@ -9,15 +9,15 @@ local U = addon:GetModule('Utils')
 ---@class Result: AceModule
 local R = addon:GetModule("Result")
 
+---@class CONST: AceModule
+local const = addon:GetModule('CONST')
+
 ---@class Macro: AceModule
 local Macro = addon:NewModule("Macro")
 
 ---@alias MC string  --- MC:MacroChar宏字符的简称，用来将宏字符串按UTF-8格式拆分成一个个字符
 ---@alias MCList MC[]
 
----@class MacroCond
----@field targets string[] | nil
----@field conds string[] | nil
 
 ---@class MacroParam
 ---@field reset string | nil  -- 队列宏使用
@@ -25,99 +25,32 @@ local Macro = addon:NewModule("Macro")
 ---@field script string | nil -- 非cast/use/castsqueue/equit宏使用，例如/click、/say
 ---@field items ItemAttr[] | nil
 
----@class MacroStat
----@field commmand string
----@field conds nil | MacroCond[]
----@field params MacroParam
 
---- 根据语句生成条件
----@param cond MacroCond
----@return string
-function Macro:BuildMacroCondString(cond)
-    local condString = "["
-    if cond.targets and #cond.targets > 0 then
-        condString = condString .. "@" .. cond.targets[1]
-    end
-    if cond.conds and #cond.conds > 0 then
-        if cond.targets and #cond.targets > 0 then
-            condString = condString .. ","
-        end
-        for _, condCond in ipairs(cond.conds) do
-            condString = condString .. condCond .. ","
-        end
-    end
-    condString = condString .. "]"
-    return condString
-end
+---@class TargetCond
+---@field type MacroTargetCondType
 
---- 根据语句生成宏语句
----@param stat MacroStat
----@return string
-function Macro:BuildMacroString(stat)
-    local statDesc = ""
-    statDesc = statDesc .. "/" .. stat.commmand .. " "
-    if stat.conds ~= nil and #stat.conds > 0 then
-        for _, cond in ipairs(stat.conds) do
-            local condDesc = Macro:BuildMacroCondString(cond)
-            statDesc = statDesc .. condDesc
-        end
-        statDesc = statDesc .. " "
-    end
-    if stat.params.reset then
-        statDesc = statDesc .. "reset=" + stat.params.reset .. " "
-    end
-    if stat.params.script then
-        statDesc = statDesc .. stat.params.reset .. " "
-    end
-    if stat.params.slot then
-        statDesc = statDesc .. stat.params.slot .. " "
-    end
-    if stat.params.items then
-        local itemDesc = ""
-        for _, item in ipairs(stat.params.items) do
-            itemDesc = itemDesc .. item.name .. ","
-        end
-        itemDesc = string.sub(itemDesc, 1, -2)  -- 移除最后一个字符
-        statDesc = statDesc .. itemDesc
-    end
-    return statDesc
-end
+---@class BooleanCond
+---@field type MacroBooleanCondType
+---@field isTarget boolean -- 是否是目标条件还是玩家条件
+---@field params nil | boolean | number[] | string[] | string | number
 
----@return MacroStat
-function Macro:NewStat()
-    ---@type MacroStat
-    local stat = {
-        commmand = "cast",
-        conds = nil,
-        params = {
-        }
-    }
-    return stat
-end
 
----return MacroCond
-function Macro:NewCond()
-    ---@type MacroCond
-    local cond = {
-        targets = nil,
-        conds = nil
-    }
-    return cond
-end
+---@class MacroCond
+---@field targetConds TargetCond[] | nil
+---@field booleanConds BooleanCond[] | nil
+
+
+---@class MacroCommand
+---@field cmd string           -- 宏命令类型
+---@field conds MacroCond[] | nil     -- 条件
+---@field param MacroParam  -- 宏参数
+
 
 ---@class MacroParseResult
 ---@field cmd string[]
 ---@field conds string[][]
 ---@field remaining string[]
 
-
----@class MacroCommand
----@field cmd string           -- 宏命令类型
----@field conds string[] | nil     -- 条件
----@field targets string[] | nil    -- 目标
----@field mod string[] | nil         -- 组合按键
----@field items ItemAttr[]      -- 存储技能、物品或装备槽位的列表
----@field reset number | nil      -- reset 参数（可选）
 
 local function pT(t)
     local s = ""
@@ -217,6 +150,18 @@ function Macro:Ast(macro)
             return r
         end
         local p = r:unwrap() ---@type MacroParseResult
+        local cmd = Macro:MCListToString(p.cmd)
+        cmd = Macro:AstCmd(cmd)
+        local conds = {} ---@type MacroCond[]
+        for _, cond in ipairs(p.conds) do
+            local c = Macro:MCListToString(cond)
+            table.insert(conds, Macro:AstCondition(c))
+        end
+        ---@type MacroCommand
+        local macroCommand = {
+            cmd = cmd,
+            conds = conds,
+        }
     end
 end
 
@@ -338,33 +283,334 @@ function Macro:AstParse(statement)
     return R:Ok(result)
 end
 
---- 将宏语句中的条件分解成宏target、宏mod、宏cond
----@param cond MCList
----@return string | nil, string | nil, string | nil  -- 返回列表第一个表示宏target， 第二个表示宏组合按键mod，第三个表示宏cond
-function Macro:AstCondition(cond)
-    if cond == nil or #cond == 0 then
-        return nil, nil, nil
+--- 将宏语句中的条件分解成宏target、宏mod、宏booleanCond
+---@param condString string
+---@return MacroCond
+function Macro:AstCondition(condString)
+    local macroCond = {booleanConds = {}, targetConds = {}} ---@type MacroCond
+    if condString == nil or #condString == 0 then
+        return macroCond
     end
-    local c = Macro:MCListToString(cond)
-    -- 如果以target=开头，则将target=换成@
-    if string.sub(c, 1, 7) == "target=" then
-        c = "@" .. string.sub(c, 8)
+    local conds = U.String.Split(condString, ",")
+    for _, cond in ipairs(conds) do
+        if string.sub(cond, 1, 7) == "target=" then
+            local c = string.sub(cond, 8)
+            c = U.String.Trim(c)
+            local targetCond = { type=c }  ---@type TargetCond
+            table.insert(macroCond.targetConds, targetCond)
+        elseif string.sub(cond, 1, 1) == "@" then
+            local c = string.sub(cond, 1)
+            c = U.String.Trim(c)
+            local targetCond = { type=c }  ---@type TargetCond
+            table.insert(macroCond.targetConds, targetCond)
+        else
+            table.insert(macroCond.booleanConds, Macro:AstStringToBooleanCond(cond))
+        end
     end
-    if string.sub(c, 1, 1) == "@" then
-        return c, nil, nil
-    end
-    if string.sub(c, 1, 8) == "modifier" then
-        c = "mod" .. string.sub(c, 9)
-    end
-    if string.sub(c, 1, 4) == "mod:" then
-        return nil, c, nil
-    end
-    return nil, nil, c
+    return macroCond
 end
 
------------------------------
---- 测试宏功能
------------------------------
+
+-- 将宏条件字符串转为BooleanCond格式
+---@param str string
+---@return BooleanCond
+function Macro:AstStringToBooleanCond(str)
+    str = U.String.Trim(str)
+    local boolCond = {type="unkonw", isTarget=false, params=str} ---@type BooleanCond
+    -- 目标是否存在：exists、noexists
+    if str == "exists" then
+        boolCond.type = "exists"
+        boolCond.isTarget = true
+        boolCond.params = true
+        return boolCond
+    end
+    if str == "noexists" then
+        boolCond.type = "exists"
+        boolCond.isTarget = true
+        boolCond.params = false
+        return boolCond
+    end
+    -- 目标是否友善：help、harm
+    if str == "help" then
+        boolCond.type = "help"
+        boolCond.isTarget = true
+        boolCond.params = true
+        return boolCond
+    end
+    if str == "harm" then
+        boolCond.type = "help"
+        boolCond.isTarget = true
+        boolCond.params = false
+        return boolCond
+    end
+    -- 目标是否死亡：dead、nodead
+    if str == "dead" then
+        boolCond.type = "dead"
+        boolCond.isTarget = true
+        boolCond.params = true
+        return boolCond
+    end
+    if str == "nodead" then
+        boolCond.type = "dead"
+        boolCond.isTarget = true
+        boolCond.params = false
+        return boolCond
+    end
+    -- 目标是否在队伍中
+    if str == "party" then
+        boolCond.type = "party"
+        boolCond.isTarget = true
+        boolCond.params = true
+        return boolCond
+    end
+    -- 目标是否在团队中
+    if str == "raid" then
+        boolCond.type = "raid"
+        boolCond.isTarget = true
+        boolCond.params = true
+        return boolCond
+    end
+    -- 目标是否在载具中
+    if str == "unithasvehicleui" then
+        boolCond.type = "unithasvehicleui"
+        boolCond.isTarget = true
+        boolCond.params = true
+        return boolCond
+    end
+    -- 玩家是否处在御龙术区域
+    if str == "advflyable" then
+        boolCond.type = "advflyable"
+        boolCond.params = true
+        return boolCond
+    end
+    -- 玩家是否可以退出载具
+    if str == "canexitvehicle" then
+        boolCond.type = "canexitvehicle"
+        boolCond.params = true
+        return boolCond
+    end
+    -- 玩家是否在引导法术，是否在引导法术：法术名称
+    if str == "channeling" then
+        boolCond.type = "channeling"
+        boolCond.params = true
+        return boolCond
+    end
+    if string.sub(str, 1, 11) == "channeling:" then
+        str = string.sub(str, 12)
+        str = U.String.Trim(str)
+        boolCond.type = "channeling"
+        boolCond.params = str
+        return boolCond
+    end
+    -- 玩家是否在战斗中：combat、outcombat
+    if str == "combat" then
+        boolCond.type = "combat"
+        boolCond.params = true
+        return boolCond
+    end
+    if str == "outcombat" then
+        boolCond.type = "combat"
+        boolCond.params = false
+        return boolCond
+    end
+    -- 玩家是否装备了某个槽位装备
+    if string.sub(str, 1, 9) == "equipped:" then
+        str = string.sub(str, 10)
+        str = U.String.Trim(str)
+        boolCond.type = "equipped"
+        boolCond.params = str
+        return boolCond
+    end
+    -- 玩家是否装备了某个装备（不要求指定槽位）
+    if string.sub(str, 1, 5) == "worn:" then
+        str = string.sub(str, 6)
+        str = U.String.Trim(str)
+        boolCond.type = "worn"
+        boolCond.params = str
+        return boolCond
+    end
+    -- 玩家是否可以飞行
+    if str == "flyable" then
+        boolCond.type = "flyable"
+        boolCond.params = true
+        return boolCond
+    end
+    -- 玩家是否在飞行
+    if str == "flying" then
+        boolCond.type = "flying"
+        boolCond.params = true
+        return boolCond
+    end
+    -- 玩家处在何种形态（德鲁伊）
+    if string.sub(str, 1, 5) == "form:" then
+        str = string.sub(str, 6)
+        str = U.String.Trim(str)
+        local forms = U.String.Split(str, "/")
+        boolCond.type = "form"
+        boolCond.params = forms
+        return boolCond
+    end
+    -- 玩家处在何种姿态（盗贼、战士）
+    if string.sub(str, 1, 7) == "stance:" then
+        str = string.sub(str, 8)
+        str = U.String.Trim(str)
+        local stances = U.String.Split(str, "/")
+        boolCond.type = "stance"
+        boolCond.params = stances
+        return boolCond
+    end
+    -- 玩家是否处在队伍中：group、group:party、group:raid
+    if string == "group" then
+        boolCond.type = "group"
+        boolCond.params = true
+        return boolCond
+    end
+    if string == "group:party" then
+        boolCond.type = "group"
+        boolCond.params = "party"
+        return boolCond
+    end
+    if string == "group:raid" then
+        boolCond.type = "group"
+        boolCond.params = "raid"
+        return boolCond
+    end
+    -- 玩家是否在屋内：indoors、outdoors
+    if str == "indoors" then
+        boolCond.type = "indoors"
+        boolCond.params = true
+        return boolCond
+    end
+    if str == "outdoors" then
+        boolCond.type = "indoors"
+        boolCond.params = false
+        return boolCond
+    end
+    -- 玩家是否学习了某个技能
+    if string.sub(str, 1, 6) == "known:" then
+        str = string.sub(str, 7)
+        str = U.String.Trim(str)
+        boolCond.type = "known"
+        boolCond.params = str
+        return boolCond
+    end
+    -- 玩家是否在坐骑上
+    if str == "mounted" then
+        boolCond.type = "mounted"
+        boolCond.params = true
+        return boolCond
+    end
+    -- 玩家是否召唤了名称为pet的宠物（猎人、术士）
+    -- 玩家是否召唤了类型为petFamily的宠物？
+    if string.sub(str, 1, 4) == "pet:" then
+        if string.sub(str, 1, 11) == "pet:family=" then
+            str = string.sub(str, 12)
+            str = U.String.Trim(str)
+            boolCond.type = "petFamily"
+            boolCond.params = str
+        else
+            str = string.sub(str, 5)
+            str = U.String.Trim(str)
+            boolCond.type = "pet"
+            boolCond.params = str
+        end
+        return boolCond
+    end
+    -- 玩家是否在宠物战斗中
+    if str == "petbattle" then
+        boolCond.type = "petbattle"
+        boolCond.params = true
+        return boolCond
+    end
+    -- 玩家是否开启了pvp
+    if str == "pvpcombat" then
+        boolCond.type = "pvpcombat"
+        boolCond.params = true
+        return boolCond
+    end
+    -- 玩家是否存在休息区域
+    if str == "resting" then
+        boolCond.type = "resting"
+        boolCond.params = true
+        return boolCond
+    end
+    -- 玩家处在何种专精
+    if string.sub(str, 1, 5) == "spec:" then
+        str = string.sub(str, 6)
+        str = U.String.Trim(str)
+        local specs = U.String.Split(str, "/")
+        boolCond.type = "spec"
+        boolCond.params = specs
+        return boolCond
+    end
+    -- 玩家是否处在潜行状态
+    if str == "stealth" then
+        boolCond.type = "stealth"
+        boolCond.params = true
+        return boolCond
+    end
+    -- 玩家是否处在游泳状态
+    if str == "swimming" then
+        boolCond.type = "swimming"
+        boolCond.params = true
+        return boolCond
+    end
+    -- 当mod处在何种情况下激活
+    if string == "nomod" or string == "nomodifier" then
+        boolCond.type = "mod"
+        boolCond.params = "nomod"
+        return boolCond
+    end
+    if string.sub(str, 1, 9) == "modifier:" then
+        str = string.sub(str, 10)
+        str = U.String.Trim(str)
+        boolCond.type = "mod"
+        boolCond.params = str
+        return boolCond
+    end
+    if string.sub(str, 1, 4) == "mod:" then
+        str = string.sub(str, 5)
+        str = U.String.Trim(str)
+        boolCond.type = "mod"
+        boolCond.params = str
+        return boolCond
+    end
+    return boolCond
+end
+
+-- 处理宏命名
+---@param str string 宏命令
+---@return string 返回处理后的宏命名
+function Macro:AstCmd(str)
+    if string.sub(str, 1, 1) == "/" then
+        str = string.sub(str, 2)
+    end
+    -- 将cast替换成use
+    if str == "cast" then
+        str = "use"
+    end
+    return str
+end
+
+-- 处理宏参数
+---@param cmd string 宏命令
+---@param str string 宏参数
+function Macro:AstParam(cmd, str)
+    str = U.String.Trim(str)
+    local param = {} ---@type MacroParam
+    if cmd == "use" then
+        if param.items == nil then
+            param.items = {}
+        end
+        if string.sub(str, 1, 5) == "item:" then
+            local itemID = string.sub(str, 6)
+            local itemType = const.ITEM_TYPE.ITEM
+        else
+        end
+    end
+end
+
+-- 测试宏功能
 function Macro:Test()
     local macro = "#showtooltip 疾跑\n/cast [nomod] 疾跑\n/use [mod:alt, target=player] 佯攻"
     Macro:Ast(macro)

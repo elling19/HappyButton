@@ -12,7 +12,7 @@
 ---@field script string | nil  -- 原始脚本文件
 
 ---@class MacroAttr
----@field stats MacroStat[] | nil -- 宏语句列表
+---@field macro string | nil -- 宏脚本
 
 
 ---@class ElementConfig
