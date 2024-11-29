@@ -251,7 +251,7 @@ function ElementFrame:OutCombatUpdate(event)
                 for i = #cbResults, 1, -1 do
                     local r = cbResults[i]
                     ECB:UpdateSelfTrigger(r)
-                    r.effects = ECB:UseTrigger(cb.p, r)
+                    ECB:UseTrigger(cb.p, r)
                     -- 战斗外更新，如果发现隐藏按钮则是移除按钮
                     local hideBtn = false
                     if r.effects then

@@ -57,6 +57,7 @@ function Btn:New(eFrame, cbInfo, cbIndex)
     Btn.CreateIcon(obj)
     Btn.CreateBorder(obj)
     Btn.UpdateRegisterForClicks(obj)
+    Btn.SetMouseEvent(obj)
     obj.Button:SetAttribute("type", "macro")
     obj.Button:SetAttribute("macrotext", "")
     if addon.G.ElvUI then
@@ -109,7 +110,7 @@ function Btn:UpdateBySelf(event)
         return
     end
     ECB:UpdateSelfTrigger(self.CbResult)
-    self.CbResult.effects = ECB:UseTrigger(self.CbInfo.p, self.CbResult)
+    ECB:UseTrigger(self.CbInfo.p, self.CbResult)
     self:Update()
 end
 
@@ -123,7 +124,6 @@ function Btn:Update()
     if self.CbResult.item ~= nil then
         self:SetIcon()
         self:SetCooldown()
-        self:SetMouseEvent()
         -- ⚠️ 非战斗状态才能更新macro
         if not InCombatLockdown() then
             self:SetMacro()
@@ -437,31 +437,29 @@ function Btn:SetCooldown()
     if self.Cooldown == nil then
         self:CreateCoolDown()
     end
-    self.Button:SetScript("OnUpdate", function(_)
-        -- 更新冷却倒计时
-        if item.type == const.ITEM_TYPE.ITEM then
-            local startTimeSeconds, durationSeconds, enableCooldownTimer = Api.GetItemCooldown(item.id)
-            CooldownFrame_Set(self.Cooldown, startTimeSeconds, durationSeconds, enableCooldownTimer)
-        elseif item.type == const.ITEM_TYPE.EQUIPMENT then
-            local startTimeSeconds, durationSeconds, enableCooldownTimer = Api.GetItemCooldown(item.id)
-            CooldownFrame_Set(self.Cooldown, startTimeSeconds, durationSeconds, enableCooldownTimer)
-        elseif item.type == const.ITEM_TYPE.TOY then
-            local startTimeSeconds, durationSeconds, enableCooldownTimer = Api.GetItemCooldown(item.id)
-            CooldownFrame_Set(self.Cooldown, startTimeSeconds, durationSeconds, enableCooldownTimer)
-        elseif item.type == const.ITEM_TYPE.SPELL then
-            local spellCooldownInfo = Api.GetSpellCooldown(item.id)
-            if spellCooldownInfo then
-                CooldownFrame_Set(self.Cooldown, spellCooldownInfo.startTime, spellCooldownInfo.duration,
-                    spellCooldownInfo.isEnabled)
-            end
-        elseif item.type == const.ITEM_TYPE.PET then
-            local speciesId, petGUID = C_PetJournal.FindPetIDByName(item.name)
-            if petGUID then
-                local start, duration, isEnabled = C_PetJournal.GetPetCooldownByGUID(petGUID)
-                CooldownFrame_Set(self.Cooldown, start, duration, isEnabled)
-            end
+    -- 更新冷却倒计时
+    if item.type == const.ITEM_TYPE.ITEM then
+        local startTimeSeconds, durationSeconds, enableCooldownTimer = Api.GetItemCooldown(item.id)
+        CooldownFrame_Set(self.Cooldown, startTimeSeconds, durationSeconds, enableCooldownTimer)
+    elseif item.type == const.ITEM_TYPE.EQUIPMENT then
+        local startTimeSeconds, durationSeconds, enableCooldownTimer = Api.GetItemCooldown(item.id)
+        CooldownFrame_Set(self.Cooldown, startTimeSeconds, durationSeconds, enableCooldownTimer)
+    elseif item.type == const.ITEM_TYPE.TOY then
+        local startTimeSeconds, durationSeconds, enableCooldownTimer = Api.GetItemCooldown(item.id)
+        CooldownFrame_Set(self.Cooldown, startTimeSeconds, durationSeconds, enableCooldownTimer)
+    elseif item.type == const.ITEM_TYPE.SPELL then
+        local spellCooldownInfo = Api.GetSpellCooldown(item.id)
+        if spellCooldownInfo then
+            CooldownFrame_Set(self.Cooldown, spellCooldownInfo.startTime, spellCooldownInfo.duration,
+                spellCooldownInfo.isEnabled)
         end
-    end)
+    elseif item.type == const.ITEM_TYPE.PET then
+        local speciesId, petGUID = C_PetJournal.FindPetIDByName(item.name)
+        if petGUID then
+            local start, duration, isEnabled = C_PetJournal.GetPetCooldownByGUID(petGUID)
+            CooldownFrame_Set(self.Cooldown, start, duration, isEnabled)
+        end
+    end
 end
 
 -- 设置脚本模式的点击事件

@@ -22,6 +22,11 @@ C_Timer.NewTicker(0.5, function()
     HbFrame:UpdateAllEframes("UNIT_AURA")
 end)
 
+-- 每 30 秒触发一次垃圾回收
+C_Timer.NewTicker(30, function ()
+    collectgarbage("collect")
+end)
+
 -- 注册事件
 function BarCore:Start()
     -- 注册相关事件以立即更新宏（如玩家登录或冷却更新）

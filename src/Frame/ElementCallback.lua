@@ -263,7 +263,6 @@ end
 -- 对cbResult进行触发器处理
 ---@param eleConfig ElementConfig
 ---@param cbResult CbResult
----@return EffectConfig[]
 function ECB:UseTrigger(eleConfig, cbResult)
     local effects = {} ---@type EffectConfig[]
     if not eleConfig.triggers or #eleConfig.triggers == 0 then
@@ -339,5 +338,5 @@ function ECB:UseTrigger(eleConfig, cbResult)
             end
         end
     end
-    return effects
+    cbResult.effects = effects
 end
