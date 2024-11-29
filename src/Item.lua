@@ -4,6 +4,10 @@ local addonName, _ = ...
 ---@class HappyButton: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
+local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
+
+---@class Result: AceModule
+local R = addon:GetModule("Result")
 
 ---@class CONST: AceModule
 local const = addon:GetModule('CONST')
@@ -162,4 +166,107 @@ function Item:IsEquipped(itemId)
         end
     end
     return isEquipped
+end
+
+-- 通过类型ID和类型Identifier获取ItemAttr
+---@param identifier string | number
+---@param itemType number | nil
+---@return Result
+function Item:GetFromVal(identifier, itemType)
+    local item = {} ---@type ItemAttr
+    item.type = itemType
+    -- 说明：print(type(C_ToyBox.GetToyInfo(item.id))) 返回的是number，和文档定义的不一致，无法通过API获取玩具信息，因此只能使用物品的API来获取
+    if itemType == const.ITEM_TYPE.ITEM or itemType == const.ITEM_TYPE.TOY or itemType == const.ITEM_TYPE.EQUIPMENT then
+        local itemID, itemType, itemSubType, itemEquipLoc, icon, classID, subClassID = Api.GetItemInfoInstant(identifier)
+        if itemID then
+            item.id = itemID
+            item.icon = icon
+            item.name = C_Item.GetItemNameByID(item.id)
+        else
+            return R:Err(L["Unable to get the id, please check the input."])
+        end
+    elseif itemType == const.ITEM_TYPE.SPELL then
+        if Client:IsRetail() then
+            local spellID = C_Spell.GetSpellIDForSpellIdentifier(identifier)
+            if spellID then
+                item.id = spellID
+            else
+                return R:Err(L["Unable to get the id, please check the input."])
+            end
+            local spellName = C_Spell.GetSpellName(item.id)
+            if spellName then
+                item.name = spellName
+            else
+                return R:Err("Can not get the name, please check your input.")
+            end
+            local iconID, originalIconID = C_Spell.GetSpellTexture(item.id)
+            if iconID then
+                item.icon = iconID
+            else
+                return R:Err(L["Unable to get the icon, please check the input."])
+            end
+        else
+            local spellInfo = Api.GetSpellInfo(identifier)
+            if spellInfo then
+                item.id = spellInfo.spellID
+                item.name = spellInfo.name
+                item.icon = spellInfo.iconID
+            else
+                return R:Err(L["Unable to get the id, please check the input."])
+            end
+        end
+    elseif item.type == const.ITEM_TYPE.MOUNT then
+        item.id = tonumber(identifier)
+        if item.id == nil then
+            for mountDisplayIndex = 1, C_MountJournal.GetNumDisplayedMounts() do
+                local name, spellID, icon, isActive, isUsable, sourceType,
+                isFavorite, isFactionSpecific, faction, shouldHideOnChar,
+                isCollected, mountID, isSteadyFlight =
+                    C_MountJournal.GetDisplayedMountInfo(mountDisplayIndex)
+                if name == identifier then
+                    item.id = mountID
+                    item.name = name
+                    item.icon = icon
+                    break
+                end
+            end
+        end
+        if item.id == nil then
+            return R:Err(L["Unable to get the id, please check the input."])
+        end
+        if item.icon == nil then
+            local name, spellID, icon, active, isUsable, sourceType, isFavorite,
+            isFactionSpecific, faction, shouldHideOnChar, isCollected,
+            mountID = C_MountJournal.GetMountInfoByID(item.id)
+            if name then
+                item.id = mountID
+                item.name = name
+                item.icon = icon
+            else
+                return R:Err("Can not get the name, please check your input.")
+            end
+        end
+    elseif item.type == const.ITEM_TYPE.PET then
+        item.id = tonumber(identifier)
+        if item.id == nil then
+            local speciesId, petGUID = C_PetJournal.FindPetIDByName(tostring(identifier))
+            if speciesId then item.id = speciesId end
+        end
+        if item.id == nil then
+            return R:Err(L["Unable to get the id, please check the input."])
+        end
+        local speciesName, speciesIcon, petType, companionID, tooltipSource,
+        tooltipDescription, isWild, canBattle, isTradeable, isUnique,
+        obtainable, creatureDisplayID =
+            C_PetJournal.GetPetInfoBySpeciesID(item.id)
+        if speciesName then
+            item.name = speciesName
+            item.icon = speciesIcon
+        else
+            return R:Err(L["Unable to get the name, please check the input."])
+        end
+    else
+        return R:Err("Wrong type, please check your input.")
+    end
+    return R:Ok(item)
 end

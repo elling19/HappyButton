@@ -3,14 +3,22 @@ local addonName, _ = ...
 ---@class HappyButton: AceAddon
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
+local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
+
 ---@class Utils: AceModule
 local U = addon:GetModule('Utils')
 
 ---@class Result: AceModule
 local R = addon:GetModule("Result")
 
+---@class Item: AceModule
+local Item = addon:GetModule("Item")
+
 ---@class CONST: AceModule
 local const = addon:GetModule('CONST')
+
+---@class Api: AceModule
+local Api = addon:GetModule("Api")
 
 ---@class Macro: AceModule
 local Macro = addon:NewModule("Macro")
@@ -603,8 +611,11 @@ function Macro:AstParam(cmd, str)
             param.items = {}
         end
         if string.sub(str, 1, 5) == "item:" then
-            local itemID = string.sub(str, 6)
-            local itemType = const.ITEM_TYPE.ITEM
+            local itemResult = Item:GetFromVal(string.sub(str, 6), const.ITEM_TYPE.ITEM)
+            if itemResult:is_err() then
+                return itemResult
+            end
+            table.insert(param.items, itemResult:unwrap())
         else
         end
     end

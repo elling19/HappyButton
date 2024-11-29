@@ -241,3 +241,6 @@ L["Bindkey"] = true
 L["Bind For Account"] = true
 L["Bind For Current Character"] = true
 L["Bind For Current Class"] = true
+
+-- 宏错误提示
+L["Macro Error"] = true

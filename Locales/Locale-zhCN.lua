@@ -242,3 +242,6 @@ L["Bindkey"] = "绑定按键"
 L["Bind For Account"] = "为所有角色绑定"
 L["Bind For Current Character"] = "为当前角色绑定"
 L["Bind For Current Class"] = "为当前职业绑定"
+
+-- 宏错误提示
+L["Macro Error"] = "宏错误"
