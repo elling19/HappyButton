@@ -49,9 +49,13 @@ local Macro = addon:NewModule("Macro")
 
 
 ---@class MacroCommand
----@field cmd string           -- 宏命令类型
+---@field cmd MacroCmd           -- 宏命令类型
 ---@field conds MacroCond[] | nil     -- 条件
 ---@field param MacroParam  -- 宏参数
+
+---@class MacroAst
+---@field tooltip ItemAttr | nil
+---@field commands MacroCommand[] | nil
 
 
 ---@class MacroParseResult
@@ -59,14 +63,6 @@ local Macro = addon:NewModule("Macro")
 ---@field conds string[][]
 ---@field remaining string[]
 
-
-local function pT(t)
-    local s = ""
-    for _, _t in ipairs(t) do
-        s = s .. _t
-    end
-    print(s)
-end
 
 ---@param mcList MCList
 ---@return string
@@ -79,11 +75,12 @@ function Macro:MCListToString(mcList)
 end
 
 ---@param macro string
+---@return Result -- 返回宏AST结果
 function Macro:Ast(macro)
     local result = {
-        showtooltip = nil, -- 用于存储 showtooltip 的参数（如果有的话）
+        tooltip = nil, -- 用于存储 showtooltip 的参数（如果有的话）
         commands = {}      -- 用于存储宏的其他命令
-    }
+    } ---@type MacroAst
     local _macroString = U.String.Utf8ToTable(macro)
     -- 移除空字符
     local startIndex = 1
@@ -115,18 +112,23 @@ function Macro:Ast(macro)
     --------------------------
     -- 如果第一个字符就是/，则表示没有#showtooltip，使用智能图标
     if firstCmdPreIndex == 1 then
-        result.showtooltip = nil
+        result.tooltip = nil
         -- 否则解析`#showtooltip <icon>`来获取需要展示的图标
     else
         local showtooltipString = ""
         for i = 1, firstCmdPreIndex - 1 do
             showtooltipString = showtooltipString .. macroString[i]
         end
-        local param = macro:match("#showtooltip%s*(%S+)")
+        local param = showtooltipString:match("#showtooltip%s*(%S+)")
         if param then
-            param = param:match("^%s*(.-)%s*$")
-            if param ~= "" then
-                result.showtooltip = param
+            local macroIcon = param:match("^%s*(.-)%s*$")
+            if macroIcon ~= "" then
+                local macroIconR = Item:GetFromVal(macroIcon)
+                if macroIconR:is_ok() then
+                    result.tooltip = macroIconR:unwrap()
+                else
+                    return macroIconR
+                end
             end
         end
     end
@@ -152,6 +154,7 @@ function Macro:Ast(macro)
     ---------------------------------
     ---- 遍历命令字符串列表，组成AST
     ---------------------------------
+    local macroCommands = {} ---@type MacroCommand[]
     for _, stat in ipairs(statStrings) do
         local r = Macro:AstParse(stat)
         if r:is_err() then
@@ -159,26 +162,33 @@ function Macro:Ast(macro)
         end
         local p = r:unwrap() ---@type MacroParseResult
         local cmd = Macro:MCListToString(p.cmd)
-        cmd = Macro:AstCmd(cmd)
+        local cmdR = Macro:AstCmd(cmd)
+        if cmdR:is_err() then
+            return cmdR
+        end
         local conds = {} ---@type MacroCond[]
         for _, cond in ipairs(p.conds) do
-            local c = Macro:MCListToString(cond)
-            table.insert(conds, Macro:AstCondition(c))
+            table.insert(conds, Macro:AstCondition(Macro:MCListToString(cond)):unwrap())
         end
-        ---@type MacroCommand
-        local macroCommand = {
-            cmd = cmd,
+        local remaining = Macro:MCListToString(p.remaining)
+        local paramR = Macro:AstParam(cmdR:unwrap(), remaining)
+        if paramR:is_err() then
+            return paramR
+        end
+        table.insert(macroCommands, {
+            cmd = cmdR:unwrap(),
             conds = conds,
-        }
+            param = paramR:unwrap()
+        })
     end
+    result.commands = macroCommands
+    return R:Ok(result)
 end
 
---------------------
---- 第一步解析：
---- 生成cmd：例如 "/cast"、"/use"
---- 生成conds：例如["@target", "@mouseover, dead"]
---- 生成remaining：例如"reset=60 item:224464, item:211880; reset=60 item:5512, item:211880"、"疾跑"
---------------------
+-- 第一步解析：
+-- 生成cmd：例如 "/cast"、"/use"
+-- 生成conds：例如["@target", "@mouseover, dead"]
+-- 生成remaining：例如"reset=60 item:224464, item:211880; reset=60 item:5512, item:211880"、"疾跑"
 ---@param statement MC[]
 ---@return Result
 function Macro:AstParse(statement)
@@ -197,8 +207,7 @@ function Macro:AstParse(statement)
                 if cmdEnd == false then
                     table.insert(cmd, s)
                 else
-                    print("/错误1。")
-                    return R:Err("/错误。")
+                    return R:Err("/错误1。")
                 end
             elseif s == " " then              -- 空格字符
                 if cmdEnd == false then       -- 如果命令没有结束，此时空格表示结束命令语句
@@ -212,17 +221,13 @@ function Macro:AstParse(statement)
                 end
             elseif s == "[" then
                 if cmdEnd == false then
-                    print("[错误1。")
-                    return R:Err("[错误。")
+                    return R:Err("[错误1。")
                 end
                 if condStart == true then
-                    print("[错误2。")
-                    return R:Err("[错误。")
+                    return R:Err("[错误2。")
                 end
                 if #cond ~= 0 then
-                    print("[错误3。")
-                    pT(cond)
-                    return R:Err("[错误。")
+                    return R:Err("[错误3。")
                 end
                 if condsEnd == true then
                     table.insert(remaining, s)
@@ -232,33 +237,27 @@ function Macro:AstParse(statement)
                 end
             elseif s == "]" then
                 if cmdEnd == false then
-                    print("]错误1。")
-                    return R:Err("]错误。")
+                    return R:Err("]错误1。")
                 end
                 if condStart == false then
-                    print("]错误2。")
-                    return R:Err("]错误。")
+                    return R:Err("]错误2。")
                 end
                 if cond[1] ~= "[" then
-                    print("]错误3。")
-                    return R:Err("]错误。")
+                    return R:Err("]错误3。")
                 end
                 if condsEnd == true then
                     table.insert(remaining, s)
                 else
-                    table.insert(cond, s)
                     table.insert(conds, U.Table.DeepCopyList(cond))
                     cond = {}
                     condStart = false
                 end
             elseif s == ";" then
                 if cmdEnd == false then  -- 如果当前处在命令阶段，不能加入;分号
-                    print(";错误1。")
-                    return R:Err(";错误。")
+                    return R:Err(";错误1。")
                 end
                 if condStart == true then  -- 如果当前正处在条件激活阶段，不能加入;分号
-                    print(";错误2。")
-                    return R:Err(";错误。")
+                    return R:Err(";错误2。")
                 end
                 condsEnd = true
                 table.insert(remainings, U.Table.DeepCopyList(remaining))
@@ -293,12 +292,13 @@ end
 
 --- 将宏语句中的条件分解成宏target、宏mod、宏booleanCond
 ---@param condString string
----@return MacroCond
+---@return Result MacroCond
 function Macro:AstCondition(condString)
     local macroCond = {booleanConds = {}, targetConds = {}} ---@type MacroCond
     if condString == nil or #condString == 0 then
-        return macroCond
+        return R:Ok(macroCond)
     end
+    condString = string.sub(condString, 2, -2)  -- 移除宏条件的[和]，例如[help, dead, combat]变成help, dead, combat
     local conds = U.String.Split(condString, ",")
     for _, cond in ipairs(conds) do
         if string.sub(cond, 1, 7) == "target=" then
@@ -315,7 +315,7 @@ function Macro:AstCondition(condString)
             table.insert(macroCond.booleanConds, Macro:AstStringToBooleanCond(cond))
         end
     end
-    return macroCond
+    return R:Ok(macroCond)
 end
 
 
@@ -587,8 +587,8 @@ function Macro:AstStringToBooleanCond(str)
 end
 
 -- 处理宏命名
----@param str string 宏命令
----@return string 返回处理后的宏命名
+---@param str string -- 宏命令
+---@return Result -- 返回处理后的宏命名
 function Macro:AstCmd(str)
     if string.sub(str, 1, 1) == "/" then
         str = string.sub(str, 2)
@@ -597,28 +597,145 @@ function Macro:AstCmd(str)
     if str == "cast" then
         str = "use"
     end
-    return str
+    return R:Ok(str)
 end
 
 -- 处理宏参数
 ---@param cmd string 宏命令
 ---@param str string 宏参数
+---@return Result
 function Macro:AstParam(cmd, str)
     str = U.String.Trim(str)
     local param = {} ---@type MacroParam
     if cmd == "use" then
-        if param.items == nil then
-            param.items = {}
-        end
+        -- 如果是/use item:开头，表示使用物品
         if string.sub(str, 1, 5) == "item:" then
             local itemResult = Item:GetFromVal(string.sub(str, 6), const.ITEM_TYPE.ITEM)
             if itemResult:is_err() then
                 return itemResult
             end
+            param.items = {}
             table.insert(param.items, itemResult:unwrap())
         else
+            -- 如果是/use xxx字符串，表示使用技能，这里扩展可以使用物品、坐骑
+            if tonumber(str) == nil then
+                local itemResult = Item:GetFromVal(str)
+                if itemResult:is_err() then
+                    return itemResult
+                end
+                param.items = {}
+                table.insert(param.items, itemResult:unwrap())
+            else
+                local slot = tonumber(str)
+                -- 如果是/use 12 这种使用装备插嘈
+                if slot > 19 then
+                    return R:Err(L["Macro Error: Invalid equipment slot: %s"]:format(slot))
+                end
+                param.slot = slot
+            end
+        end
+    else
+        param.script = str
+    end
+    return R:Ok(param)
+end
+
+
+-- 将BooleanCond格式转为宏条件字符串
+---@param boolCond BooleanCond
+function Macro:CgBooleanCond(boolCond)
+    return ""
+end
+
+-- 将TargetCond格式转为宏条件字符串
+---@param targetCond TargetCond
+function Macro:CgTargetCond(targetCond)
+    return "@" .. targetCond.type
+end
+
+-- 将条件AST转为宏字符串
+---@param macroCond MacroCond
+---@return string
+function Macro:CgCond(macroCond)
+    local condStrings = {} ---@type string[]
+    if macroCond.targetConds then
+        for _, targetCond in ipairs(macroCond.targetConds) do
+            table.insert(condStrings, Macro:CgTargetCond(targetCond))
         end
     end
+    if macroCond.booleanConds then
+        for _, booleanCond in ipairs(macroCond.booleanConds) do
+            table.insert(condStrings, Macro:CgBooleanCond(booleanCond))
+        end
+    end
+    if #condStrings then
+        return table.concat(condStrings, ",")
+    else
+        return ""
+    end
+end
+
+-- 将参数AST转为宏字符串
+---@param command MacroCommand
+---@return string | nil
+function Macro:CgParam(command)
+    if command == nil then
+        return ""
+    end
+    if command.cmd == nil or command.param == nil then
+        return ""
+    end
+    local itemsString = nil ---@type string | nil
+    if command.param.items then
+        local itemNames = {} ---@type string[]
+        for _, item in ipairs(command.param.items) do
+            table.insert(itemNames, item.name)
+        end
+        itemsString = table.concat(itemNames, ",")
+    end
+    local slotString = nil ---@type string | nil
+    if command.param.slot then
+        slotString = tostring(command.param.slot)
+    end
+    if command.cmd == "use" then
+        return slotString or itemsString
+    else
+        return command.param.script
+    end
+end
+
+-- 宏ast转为宏字符串
+---@param macroAst MacroAst
+---@return string
+function Macro:Cg(macroAst)
+    local macroStrings = {} ---@type string[]
+    if macroAst.tooltip then
+        table.insert(macroStrings, "#showtooltip " .. macroAst.tooltip.name)
+    end
+    if macroAst.commands ~= nil then
+        for _, command in ipairs(macroAst.commands) do
+            local macroCondString = nil ---@type nil | string
+            if command.conds then
+                macroCondString = ""
+                for _, cond in ipairs(command.conds) do
+                    macroCondString = macroCondString .. "[" .. Macro:CgCond(cond) .. "]"
+                end
+            end
+            local macroParamString = nil --- @type nil | string
+            if command.param then
+                macroParamString = Macro:CgParam(command)
+            end
+            local macroString = "/" .. command.cmd
+            if macroCondString then
+                macroString = macroString .. " " .. macroCondString
+            end
+            if macroParamString then
+                macroString = macroString .. " " .. macroParamString
+            end
+            table.insert(macroStrings, macroString)
+        end
+    end
+    return table.concat(macroStrings, "\n")
 end
 
 -- 测试宏功能

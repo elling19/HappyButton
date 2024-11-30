@@ -98,6 +98,7 @@ function E:ToBar(config)
     return E:InitExtraAttr(config) ---@type BarConfig
 end
 
+-- 是否是叶子节点
 ---@param config ElementConfig
 ---@return boolean
 function E:IsLeaf(config)
@@ -106,6 +107,18 @@ function E:IsLeaf(config)
     end
     return false
 end
+
+-- 是否是单一图标
+---@param config ElementConfig
+---@return boolean
+function E:IsSingleIconConfig(config)
+    if config.type == const.ELEMENT_TYPE.BAR or config.type == const.ELEMENT_TYPE.SCRIPT then
+        return false
+    else
+        return true
+    end
+end
+
 
 --- 获取config带图标的标题，使用在配置功能中
 ---@param config ElementConfig

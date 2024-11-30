@@ -185,25 +185,16 @@ function Item:GetFromVal(identifier, itemType)
         else
             return R:Err(L["Unable to get the id, please check the input."])
         end
+        return R:Ok(item)
     elseif itemType == const.ITEM_TYPE.SPELL then
         if Client:IsRetail() then
             local spellID = C_Spell.GetSpellIDForSpellIdentifier(identifier)
             if spellID then
                 item.id = spellID
+                item.name = C_Spell.GetSpellName(item.id)
+                item.icon = select(1, C_Spell.GetSpellTexture(item.id))
             else
                 return R:Err(L["Unable to get the id, please check the input."])
-            end
-            local spellName = C_Spell.GetSpellName(item.id)
-            if spellName then
-                item.name = spellName
-            else
-                return R:Err("Can not get the name, please check your input.")
-            end
-            local iconID, originalIconID = C_Spell.GetSpellTexture(item.id)
-            if iconID then
-                item.icon = iconID
-            else
-                return R:Err(L["Unable to get the icon, please check the input."])
             end
         else
             local spellInfo = Api.GetSpellInfo(identifier)
@@ -215,6 +206,7 @@ function Item:GetFromVal(identifier, itemType)
                 return R:Err(L["Unable to get the id, please check the input."])
             end
         end
+        return R:Ok(item)
     elseif item.type == const.ITEM_TYPE.MOUNT then
         item.id = tonumber(identifier)
         if item.id == nil then
@@ -246,6 +238,7 @@ function Item:GetFromVal(identifier, itemType)
                 return R:Err("Can not get the name, please check your input.")
             end
         end
+        return R:Ok(item)
     elseif item.type == const.ITEM_TYPE.PET then
         item.id = tonumber(identifier)
         if item.id == nil then
@@ -265,8 +258,68 @@ function Item:GetFromVal(identifier, itemType)
         else
             return R:Err(L["Unable to get the name, please check the input."])
         end
-    else
-        return R:Err("Wrong type, please check your input.")
+        return R:Ok(item)
+    -- 如果没有提供类型，则依次判断技能、物品
+    elseif item.type == nil then
+        -- 如果没有提供类型，则依次判断技能、物品、坐骑
+        -- 判断技能
+        if Client:IsRetail() then
+            local spellID = C_Spell.GetSpellIDForSpellIdentifier(identifier)
+            if spellID then
+                item.id = spellID
+                item.name = C_Spell.GetSpellName(item.id)
+                item.icon = select(1, C_Spell.GetSpellTexture(item.id))
+                item.type = const.ITEM_TYPE.SPELL
+                return R:Ok(item)
+            end
+        else
+            local spellInfo = Api.GetSpellInfo(identifier)
+            if spellInfo then
+                item.id = spellInfo.spellID
+                item.name = spellInfo.name
+                item.icon = spellInfo.iconID
+                item.type = const.ITEM_TYPE.SPELL
+                return R:Ok(item)
+            end
+        end
+        -- 判断物品
+        local itemID, itemType, itemSubType, itemEquipLoc, icon, classID, subClassID = Api.GetItemInfoInstant(identifier)
+        if itemID then
+            item.id = itemID
+            item.icon = icon
+            item.name = C_Item.GetItemNameByID(item.id)
+            item.type = const.ITEM_TYPE.ITEM
+            return R:Ok(item)
+        end
+        -- 判断坐骑
+        local id = tonumber(identifier)
+        if id == nil then
+            for mountDisplayIndex = 1, C_MountJournal.GetNumDisplayedMounts() do
+                local name, spellID, icon, isActive, isUsable, sourceType,
+                isFavorite, isFactionSpecific, faction, shouldHideOnChar,
+                isCollected, mountID, isSteadyFlight =
+                    C_MountJournal.GetDisplayedMountInfo(mountDisplayIndex)
+                if name == identifier then
+                    item.id = mountID
+                    item.name = name
+                    item.icon = icon
+                    item.type = const.ITEM_TYPE.MOUNT
+                    return R:Ok(item)
+                end
+            end
+        else
+            local name, spellID, icon, active, isUsable, sourceType, isFavorite,
+            isFactionSpecific, faction, shouldHideOnChar, isCollected,
+            mountID = C_MountJournal.GetMountInfoByID(id)
+            if name then
+                item.id = mountID
+                item.name = name
+                item.icon = icon
+                item.type = const.ITEM_TYPE.MOUNT
+                return R:Ok(item)
+            end
+        end
+        return R:Err(L["Macro Error: Can not find this identifier: %s"]:format(identifier))
     end
-    return R:Ok(item)
+    return R:Err(L["Macro Error: Can not find this identifier: %s"]:format(identifier))
 end

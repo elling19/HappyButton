@@ -245,3 +245,5 @@ L["Bind For Current Class"] = "为当前职业绑定"
 
 -- 宏错误提示
 L["Macro Error"] = "宏错误"
+L["Macro Error: Invalid equipment slot: %s"] = "宏错误：无效的装备编号：%s"
+L["Macro Error: Can not find this identifier: %s"] = "宏错误：无法获取此物品：%s"

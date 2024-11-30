@@ -244,3 +244,5 @@ L["Bind For Current Class"] = true
 
 -- 宏错误提示
 L["Macro Error"] = true
+L["Macro Error: Invalid equipment slot: %s"] = true
+L["Macro Error: Can not find this identifier: %s"] = true

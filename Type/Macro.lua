@@ -40,3 +40,7 @@
 --- | "swimming"
 --- | "mod"
 --- | "unkonw"
+
+-- 宏命令
+---@alias MacroCmd
+--- | "use"

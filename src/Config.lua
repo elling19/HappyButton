@@ -641,8 +641,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             end
         end
         if isRoot then
-            if ele.type ~= const.ELEMENT_TYPE.ITEM and ele.type ~=
-                const.ELEMENT_TYPE.ITEM_GROUP then
+            if not E:IsSingleIconConfig(ele) then
                 elementSettingArgs.elementsGrowth = {
                     order = elementSettingOrder,
                     width = 2,
@@ -708,6 +707,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             }
             elementSettingOrder = elementSettingOrder + 1
         end
+        
         -----------------------------------------
         --- 宏条件设置
         -----------------------------------------
@@ -720,7 +720,14 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 multiline = 20,
                 width = "full",
                 validate = function(_, val)
-                    return true
+                    local macroAstR = Macro:Ast(val)
+                    if macroAstR:is_err() then
+                        return macroAstR:unwrap_err()
+                    else
+                        addon.G.tmpMacroAst = macroAstR:unwrap()
+                        print(Macro:Cg(macroAstR:unwrap()))
+                        return true
+                    end
                 end,
                 set = function(_, val)
                     macro.extraAttr.macro = val
@@ -2606,8 +2613,7 @@ function addon:OnInitialize()
         tmpNewItemVal = nil,
         tmpNewItem = { type = nil, id = nil, icon = nil, name = nil }, ---@type ItemAttr
         tmpNewText = nil, -- 添加文本
-        tmpMacroSelectIndex = 1,
-        tmpMacroCondSelectIndex = 1,
+        tmpMacroAst = nil,  -- 宏解析结果
     }
     -- 注册数据库，添加分类设置
     self.db = LibStub("AceDB-3.0"):New("HappyButtonDB", {
