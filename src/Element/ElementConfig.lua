@@ -13,6 +13,7 @@
 
 ---@class MacroAttr
 ---@field macro string | nil -- 宏脚本
+---@field ast MacroAst | nil -- 宏语法树
 
 
 ---@class ElementConfig

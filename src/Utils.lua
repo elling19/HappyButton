@@ -91,6 +91,25 @@ function UtilsTable.GetArrayIndex(array, target)
     return 0
 end
 
+
+-- 深度复制
+---@param orig any
+---@return any
+function UtilsTable.DeepCopy(orig)
+    local orig_type = type(orig)
+    local copy
+    if orig_type == 'table' then
+        copy = {}
+        for orig_key, orig_value in next, orig, nil do
+            copy[UtilsTable.DeepCopy(orig_key)] = UtilsTable.DeepCopy(orig_value)
+        end
+        setmetatable(copy, UtilsTable.DeepCopy(getmetatable(orig)))
+    else -- 基本数据类型直接赋值
+        copy = orig
+    end
+    return copy
+end
+
 -- 深度复制字典
 function UtilsTable.DeepCopyDict(original)
     local copy = {}

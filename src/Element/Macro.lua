@@ -248,6 +248,7 @@ function Macro:AstParse(statement)
                 if condsEnd == true then
                     table.insert(remaining, s)
                 else
+                    table.insert(cond, s)
                     table.insert(conds, U.Table.DeepCopyList(cond))
                     cond = {}
                     condStart = false
@@ -307,7 +308,7 @@ function Macro:AstCondition(condString)
             local targetCond = { type=c }  ---@type TargetCond
             table.insert(macroCond.targetConds, targetCond)
         elseif string.sub(cond, 1, 1) == "@" then
-            local c = string.sub(cond, 1)
+            local c = string.sub(cond, 2)
             c = U.String.Trim(c)
             local targetCond = { type=c }  ---@type TargetCond
             table.insert(macroCond.targetConds, targetCond)
@@ -324,7 +325,7 @@ end
 ---@return BooleanCond
 function Macro:AstStringToBooleanCond(str)
     str = U.String.Trim(str)
-    local boolCond = {type="unkonw", isTarget=false, params=str} ---@type BooleanCond
+    local boolCond = {type="unknow", isTarget=false, params=str} ---@type BooleanCond
     -- 目标是否存在：exists、noexists
     if str == "exists" then
         boolCond.type = "exists"
@@ -410,13 +411,13 @@ function Macro:AstStringToBooleanCond(str)
         boolCond.params = str
         return boolCond
     end
-    -- 玩家是否在战斗中：combat、outcombat
+    -- 玩家是否在战斗中：combat、nocombat
     if str == "combat" then
         boolCond.type = "combat"
         boolCond.params = true
         return boolCond
     end
-    if str == "outcombat" then
+    if str == "nocombat" then
         boolCond.type = "combat"
         boolCond.params = false
         return boolCond
@@ -443,10 +444,20 @@ function Macro:AstStringToBooleanCond(str)
         boolCond.params = true
         return boolCond
     end
+    if str == "noflyable" then
+        boolCond.type = "flyable"
+        boolCond.params = false
+        return boolCond
+    end
     -- 玩家是否在飞行
     if str == "flying" then
         boolCond.type = "flying"
         boolCond.params = true
+        return boolCond
+    end
+    if str == "noflying" then
+        boolCond.type = "flying"
+        boolCond.params = false
         return boolCond
     end
     -- 玩家处在何种形态（德鲁伊）
@@ -506,6 +517,11 @@ function Macro:AstStringToBooleanCond(str)
     if str == "mounted" then
         boolCond.type = "mounted"
         boolCond.params = true
+        return boolCond
+    end
+    if str == "nomounted" then
+        boolCond.type = "mounted"
+        boolCond.params = false
         return boolCond
     end
     -- 玩家是否召唤了名称为pet的宠物（猎人、术士）
@@ -571,16 +587,18 @@ function Macro:AstStringToBooleanCond(str)
     end
     if string.sub(str, 1, 9) == "modifier:" then
         str = string.sub(str, 10)
-        str = U.String.Trim(str)
         boolCond.type = "mod"
-        boolCond.params = str
+        str = U.String.Trim(str)
+        local mods = U.String.Split(str, "/")
+        boolCond.params = mods
         return boolCond
     end
     if string.sub(str, 1, 4) == "mod:" then
         str = string.sub(str, 5)
-        str = U.String.Trim(str)
         boolCond.type = "mod"
-        boolCond.params = str
+        str = U.String.Trim(str)
+        local mods = U.String.Split(str, "/")
+        boolCond.params = mods
         return boolCond
     end
     return boolCond
@@ -643,8 +661,189 @@ end
 
 -- 将BooleanCond格式转为宏条件字符串
 ---@param boolCond BooleanCond
+---@return string | nil
 function Macro:CgBooleanCond(boolCond)
-    return ""
+    -- 目标是否存在
+    if boolCond.type == "exists" then
+        if boolCond.params == true then
+            return "exists"
+        else
+            return "noexists"
+        end
+    end
+    -- 目标是否友善
+    if boolCond.type == "help" then
+        if boolCond.params == true then
+            return "help"
+        else
+            return "harm"
+        end
+    end
+    -- 目标是否死亡
+    if boolCond.type == "dead" then
+        if boolCond.params == true then
+            return "dead"
+        else
+            return "nodead"
+        end
+    end
+    -- 目标是否在队伍中
+    if boolCond.type == "party" then
+        return "party"
+    end
+    -- 目标是否在团队中
+    if boolCond.type == "raid" then
+        return "raid"
+    end
+    -- 目标是否在载具中
+    if boolCond.type == "unithasvehicleui" then
+        return "unithasvehicleui"
+    end
+    -- 玩家是否处在御龙术区域
+    if boolCond.type == "advflyable" then
+        return "advflyable"
+    end
+    -- 玩家是否可以退出载具
+    if boolCond.type == "canexitvehicle" then
+        return "canexitvehicle"
+    end
+    -- 玩家是否在引导法术，是否在引导法术：法术名称
+    if boolCond.type == "channeling" then
+        if boolCond.params == true then
+            return "channeling"
+        else
+            return "channeling:" .. boolCond.params
+        end
+    end
+    -- 玩家是否在战斗中
+    if boolCond.type == "combat" then
+        if boolCond.params == true then
+            return "combat"
+        else
+            return "nocombat"
+        end
+    end
+    -- 玩家是否装备了某个槽位装备
+    if boolCond.type == "equipped" then
+        return "equipped:" .. boolCond.params
+    end
+    -- 玩家是否装备了某个装备（不要求指定槽位）
+    if boolCond.type == "worn" then
+        return "worn:" .. boolCond.params
+    end
+    -- 玩家是否可以飞行
+    if boolCond.type == "flyable" then
+        if boolCond.params == true then
+            return "flyable"
+        else
+            return "noflyable"
+        end
+    end
+    -- 玩家是否在飞行
+    if boolCond.type == "flying" then
+        if boolCond.params == true then
+            return "flying"
+        else
+            return "noflying"
+        end
+    end
+    -- 玩家处在何种形态（德鲁伊）
+    if boolCond.type == "form" then
+        if type(boolCond.params) == "table" then
+            ---@diagnostic disable-next-line: param-type-mismatch
+            return "form:" .. table.concat(boolCond.params, "/")
+        else
+            return "form"
+        end
+    end
+    -- 玩家处在何种姿态（盗贼、战士）
+    if boolCond.type == "stance" then
+        if type(boolCond.params) == "table" then
+            ---@diagnostic disable-next-line: param-type-mismatch
+            return "stance:" .. table.concat(boolCond.params, "/")
+        else
+            return "stance"
+        end
+    end
+    -- 玩家是否处在队伍中：group、group:party、group:raid
+    if boolCond.type == "group" then
+        if boolCond.params == true then
+            return "group"
+        else
+            return "group:" .. boolCond.params
+        end
+    end
+    -- 玩家是否在屋内：indoors、outdoors
+    if boolCond.type == "indoors" then
+        if boolCond.params == true then
+            return "indoors"
+        else
+            return "outdoors"
+        end
+    end
+    -- 玩家是否学习了某个技能
+    if boolCond.type == "known" then
+        return "known:" .. boolCond.params
+    end
+    -- 玩家是否在坐骑上
+    if boolCond.type == "mounted" then
+        if boolCond.params == true then
+            return "mounted"
+        else
+            return "nomounted"
+        end
+    end
+    -- 玩家是否召唤了名称为pet的宠物（猎人、术士）
+    -- 玩家是否召唤了类型为petFamily的宠物？
+    if boolCond.type == "pet" then
+        return "pet:" .. boolCond.params
+    end
+    if boolCond.type == "petFamily" then
+        return "pet:family=" .. boolCond.params
+    end
+    -- 玩家是否在宠物战斗中
+    if boolCond.type == "petbattle" then
+        return "petbattle"
+    end
+    -- 玩家是否开启了pvp
+    if boolCond.type == "pvpcombat" then
+        return "pvpcombat"
+    end
+    -- 玩家是否存在休息区域
+    if boolCond.type == "resting" then
+        return "resting"
+    end
+    -- 玩家处在何种专精
+    if boolCond.type == "spec" then
+        if type(boolCond.params) == "table" then
+            ---@diagnostic disable-next-line: param-type-mismatch
+            return "spec:" .. table.concat(boolCond.params, "/")
+        else
+            return "spec"
+        end
+    end
+    -- 玩家是否处在潜行状态
+    if boolCond.type == "stealth" then
+        return "stealth"
+    end
+    -- 玩家是否处在游泳状态
+    if boolCond.type == "swimming" then
+        return "swimming"
+    end
+    -- 当mod处在何种情况下激活
+    if boolCond.type == "mod" then
+        if boolCond.params == "nomod" then
+            return "nomod"
+        else
+            if type(boolCond.params) == "table" then
+                ---@diagnostic disable-next-line: param-type-mismatch
+                return "mod:" .. table.concat(boolCond.params, "/")
+            else
+                return "mod:" .. boolCond.params
+            end
+        end
+    end
+    return nil
 end
 
 -- 将TargetCond格式转为宏条件字符串
@@ -718,7 +917,10 @@ function Macro:Cg(macroAst)
             if command.conds then
                 macroCondString = ""
                 for _, cond in ipairs(command.conds) do
-                    macroCondString = macroCondString .. "[" .. Macro:CgCond(cond) .. "]"
+                    local condString = Macro:CgCond(cond)
+                    if condString ~= nil then
+                        macroCondString = macroCondString .. "[" .. condString .. "]"
+                    end
                 end
             end
             local macroParamString = nil --- @type nil | string

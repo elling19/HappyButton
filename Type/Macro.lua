@@ -39,7 +39,7 @@
 --- | "stealth" 
 --- | "swimming"
 --- | "mod"
---- | "unkonw"
+--- | "unknow"
 
 -- 宏命令
 ---@alias MacroCmd

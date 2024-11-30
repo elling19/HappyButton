@@ -707,7 +707,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             }
             elementSettingOrder = elementSettingOrder + 1
         end
-        
+
         -----------------------------------------
         --- 宏条件设置
         -----------------------------------------
@@ -716,7 +716,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             elementSettingArgs.edit = {
                 order = elementSettingOrder,
                 type = 'input',
-                name = L["Script"],
+                name = L["Macro"],
                 multiline = 20,
                 width = "full",
                 validate = function(_, val)
@@ -725,12 +725,12 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         return macroAstR:unwrap_err()
                     else
                         addon.G.tmpMacroAst = macroAstR:unwrap()
-                        print(Macro:Cg(macroAstR:unwrap()))
                         return true
                     end
                 end,
                 set = function(_, val)
                     macro.extraAttr.macro = val
+                    macro.extraAttr.ast = U.Table.DeepCopy(addon.G.tmpMacroAst)
                     HbFrame:ReloadEframeUI(updateFrameConfig)
                     addon:UpdateOptions()
                 end,
