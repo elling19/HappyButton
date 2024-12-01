@@ -20,6 +20,9 @@ local const = addon:GetModule('CONST')
 ---@class Api: AceModule
 local Api = addon:GetModule("Api")
 
+---@class ListenEvent: AceModule
+local ListenEvent = addon:GetModule("ListenEvent")
+
 ---@class Macro: AceModule
 local Macro = addon:NewModule("Macro")
 
@@ -938,6 +941,24 @@ function Macro:Cg(macroAst)
         end
     end
     return table.concat(macroStrings, "\n")
+end
+
+-- 获取宏AST需要监听的事件列表
+---@param macroAst MacroAst
+---@return table<EventString, {}>
+function Macro:GetEventsFromAst(macroAst)
+    local events = {} ---@type table<EventString, {}>
+    if macroAst.tooltip then
+        for event, eventParams in pairs(ListenEvent:GetEventFromItemAttr(macroAst.tooltip)) do
+            events[event] = eventParams
+        end
+    end
+    if macroAst.commands then
+        for event, eventParams in pairs(ListenEvent:GetEventFromMacroCommand(macroAst.commands)) do
+            events[event] = eventParams
+        end
+    end
+    return events
 end
 
 -- 测试宏功能

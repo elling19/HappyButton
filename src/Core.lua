@@ -43,6 +43,7 @@ function BarCore:Start()
             BarCore:Initial()
         end
         if event == "CVAR_UPDATE" then
+            -- 如果用户修改了鼠标按下CVAR，需要通知按钮改变RegisterForClicks
             local cvar_name = args[1]
             if cvar_name == "ActionButtonUseKeyDown" then
                 HbFrame:UpdateRegisterForClicks()

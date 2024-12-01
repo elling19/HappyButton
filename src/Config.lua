@@ -731,6 +731,8 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 set = function(_, val)
                     macro.extraAttr.macro = val
                     macro.extraAttr.ast = U.Table.DeepCopy(addon.G.tmpMacroAst)
+                    local events = Macro:GetEventsFromAst(macro.extraAttr.ast)
+                    macro.listenEvents = events
                     HbFrame:ReloadEframeUI(updateFrameConfig)
                     addon:UpdateOptions()
                 end,
