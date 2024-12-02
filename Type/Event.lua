@@ -8,3 +8,4 @@
 --- | "SPELLS_CHANGED" -- 技能改变（技能）
 --- | "UNIT_AURA"  -- 单位光环改变
 --- | "MODIFIER_STATE_CHANGED"  -- 修饰按键按下CTRL、SHIFT、ALT
+--- | "UPDATE_MOUSEOVER_UNIT"  -- 鼠标执行目标改变

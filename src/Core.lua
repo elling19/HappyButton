@@ -37,6 +37,7 @@ function BarCore:Start()
     BarCore.Frame:RegisterEvent("PLAYER_TARGET_CHANGED")    -- 目标改变（脚本、触发器）
     BarCore.Frame:RegisterEvent("BAG_UPDATE")               -- 背包物品改变(物品、装备)
     BarCore.Frame:RegisterEvent("MODIFIER_STATE_CHANGED")   -- 修饰按键按下
+    BarCore.Frame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")    -- 鼠标指向改变
     -- BarCore.Frame:RegisterEvent("UNIT_AURA")
     BarCore.Frame:SetScript("OnEvent", function(self, event, ...)
         local args = {...}
@@ -61,7 +62,8 @@ function BarCore:Start()
             event == "PLAYER_TARGET_CHANGED" or
             event == "BAG_UPDATE" or
             event == "PLAYER_REGEN_ENABLED" or
-            event == "MODIFIER_STATE_CHANGED"
+            event == "MODIFIER_STATE_CHANGED" or
+            event == "UPDATE_MOUSEOVER_UNIT"
         then
             HbFrame:UpdateAllEframes(event)
         end

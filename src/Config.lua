@@ -845,7 +845,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
         ---------------------------------------------------------
         -- 按键绑定设置
         ---------------------------------------------------------
-        if ele.type == const.ELEMENT_TYPE.ITEM or ele.type == const.ELEMENT_TYPE.ITEM_GROUP then
+        if E:IsSingleIconConfig(ele) then
             local bindkeySettingOrder = 1
             local bindkeySettingArgs = {}
             local bindkeySettingOptions = {

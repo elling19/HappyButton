@@ -4,7 +4,7 @@
 --- | "target"
 --- | "targettarget"
 --- | "focus"
---- | "cursor"
+--- | "mouseover"
 --- | "none"
 
 
@@ -38,6 +38,7 @@
 --- | "stealth" 
 --- | "swimming"
 --- | "mod"
+--- | "btn"
 --- | "unknow"
 
 -- 宏命令

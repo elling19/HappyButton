@@ -280,7 +280,7 @@ end
 ---@return BooleanCond
 function Macro:AstStringToBooleanCond(str)
     str = U.String.Trim(str)
-    local boolCond = { type = "unknow", isTarget = false, params = str } ---@type BooleanCond
+    local boolCond = { type = "unknow", isTarget = false, params = nil } ---@type BooleanCond
     -- 目标是否存在：exists、noexists
     if str == "exists" then
         boolCond.type = "exists"
@@ -555,6 +555,23 @@ function Macro:AstStringToBooleanCond(str)
         boolCond.params = mods
         return boolCond
     end
+    if string.sub(str, 1, 7) == "button:" then
+        str = string.sub(str, 8)
+        boolCond.type = "btn"
+        str = U.String.Trim(str)
+        local btns = U.String.Split(str, "/")
+        boolCond.params = btns
+        return boolCond
+    end
+    if string.sub(str, 1, 4) == "btn:" then
+        str = string.sub(str, 5)
+        boolCond.type = "btn"
+        str = U.String.Trim(str)
+        local btns = U.String.Split(str, "/")
+        boolCond.params = btns
+        return boolCond
+    end
+    boolCond.type = str
     return boolCond
 end
 
@@ -1058,7 +1075,26 @@ function Macro:CgBooleanCond(boolCond, verify, target)
             end
         end
     end
-    return nil, true
+    -- 鼠标按键点击
+    if boolCond.type == "btn" then
+        if type(boolCond.params) == "table" then
+            ---@diagnostic disable-next-line: param-type-mismatch
+            local condString = "btn:" .. table.concat(boolCond.params, "/")
+            if verify then
+                ---@diagnostic disable-next-line: param-type-mismatch
+                if (U.Table.IsInArray(boolCond.params, "1")) then
+                    return condString, true
+                else
+                    return condString, false
+                end
+            else
+                return condString, false
+            end
+        else
+            return "btn", true
+        end
+    end
+    return boolCond.type, true
 end
 
 -- 将条件AST转为宏字符串

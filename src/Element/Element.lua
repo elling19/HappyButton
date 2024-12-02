@@ -187,6 +187,7 @@ function E:GetEvents(config)
     end
     if config.type == const.ELEMENT_TYPE.MACRO then
         events["MODIFIER_STATE_CHANGED"] = true
+        events["UPDATE_MOUSEOVER_UNIT"] = true
     end
     if config.triggers and #config.triggers > 0 then
         for _, trigger in ipairs(config.triggers) do
