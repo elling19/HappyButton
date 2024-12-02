@@ -7,3 +7,4 @@
 --- | "PLAYER_TALENT_UPDATE"  -- 天赋改变（技能）
 --- | "SPELLS_CHANGED" -- 技能改变（技能）
 --- | "UNIT_AURA"  -- 单位光环改变
+--- | "MODIFIER_STATE_CHANGED"  -- 修饰按键按下CTRL、SHIFT、ALT

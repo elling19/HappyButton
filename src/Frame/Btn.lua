@@ -109,6 +109,10 @@ function Btn:UpdateBySelf(event)
     if event and self.CbInfo.e[event] == nil then
         return
     end
+    -- 宏在更新的时候需要改变宏图标
+    if self.CbInfo.p.type == const.ELEMENT_TYPE.MACRO then
+        self.CbResult.item = ECB.UpdateMacroItemInfo(self.CbInfo.p)
+    end 
     ECB:UpdateSelfTrigger(self.CbResult)
     ECB:UseTrigger(self.CbInfo.p, self.CbResult)
     self:Update()
@@ -250,11 +254,12 @@ function Btn:UpdateTexts()
             else
                 tString:SetPoint("LEFT", self.Button, "RIGHT", 5, 0)
             end
-            if self.CbResult.text then
+            local t = self.CbResult.text or (self.CbResult.item and self.CbResult.item.name)
+            if t then
                 if self.EFrame:IsHorizontal() then
-                    tString:SetText(U.String.ToVertical(self.CbResult.text))
+                    tString:SetText(U.String.ToVertical(t))
                 else
-                    tString:SetText(self.CbResult.text)
+                    tString:SetText(t)
                 end
             end
             -- 如果没有学习这个技能，则将文字改成灰色半透明
@@ -381,11 +386,7 @@ function Btn:SetIcon()
     if self.Icon == nil then
         self:CreateIcon()
     end
-    if r.icon then
-        self.Icon:SetTexture(r.icon)
-    else
-        self.Icon:SetTexture(134400)
-    end
+    self.Icon:SetTexture(r.icon or r.item.icon or 134400)
     -- 设置物品边框
     if self.CbResult.borderColor then
         self.Border:SetBackdropBorderColor(unpack(self.CbResult.borderColor))
@@ -402,6 +403,10 @@ function Btn:SetMacro()
     end
     -- 设置宏命令
     self.Button:SetAttribute("type", "macro")
+    if r.macro then
+        self.Button:SetAttribute("macrotext", r.macro)
+        return
+    end
     local macroText = ""
     if r.item.type == const.ITEM_TYPE.ITEM then
         macroText = "/use item:" .. r.item.id

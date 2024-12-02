@@ -105,6 +105,15 @@ function HbFrame:UpdateAllEframes(event)
     end
 end
 
+function HbFrame:CompleteItemAttr()
+    if not self.EFrames then
+        return
+    end
+    for _, eFrame in pairs(self.EFrames) do
+        eFrame:CompleteItemAttr()
+    end
+end
+
 -- 更新按键设置
 function HbFrame:UpdateRegisterForClicks()
     if not self.EFrames then

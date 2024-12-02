@@ -13,6 +13,9 @@ local U = addon:GetModule('Utils')
 ---@class E: AceModule
 local E = addon:NewModule("Element")
 
+---@class Item: AceModule
+local Item = addon:GetModule("Item")
+
 ---@class Trigger: AceModule
 local Trigger = addon:GetModule("Trigger")
 
@@ -182,6 +185,9 @@ function E:GetEvents(config)
         events["SPELLS_CHANGED"] = true
         events["PLAYER_TALENT_UPDATE"] = true
     end
+    if config.type == const.ELEMENT_TYPE.MACRO then
+        events["MODIFIER_STATE_CHANGED"] = true
+    end
     if config.triggers and #config.triggers > 0 then
         for _, trigger in ipairs(config.triggers) do
             if trigger.type == "aura" then
@@ -199,4 +205,32 @@ function E:GetEvents(config)
         end
     end
     return events
+end
+
+-- 更新config的ItemAttr
+function E:CompleteItemAttr(config)
+    if config.type == const.ELEMENT_TYPE.BAR then
+        if config.elements then
+            for _, ele in ipairs(config.elements) do
+                E:CompleteItemAttr(ele)
+            end
+        end
+    end
+    if config.type == const.ELEMENT_TYPE.MACRO then
+        local macro = E:ToMacro(config)
+        if macro.extraAttr.ast then
+            if macro.extraAttr.ast.tooltip then
+                Item:CompleteItemAttr(macro.extraAttr.ast.tooltip)
+            end
+            if macro.extraAttr.ast.commands then
+                for _, command in ipairs(macro.extraAttr.ast.commands) do
+                    if command.param and command.param.items then
+                        for _, item in ipairs(command.param.items) do
+                            Item:CompleteItemAttr(item)
+                        end
+                    end
+                end
+            end
+        end
+    end
 end

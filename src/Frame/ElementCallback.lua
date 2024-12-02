@@ -27,12 +27,15 @@ local Effect = addon:GetModule("Effect")
 ---@class Api: AceModule
 local Api = addon:GetModule("Api")
 
+---@class Macro: AceModule
+local Macro = addon:GetModule("Macro")
+
 ---@class ElementCallback: AceModule
 local ECB = addon:NewModule("ElementCallback")
 
 ---@class CbResult
----@field icon string | number
----@field text string
+---@field icon string | number | nil
+---@field text string | nil
 ---@field borderColor RGBAColor | nil
 ---@field isLearned boolean | nil 是否学习或者拥有
 ---@field isUsable boolean | nil 是否可以使用
@@ -137,6 +140,127 @@ function ECB.CallbackOfSeqMode(element, lastCbResults)
     end
     return { cb, }
 end
+
+-- 宏callback
+-- 函数永远只能返回包含一个CbResult的列表
+---@param element MacroConfig
+---@param lastCbResults CbResult[] 上一次更新的结果
+---@return CbResult[]
+function ECB.CallbackOfMacroMode(element, lastCbResults)
+    ---@type CbResult
+    local cb = {}
+    local ast = element.extraAttr.ast
+    if ast == nil then
+        cb = ECB:NilCallback()
+        return { cb, }
+    end
+    if ast.tooltip ~= nil then
+        cb.item = ast.tooltip
+    end
+    if ast.commands ~= nil then
+        local macroStrings = {} ---@type string[]
+        for _, command in ipairs(ast.commands) do
+            local macroCondString = nil ---@type nil | string
+            local commandMet = false -- 用来判断每一条宏命令的条件语句是否满足条件，如果有一个条件满足，则整条语句可以执行
+            if command.conds then
+                for _, cond in ipairs(command.conds) do
+                    local condString, condMet = Macro:CgCond(cond, true)
+                    if condMet == true then
+                        commandMet = true
+                    end
+                    if condString ~= nil then
+                        if macroCondString == nil then
+                            macroCondString = ""
+                        end
+                        macroCondString = macroCondString .. "[" .. condString .. "]"
+                    end
+                end
+            else
+                commandMet = true -- 如果没有宏条件，则默认满足条件
+            end
+            local macroParamString = nil --- @type nil | string
+            if command.param then
+                macroParamString = Macro:CgParam(command)
+            end
+            local macroString = "/" .. command.cmd
+            if macroCondString then
+                macroString = macroString .. " " .. macroCondString
+            end
+            if macroParamString then
+                macroString = macroString .. " " .. macroParamString
+            end
+            table.insert(macroStrings, macroString)
+            if commandMet == true and command.cmd == "use" and cb.item == nil then
+                if command.param.items and #command.param.items > 0 then
+                    cb.item = command.param.items[1]
+                end
+                if command.param.slot then
+                    local slotItemID = GetInventoryItemID("player", command.param.slot)
+                    if slotItemID then
+                        local itemID, _, _, _, icon, _, _ = Api.GetItemInfoInstant(slotItemID)
+                        if itemID then
+                            local itemAttr = { id = itemID, icon = icon, name = C_Item.GetItemNameByID(itemID), type =
+                            const.ITEM_TYPE.EQUIPMENT } ---@type ItemAttr
+                            cb.item = itemAttr
+                        end
+                    end
+                end
+            end
+        end
+        cb.macro = table.concat(macroStrings, "\n")
+    end
+    return { cb, }
+end
+
+
+-- 获取宏图标
+---@param element ElementConfig
+---@return ItemAttr | nil
+function ECB.UpdateMacroItemInfo(element)
+    local macro = E:ToMacro(element)
+    local ast = macro.extraAttr.ast
+    if ast == nil then
+        return nil
+    end
+    if ast.tooltip ~= nil then
+        return ast.tooltip
+    end
+    if ast.commands ~= nil then
+        for _, command in ipairs(ast.commands) do
+            if command.cmd == "use" then
+                local commandMet = false -- 用来判断每一条宏命令的条件语句是否满足条件，如果有一个条件满足，则整条语句可以执行
+                if command.conds then
+                    for _, cond in ipairs(command.conds) do
+                        local _, condMet = Macro:CgCond(cond, true)
+                        if condMet == true then
+                            commandMet = true
+                        end
+                    end
+                else
+                    commandMet = true -- 如果没有宏条件，则默认满足条件
+                end
+                if commandMet then
+                    if command.param.items and #command.param.items > 0 then
+                        return command.param.items[1]
+                    end
+                    if command.param.slot then
+                        local slotItemID = GetInventoryItemID("player", command.param.slot)
+                    if slotItemID then
+                        local itemID, _, _, _, icon, _, _ = Api.GetItemInfoInstant(slotItemID)
+                        if itemID then
+                            local itemAttr = { id = itemID, icon = icon, name = C_Item.GetItemNameByID(itemID), type =
+                            const.ITEM_TYPE.EQUIPMENT } ---@type ItemAttr
+                            return itemAttr
+                        end
+                    end
+                    end
+                end
+            end
+        end
+    end
+    return nil
+end
+
 
 -- 单个展示模式callback
 -- 函数永远只能返回包含一个CbResult的列表
@@ -245,7 +369,7 @@ function ECB:UpdateSelfTrigger(cbResult)
     if cbResult.item then
         if cbResult.item.type == const.ITEM_TYPE.ITEM or cbResult.item.type == const.ITEM_TYPE.TOY or cbResult.item.type == const.ITEM_TYPE.EQUIPMENT then
             local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType, expansionID, setID, isCraftingReagent =
-            Api.GetItemInfo(cbResult.item.id)
+                Api.GetItemInfo(cbResult.item.id)
             if itemQuality then
                 cbResult.borderColor = const.ItemQualityColor[itemQuality]
             end

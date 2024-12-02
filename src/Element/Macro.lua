@@ -80,85 +80,35 @@ end
 ---@param macro string
 ---@return Result -- 返回宏AST结果
 function Macro:Ast(macro)
+    ---@type MacroAst
     local result = {
         tooltip = nil, -- 用于存储 showtooltip 的参数（如果有的话）
-        commands = {}      -- 用于存储宏的其他命令
-    } ---@type MacroAst
-    local _macroString = U.String.Utf8ToTable(macro)
-    -- 移除空字符
-    local startIndex = 1
-    for i = 1, #_macroString do
-        if _macroString[i] ~= " " then
-            startIndex = i
-            break
+        commands = {}  -- 用于存储宏的其他命令
+    }
+    -- 按"\n"回车↩️拆分字符串
+    local macroStrings = {} ---@type string[]
+    for _, v in ipairs(U.String.Split(macro, "\n")) do
+        v = U.String.Trim(v)
+        if v ~= "" then
+            table.insert(macroStrings, v)
         end
     end
-    local macroString = {} ---@type MC[]
-    for i = startIndex, #_macroString do
-        table.insert(macroString, _macroString[i])
-    end
-    _macroString = {}
-
-    --------------------------
-    ---- 找到第一个命名符号：/
-    --------------------------
-    local firstCmdPreIndex = 1
-    for index, char in ipairs(macroString) do
-        if char == "/" then
-            firstCmdPreIndex = index
-            break
+    local commandStrings = macroStrings
+    -- 如果第一行是#showtooltip开头，获取宏的图标
+    if string.sub(macroStrings[1], 1, 12) == "#showtooltip" then
+        local macroIcon = U.String.Trim(string.sub(macroStrings[1], 13))
+        if macroIcon ~= "" then
+            local macroIconItemAttr = Item:CreateItemAttr(macroIcon)
+            Item:CompleteItemAttr(macroIconItemAttr)
+            result.tooltip = macroIconItemAttr
         end
+        commandStrings = { unpack(macroStrings, 2) }
     end
-
-    --------------------------
-    ---- 获取宏图标
-    --------------------------
-    -- 如果第一个字符就是/，则表示没有#showtooltip，使用智能图标
-    if firstCmdPreIndex == 1 then
-        result.tooltip = nil
-        -- 否则解析`#showtooltip <icon>`来获取需要展示的图标
-    else
-        local showtooltipString = ""
-        for i = 1, firstCmdPreIndex - 1 do
-            showtooltipString = showtooltipString .. macroString[i]
-        end
-        local param = showtooltipString:match("#showtooltip%s*(%S+)")
-        if param then
-            local macroIcon = param:match("^%s*(.-)%s*$")
-            if macroIcon ~= "" then
-                local macroIconR = Item:GetFromVal(macroIcon)
-                if macroIconR:is_ok() then
-                    result.tooltip = macroIconR:unwrap()
-                else
-                    return macroIconR
-                end
-            end
-        end
-    end
-
-    ---------------------------
-    ---- 遍历获取命令字符串列表
-    ---------------------------
-    local statStrings = {} ---@type table[]
-    local statString = {} ---@type table
-    for i = firstCmdPreIndex, #macroString do
-        local s = macroString[i]
-        if s == "/" then -- 表示新语句的开始，将旧的stat写入到stats中
-            if #statString ~= 0 then
-                table.insert(statStrings, U.Table.DeepCopyList(statString))
-                statString = {}
-            end
-        end
-        table.insert(statString, s)
-    end
-    table.insert(statStrings, U.Table.DeepCopyList(statString))
-
-
     ---------------------------------
     ---- 遍历命令字符串列表，组成AST
     ---------------------------------
     local macroCommands = {} ---@type MacroCommand[]
-    for _, stat in ipairs(statStrings) do
+    for _, stat in ipairs(commandStrings) do
         local r = Macro:AstParse(stat)
         if r:is_err() then
             return r
@@ -171,7 +121,16 @@ function Macro:Ast(macro)
         end
         local conds = {} ---@type MacroCond[]
         for _, cond in ipairs(p.conds) do
-            table.insert(conds, Macro:AstCondition(Macro:MCListToString(cond)):unwrap())
+            local condString = Macro:MCListToString(cond)
+            condString = U.String.Trim(condString)
+            condString = string.sub(condString, 2, -2) -- 移除宏条件的[和]，例如[help, dead, combat]变成help, dead, combat
+            -- 如果宏条件内为空的条件：[]，则表示永远匹配，那么整个语句的条件可以移除
+            if condString == "" then
+                conds = {}
+                break
+            else
+                table.insert(conds, Macro:AstCondition(condString):unwrap())
+            end
         end
         local remaining = Macro:MCListToString(p.remaining)
         local paramR = Macro:AstParam(cmdR:unwrap(), remaining)
@@ -192,27 +151,22 @@ end
 -- 生成cmd：例如 "/cast"、"/use"
 -- 生成conds：例如["@target", "@mouseover, dead"]
 -- 生成remaining：例如"reset=60 item:224464, item:211880; reset=60 item:5512, item:211880"、"疾跑"
----@param statement MC[]
+---@param stat string
 ---@return Result
-function Macro:AstParse(statement)
-    local cmd = {}  ---@type MC[]
+function Macro:AstParse(stat)
+    local statement = U.String.Utf8ToTable(stat)
+    local cmd = {} ---@type MC[]
     local cmdEnd = false
     local conds = {} ---@type MC[][]
     local condsEnd = false
-    local cond = {}---@type MC[]
+    local cond = {} ---@type MC[]
     local condStart = false
     local remainings = {} ---@type MC[][]
     local remaining = {} ---@type MC[]
     local remainingStart = false
     if statement and #statement ~= 0 or statement[1] == "/" then
         for _, s in ipairs(statement) do
-            if s == "/" then
-                if cmdEnd == false then
-                    table.insert(cmd, s)
-                else
-                    return R:Err("/错误1。")
-                end
-            elseif s == " " then              -- 空格字符
+            if s == " " then                  -- 空格字符
                 if cmdEnd == false then       -- 如果命令没有结束，此时空格表示结束命令语句
                     cmdEnd = true
                 elseif condsEnd == false then -- 如果条件组没有结束
@@ -224,13 +178,13 @@ function Macro:AstParse(statement)
                 end
             elseif s == "[" then
                 if cmdEnd == false then
-                    return R:Err("[错误1。")
+                    return R:Err(s .. " [错误1。")
                 end
                 if condStart == true then
-                    return R:Err("[错误2。")
+                    return R:Err(s .. " [错误2。")
                 end
                 if #cond ~= 0 then
-                    return R:Err("[错误3。")
+                    return R:Err(s .. " [错误3。")
                 end
                 if condsEnd == true then
                     table.insert(remaining, s)
@@ -240,13 +194,13 @@ function Macro:AstParse(statement)
                 end
             elseif s == "]" then
                 if cmdEnd == false then
-                    return R:Err("]错误1。")
+                    return R:Err(s .. " ]错误1。")
                 end
                 if condStart == false then
-                    return R:Err("]错误2。")
+                    return R:Err(s .. " ]错误2。")
                 end
                 if cond[1] ~= "[" then
-                    return R:Err("]错误3。")
+                    return R:Err(s .. " ]错误3。")
                 end
                 if condsEnd == true then
                     table.insert(remaining, s)
@@ -257,11 +211,11 @@ function Macro:AstParse(statement)
                     condStart = false
                 end
             elseif s == ";" then
-                if cmdEnd == false then  -- 如果当前处在命令阶段，不能加入;分号
-                    return R:Err(";错误1。")
+                if cmdEnd == false then -- 如果当前处在命令阶段，不能加入;分号
+                    return R:Err(s .. " ;错误1。")
                 end
-                if condStart == true then  -- 如果当前正处在条件激活阶段，不能加入;分号
-                    return R:Err(";错误2。")
+                if condStart == true then -- 如果当前正处在条件激活阶段，不能加入;分号
+                    return R:Err(s .. " ;错误2。")
                 end
                 condsEnd = true
                 table.insert(remainings, U.Table.DeepCopyList(remaining))
@@ -298,22 +252,21 @@ end
 ---@param condString string
 ---@return Result MacroCond
 function Macro:AstCondition(condString)
-    local macroCond = {booleanConds = {}, targetConds = {}} ---@type MacroCond
-    if condString == nil or #condString == 0 then
+    local macroCond = { booleanConds = {}, targetConds = {} } ---@type MacroCond
+    if condString == nil or condString == "" then
         return R:Ok(macroCond)
     end
-    condString = string.sub(condString, 2, -2)  -- 移除宏条件的[和]，例如[help, dead, combat]变成help, dead, combat
     local conds = U.String.Split(condString, ",")
     for _, cond in ipairs(conds) do
         if string.sub(cond, 1, 7) == "target=" then
             local c = string.sub(cond, 8)
             c = U.String.Trim(c)
-            local targetCond = { type=c }  ---@type TargetCond
+            local targetCond = { type = c } ---@type TargetCond
             table.insert(macroCond.targetConds, targetCond)
         elseif string.sub(cond, 1, 1) == "@" then
             local c = string.sub(cond, 2)
             c = U.String.Trim(c)
-            local targetCond = { type=c }  ---@type TargetCond
+            local targetCond = { type = c } ---@type TargetCond
             table.insert(macroCond.targetConds, targetCond)
         else
             table.insert(macroCond.booleanConds, Macro:AstStringToBooleanCond(cond))
@@ -322,13 +275,12 @@ function Macro:AstCondition(condString)
     return R:Ok(macroCond)
 end
 
-
 -- 将宏条件字符串转为BooleanCond格式
 ---@param str string
 ---@return BooleanCond
 function Macro:AstStringToBooleanCond(str)
     str = U.String.Trim(str)
-    local boolCond = {type="unknow", isTarget=false, params=str} ---@type BooleanCond
+    local boolCond = { type = "unknow", isTarget = false, params = str } ---@type BooleanCond
     -- 目标是否存在：exists、noexists
     if str == "exists" then
         boolCond.type = "exists"
@@ -549,12 +501,6 @@ function Macro:AstStringToBooleanCond(str)
         boolCond.params = true
         return boolCond
     end
-    -- 玩家是否开启了pvp
-    if str == "pvpcombat" then
-        boolCond.type = "pvpcombat"
-        boolCond.params = true
-        return boolCond
-    end
     -- 玩家是否存在休息区域
     if str == "resting" then
         boolCond.type = "resting"
@@ -583,9 +529,14 @@ function Macro:AstStringToBooleanCond(str)
         return boolCond
     end
     -- 当mod处在何种情况下激活
-    if string == "nomod" or string == "nomodifier" then
+    if str == "nomod" or str == "nomodifier" then
         boolCond.type = "mod"
         boolCond.params = "nomod"
+        return boolCond
+    end
+    if str == "mod" or str == "modifier" then
+        boolCond.type = "mod"
+        boolCond.params = "mod"
         return boolCond
     end
     if string.sub(str, 1, 9) == "modifier:" then
@@ -631,21 +582,17 @@ function Macro:AstParam(cmd, str)
     if cmd == "use" then
         -- 如果是/use item:开头，表示使用物品
         if string.sub(str, 1, 5) == "item:" then
-            local itemResult = Item:GetFromVal(string.sub(str, 6), const.ITEM_TYPE.ITEM)
-            if itemResult:is_err() then
-                return itemResult
-            end
+            local item = Item:CreateItemAttr(string.sub(str, 6), const.ITEM_TYPE.ITEM)
+            Item:CompleteItemAttr(item)
             param.items = {}
-            table.insert(param.items, itemResult:unwrap())
+            table.insert(param.items, item)
         else
             -- 如果是/use xxx字符串，表示使用技能，这里扩展可以使用物品、坐骑
             if tonumber(str) == nil then
-                local itemResult = Item:GetFromVal(str)
-                if itemResult:is_err() then
-                    return itemResult
-                end
+                local item = Item:CreateItemAttr(str)
+                Item:CompleteItemAttr(item)
                 param.items = {}
-                table.insert(param.items, itemResult:unwrap())
+                table.insert(param.items, item)
             else
                 local slot = tonumber(str)
                 -- 如果是/use 12 这种使用装备插嘈
@@ -661,219 +608,484 @@ function Macro:AstParam(cmd, str)
     return R:Ok(param)
 end
 
-
 -- 将BooleanCond格式转为宏条件字符串
----@param boolCond BooleanCond
----@return string | nil
-function Macro:CgBooleanCond(boolCond)
+---@param boolCond BooleanCond 宏BooleanCond ast
+---@param verify boolean 是否验证条件是否成立
+---@param target MacroTargetCondType | nil 宏目标
+---@return string | nil, boolean -- 宏条件字符串，是否通过校验
+function Macro:CgBooleanCond(boolCond, verify, target)
+    target = target or "target"
     -- 目标是否存在
     if boolCond.type == "exists" then
         if boolCond.params == true then
-            return "exists"
+            if verify then
+                if not UnitExists(target) then
+                    return "exists", false
+                end
+            end
+            return "exists", true
         else
-            return "noexists"
+            if verify then
+                if UnitExists(target) then
+                    return "noexists", false
+                end
+            end
+            return "noexists", true
         end
     end
     -- 目标是否友善
     if boolCond.type == "help" then
         if boolCond.params == true then
-            return "help"
+            if verify then
+                if not UnitCanAssist("player", target) then
+                    return "help", false
+                end
+            end
+            return "help", true
         else
-            return "harm"
+            if verify then
+                if not UnitCanAttack("player", target) then
+                    return "harm", false
+                end
+            end
+            return "harm", true
         end
     end
     -- 目标是否死亡
     if boolCond.type == "dead" then
         if boolCond.params == true then
-            return "dead"
+            if verify then
+                if not UnitIsDeadOrGhost(target) then
+                    return "dead", false
+                end
+            end
+            return "dead", true
         else
-            return "nodead"
+            if verify then
+                if UnitIsDeadOrGhost(target) then
+                    return "nodead", false
+                end
+            end
+            return "nodead", true
         end
     end
     -- 目标是否在队伍中
     if boolCond.type == "party" then
-        return "party"
+        if verify then
+            if not UnitInParty(target) then
+                return "party", false
+            end
+        end
+        return "party", true
     end
     -- 目标是否在团队中
     if boolCond.type == "raid" then
-        return "raid"
+        if verify then
+            if not UnitInRaid(target) then
+                return "raid", false
+            end
+        end
+        return "raid", true
     end
     -- 目标是否在载具中
     if boolCond.type == "unithasvehicleui" then
-        return "unithasvehicleui"
+        if verify then
+            if not UnitInVehicle(target) then
+                return "unithasvehicleui", false
+            end
+        end
+        return "unithasvehicleui", true
     end
     -- 玩家是否处在御龙术区域
     if boolCond.type == "advflyable" then
-        return "advflyable"
+        if verify then
+            if not IsAdvancedFlyableArea() then
+                return "advflyable", false
+            end
+        end
+        return "advflyable", true
     end
     -- 玩家是否可以退出载具
     if boolCond.type == "canexitvehicle" then
-        return "canexitvehicle"
+        if verify then
+            if not CanExitVehicle() then
+                return "canexitvehicle", false
+            end
+        end
+        return "canexitvehicle", true
     end
     -- 玩家是否在引导法术，是否在引导法术：法术名称
     if boolCond.type == "channeling" then
+        if verify then
+            local name, _, _, _, _, _, _, _, _, _ = UnitChannelInfo("player")
+            if name then
+                if boolCond.params == true then
+                    return "channeling", true
+                else
+                    if name == boolCond.params then
+                        return "channeling:" .. boolCond.params, true
+                    else
+                        return "channeling:" .. boolCond.params, false
+                    end
+                end
+            else
+                if boolCond.params == true then
+                    return "channeling", false
+                else
+                    return "channeling:" .. boolCond.params, false
+                end
+            end
+        end
         if boolCond.params == true then
-            return "channeling"
+            return "channeling", true
         else
-            return "channeling:" .. boolCond.params
+            return "channeling:" .. boolCond.params, true
         end
     end
     -- 玩家是否在战斗中
     if boolCond.type == "combat" then
         if boolCond.params == true then
-            return "combat"
+            if verify then
+                if not InCombatLockdown() then
+                    return "combat", false
+                end
+            end
+            return "combat", true
         else
-            return "nocombat"
+            if verify then
+                if InCombatLockdown() then
+                    return "nocombat", false
+                end
+            end
+            return "nocombat", true
         end
     end
     -- 玩家是否装备了某个槽位装备
     if boolCond.type == "equipped" then
-        return "equipped:" .. boolCond.params
+        if verify then
+            ---@diagnostic disable-next-line: param-type-mismatch
+            if not Api.IsEquippedItemType(boolCond.params) then
+                return "equipped:" .. boolCond.params, false
+            end
+        end
+        return "equipped:" .. boolCond.params, true
     end
     -- 玩家是否装备了某个装备（不要求指定槽位）
     if boolCond.type == "worn" then
-        return "worn:" .. boolCond.params
+        if verify then
+            ---@diagnostic disable-next-line: param-type-mismatch
+            if not Api.IsEquippedItemType(boolCond.params) then
+                return "worn:" .. boolCond.params, false
+            end
+        end
+        return "worn:" .. boolCond.params, true
     end
     -- 玩家是否可以飞行
     if boolCond.type == "flyable" then
         if boolCond.params == true then
-            return "flyable"
+            if verify then
+                if not IsFlyableArea() then
+                    return "flyable", false
+                end
+            end
+            return "flyable", true
         else
-            return "noflyable"
+            if verify then
+                if IsFlyableArea() then
+                    return "noflyable", false
+                end
+            end
+            return "noflyable", true
         end
     end
     -- 玩家是否在飞行
     if boolCond.type == "flying" then
         if boolCond.params == true then
-            return "flying"
+            if verify then
+                if not IsFlying() then
+                    return "flying", false
+                end
+            end
+            return "flying", true
         else
-            return "noflying"
+            if verify then
+                if IsFlying() then
+                    return "noflying", false
+                end
+            end
+            return "noflying", true
         end
     end
     -- 玩家处在何种形态（德鲁伊）
     if boolCond.type == "form" then
         if type(boolCond.params) == "table" then
             ---@diagnostic disable-next-line: param-type-mismatch
-            return "form:" .. table.concat(boolCond.params, "/")
+            local condString = "form:" .. table.concat(boolCond.params, "/")
+            if verify then
+                ---@diagnostic disable-next-line: param-type-mismatch
+                if U.Table.IsInArray(boolCond.params, tostring(GetShapeshiftForm())) then
+                    return condString, true
+                else
+                    return condString, false
+                end
+            else
+                return condString, true
+            end
         else
-            return "form"
+            return "form", true
         end
     end
     -- 玩家处在何种姿态（盗贼、战士）
     if boolCond.type == "stance" then
         if type(boolCond.params) == "table" then
             ---@diagnostic disable-next-line: param-type-mismatch
-            return "stance:" .. table.concat(boolCond.params, "/")
+            local condString = "stance:" .. table.concat(boolCond.params, "/")
+            if verify then
+                ---@diagnostic disable-next-line: param-type-mismatch
+                if U.Table.IsInArray(boolCond.params, tostring(GetShapeshiftForm())) then
+                    return condString, true
+                else
+                    return condString, false
+                end
+            else
+                return condString, true
+            end
         else
-            return "stance"
+            return "stance", true
         end
     end
     -- 玩家是否处在队伍中：group、group:party、group:raid
     if boolCond.type == "group" then
         if boolCond.params == true then
-            return "group"
+            if verify then
+                if IsInGroup() or IsInRaid() then
+                    return "group", true
+                else
+                    return "group", false
+                end
+            end
+            return "group", true
         else
-            return "group:" .. boolCond.params
+            if verify then
+                if boolCond.params == "party" and IsInGroup() then
+                    return "group:" .. boolCond.params, true
+                end
+                if boolCond.params == "raid" and IsInRaid() then
+                    return "group:" .. boolCond.params, true
+                end
+                return "group:" .. boolCond.params, false
+            end
+            return "group:" .. boolCond.params, true
         end
     end
     -- 玩家是否在屋内：indoors、outdoors
     if boolCond.type == "indoors" then
         if boolCond.params == true then
-            return "indoors"
+            if verify then
+                if not IsIndoors() then
+                    return "indoors", false
+                end
+            end
+            return "indoors", true
         else
-            return "outdoors"
+            if verify then
+                if not IsOutdoors() then
+                    return "outdoors", false
+                end
+            end
+            return "outdoors", true
         end
     end
     -- 玩家是否学习了某个技能
     if boolCond.type == "known" then
-        return "known:" .. boolCond.params
+        if verify then
+            ---@diagnostic disable-next-line: param-type-mismatch
+            local spellInfo = Api.GetSpellInfo(boolCond.params or 0)
+            if spellInfo then
+                if IsPlayerSpell(spellInfo.spellID) then
+                    return "known:" .. boolCond.params, true
+                end
+            end
+            return "known:" .. boolCond.params, false
+        else
+            return "known:" .. boolCond.params, true
+        end
     end
     -- 玩家是否在坐骑上
     if boolCond.type == "mounted" then
         if boolCond.params == true then
-            return "mounted"
+            if verify then
+                if not IsMounted() then
+                    return "mounted", false
+                end
+            end
+            return "mounted", true
         else
-            return "nomounted"
+            if verify then
+                if not IsMounted() then
+                    return "nomounted", false
+                end
+            end
+            return "nomounted", true
         end
     end
     -- 玩家是否召唤了名称为pet的宠物（猎人、术士）
     -- 玩家是否召唤了类型为petFamily的宠物？
     if boolCond.type == "pet" then
-        return "pet:" .. boolCond.params
+        if verify then
+            if UnitName("pet") ~= boolCond.params then
+                return "pet:" .. boolCond.params, false
+            end
+        end
+        return "pet:" .. boolCond.params, true
     end
     if boolCond.type == "petFamily" then
-        return "pet:family=" .. boolCond.params
+        if verify then
+            if UnitCreatureFamily("pet") ~= boolCond.params then
+                return "pet:family=" .. boolCond.params, false
+            end
+        end
+        return "pet:family=" .. boolCond.params, true
     end
     -- 玩家是否在宠物战斗中
     if boolCond.type == "petbattle" then
-        return "petbattle"
-    end
-    -- 玩家是否开启了pvp
-    if boolCond.type == "pvpcombat" then
-        return "pvpcombat"
+        if verify then
+            if not C_PetBattles.IsInBattle() then
+                return "petbattle", false
+            end
+        end
+        return "petbattle", true
     end
     -- 玩家是否存在休息区域
     if boolCond.type == "resting" then
-        return "resting"
+        if verify then
+            if not IsResting() then
+                return "resting", false
+            end
+        end
+        return "resting", true
     end
     -- 玩家处在何种专精
     if boolCond.type == "spec" then
         if type(boolCond.params) == "table" then
             ---@diagnostic disable-next-line: param-type-mismatch
-            return "spec:" .. table.concat(boolCond.params, "/")
+            local condString = "spec:" .. table.concat(boolCond.params, "/")
+            if verify then
+                ---@diagnostic disable-next-line: param-type-mismatch
+                if U.Table.IsInArray(boolCond.params, tostring(GetSpecialization())) then
+                    return condString, true
+                else
+                    return condString, false
+                end
+            else
+                return condString, false
+            end
         else
-            return "spec"
+            return "spec", true
         end
     end
     -- 玩家是否处在潜行状态
     if boolCond.type == "stealth" then
-        return "stealth"
+        if verify then
+            if not IsStealthed() then
+                return "stealth", false
+            end
+        end
+        return "stealth", true
     end
     -- 玩家是否处在游泳状态
     if boolCond.type == "swimming" then
-        return "swimming"
+        if verify then
+            if not IsSubmerged("player") then
+                return "swimming", false
+            end
+        end
+        return "swimming", true
     end
     -- 当mod处在何种情况下激活
     if boolCond.type == "mod" then
-        if boolCond.params == "nomod" then
-            return "nomod"
+        if boolCond.params == "mod" then
+            if verify then
+                if not IsModifierKeyDown() then
+                    return "mod", false
+                end
+            end
+            return "mod", true
+        elseif boolCond.params == "nomod" then
+            if verify then
+                if IsModifierKeyDown() then
+                    return "nomod", false
+                end
+            end
+            return "nomod", true
         else
             if type(boolCond.params) == "table" then
                 ---@diagnostic disable-next-line: param-type-mismatch
-                return "mod:" .. table.concat(boolCond.params, "/")
+                local condString = "mod:" .. table.concat(boolCond.params, "/")
+                ---@diagnostic disable-next-line: param-type-mismatch
+                for _, m in ipairs(boolCond.params) do
+                    if m == "alt" and IsAltKeyDown() then
+                        return condString, true
+                    end
+                    if m == "shift" and IsShiftKeyDown() then
+                        return condString, true
+                    end
+                    if m == "ctrl" and IsControlKeyDown() then
+                        return condString, true
+                    end
+                    if m == "lalt" and IsLeftAltKeyDown() then
+                        return condString, true
+                    end
+                    if m == "ralt" and IsRightAltKeyDown() then
+                        return condString, true
+                    end
+                    if m == "lshift" and IsLeftShiftKeyDown() then
+                        return condString, true
+                    end
+                    if m == "rshift" and IsRightShiftKeyDown() then
+                        return condString, true
+                    end
+                    if m == "lctrl" and IsLeftControlKeyDown() then
+                        return condString, true
+                    end
+                    if m == "rctrl" and IsRightControlKeyDown() then
+                        return condString, true
+                    end
+                end
+                return condString, false
             else
-                return "mod:" .. boolCond.params
+                return "mod:", true
             end
         end
     end
-    return nil
-end
-
--- 将TargetCond格式转为宏条件字符串
----@param targetCond TargetCond
-function Macro:CgTargetCond(targetCond)
-    return "@" .. targetCond.type
+    return nil, true
 end
 
 -- 将条件AST转为宏字符串
----@param macroCond MacroCond
----@return string
-function Macro:CgCond(macroCond)
+---@param macroCond MacroCond  宏条件AST
+---@param verify boolean 验证条件是否成立
+---@return string | nil, boolean  -- 条件字符串, 是否通过校验
+function Macro:CgCond(macroCond, verify)
     local condStrings = {} ---@type string[]
-    if macroCond.targetConds then
-        for _, targetCond in ipairs(macroCond.targetConds) do
-            table.insert(condStrings, Macro:CgTargetCond(targetCond))
-        end
+    local target = nil ---@type MacroTargetCondType
+    local verifyResult = true
+    if macroCond.targetConds and #macroCond.targetConds > 0 then
+        target = macroCond.targetConds[1].type
+        table.insert(condStrings, "@" .. target)
     end
     if macroCond.booleanConds then
         for _, booleanCond in ipairs(macroCond.booleanConds) do
-            table.insert(condStrings, Macro:CgBooleanCond(booleanCond))
+            local condString, verifyR = Macro:CgBooleanCond(booleanCond, verify, target)
+            if verifyR == false then
+                verifyResult = false
+            end
+            table.insert(condStrings, condString)
         end
     end
     if #condStrings then
-        return table.concat(condStrings, ",")
+        return table.concat(condStrings, ","), verifyResult
     else
-        return ""
+        return nil, verifyResult
     end
 end
 
@@ -908,8 +1120,9 @@ end
 
 -- 宏ast转为宏字符串
 ---@param macroAst MacroAst
+---@param verify boolean 是否验证条件是否成立
 ---@return string
-function Macro:Cg(macroAst)
+function Macro:Cg(macroAst, verify)
     local macroStrings = {} ---@type string[]
     if macroAst.tooltip then
         table.insert(macroStrings, "#showtooltip " .. macroAst.tooltip.name)
@@ -918,10 +1131,12 @@ function Macro:Cg(macroAst)
         for _, command in ipairs(macroAst.commands) do
             local macroCondString = nil ---@type nil | string
             if command.conds then
-                macroCondString = ""
                 for _, cond in ipairs(command.conds) do
-                    local condString = Macro:CgCond(cond)
+                    local condString = select(1, Macro:CgCond(cond, verify))
                     if condString ~= nil then
+                        if macroCondString == nil then
+                            macroCondString = ""
+                        end
                         macroCondString = macroCondString .. "[" .. condString .. "]"
                     end
                 end
