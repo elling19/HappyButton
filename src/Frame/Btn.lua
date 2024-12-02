@@ -104,18 +104,22 @@ function Btn:UpdateByElementFrame(cbIndex, btnIndex, event)
 end
 
 -- 按钮自身更新CbResult
----@param event string | nil
+---@param event EventString | nil
 function Btn:UpdateBySelf(event)
     if event and self.CbInfo.e[event] == nil then
         return
     end
-    -- 宏在更新的时候需要改变宏图标
-    if self.CbInfo.p.type == const.ELEMENT_TYPE.MACRO then
-        self.CbResult.item = ECB.UpdateMacroItemInfo(self.CbInfo.p)
-    end 
-    ECB:UpdateSelfTrigger(self.CbResult)
-    ECB:UseTrigger(self.CbInfo.p, self.CbResult)
-    self:Update()
+    if event == "SPELL_UPDATE_COOLDOWN" then
+        self:SetCooldown()
+    else
+        -- 宏在更新的时候需要改变宏图标
+        if self.CbInfo.p.type == const.ELEMENT_TYPE.MACRO then
+            self.CbResult.item = ECB.UpdateMacroItemInfo(self.CbInfo.p)
+        end
+        ECB:UpdateSelfTrigger(self.CbResult)
+        ECB:UseTrigger(self.CbInfo.p, self.CbResult)
+        self:Update()
+    end
 end
 
 function Btn:Update()

@@ -249,30 +249,35 @@ function ElementFrame:OutCombatUpdate(event)
         for _, cb in ipairs(self.Cbs) do
             ---@type CbResult[]
             local cbResults = {}
-            -- 判断是否通过展示条件判断，如果不通过，则相当于当前元素全部隐藏
-            if LoadCondition:Pass(cb.p.loadCond) == true then
-                cbResults = cb.f(cb.p, cb.r)
-                -- 反向遍历 rs 数组
-                for i = #cbResults, 1, -1 do
-                    local r = cbResults[i]
-                    ECB:UpdateSelfTrigger(r)
-                    ECB:UseTrigger(cb.p, r)
-                    -- 战斗外更新，如果发现隐藏按钮则是移除按钮
-                    local hideBtn = false
-                    if r.effects then
-                        for _, effect in ipairs(r.effects) do
-                            if effect.type == "btnHide" then
-                                hideBtn = true
-                                break
+            -- 如果当前事件不是这个cb需要监听的事件，则使用上一次cb
+            if cb.e[event] == nil then
+                cbResults = cb.r
+            else
+                -- 判断是否通过展示条件判断，如果不通过，则相当于当前元素全部隐藏
+                if LoadCondition:Pass(cb.p.loadCond) == true then
+                    cbResults = cb.f(cb.p, cb.r)
+                    -- 反向遍历 rs 数组
+                    for i = #cbResults, 1, -1 do
+                        local r = cbResults[i]
+                        ECB:UpdateSelfTrigger(r)
+                        ECB:UseTrigger(cb.p, r)
+                        -- 战斗外更新，如果发现隐藏按钮则是移除按钮
+                        local hideBtn = false
+                        if r.effects then
+                            for _, effect in ipairs(r.effects) do
+                                if effect.type == "btnHide" then
+                                    hideBtn = true
+                                    break
+                                end
                             end
                         end
+                        if hideBtn == true then
+                            table.remove(cbResults, i)
+                        end
                     end
-                    if hideBtn == true then
-                        table.remove(cbResults, i)
-                    end
+                else
+                    cbResults = {}
                 end
-            else
-                cbResults = {}
             end
             cb.r = cbResults
             for cbIndex, _ in ipairs(cb.r) do

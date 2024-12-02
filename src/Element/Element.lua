@@ -141,7 +141,6 @@ function E:GetEvents(config)
         ["PLAYER_REGEN_DISABLED"] = true,  -- 进入战斗
         ["PLAYER_REGEN_ENABLED"] = true, -- 退出战斗
         ["PLAYER_TARGET_CHANGED"] = true,
-        ["SPELL_UPDATE_COOLDOWN"] = true, -- 触发冷却/gcd
     }
     if config.listenEvents ~= nil then
         for event, _ in pairs(config.listenEvents) do
@@ -184,10 +183,12 @@ function E:GetEvents(config)
     if hasSpell then
         events["SPELLS_CHANGED"] = true
         events["PLAYER_TALENT_UPDATE"] = true
+        events["SPELL_UPDATE_COOLDOWN"] = true
     end
     if config.type == const.ELEMENT_TYPE.MACRO then
         events["MODIFIER_STATE_CHANGED"] = true
         events["UPDATE_MOUSEOVER_UNIT"] = true
+        events["SPELL_UPDATE_COOLDOWN"] = true
     end
     if config.triggers and #config.triggers > 0 then
         for _, trigger in ipairs(config.triggers) do
