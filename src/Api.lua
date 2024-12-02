@@ -24,6 +24,8 @@ Api.GetSpellCharges = (C_Spell and C_Spell.GetSpellCharges) and C_Spell.GetSpell
 Api.IsSpellUsable = (C_Spell and C_Spell.IsSpellUsable) and C_Spell.IsSpellUsable or IsUsableSpell
 ---@diagnostic disable-next-line: deprecated
 Api.GetSpellTexture = (C_Spell and C_Spell.GetSpellTexture) and C_Spell.GetSpellTexture or GetSpellTexture
+---@diagnostic disable-next-line: deprecated
+Api.IsEquippedItemType = (C_Item and C_Item.IsEquippedItemType) and C_Item.IsEquippedItemType or IsEquippedItemType
 
 ---@param spellIdentifier string | number
 ---@return SpellInfo?

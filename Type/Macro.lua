@@ -33,7 +33,6 @@
 --- | "pet" 
 --- | "petFamily"
 --- | "petbattle"
---- | "pvpcombat" 
 --- | "resting"
 --- | "spec"
 --- | "stealth" 

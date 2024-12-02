@@ -36,6 +36,7 @@ function BarCore:Start()
     BarCore.Frame:RegisterEvent("PLAYER_TALENT_UPDATE")     -- 天赋改变（技能）
     BarCore.Frame:RegisterEvent("PLAYER_TARGET_CHANGED")    -- 目标改变（脚本、触发器）
     BarCore.Frame:RegisterEvent("BAG_UPDATE")               -- 背包物品改变(物品、装备)
+    BarCore.Frame:RegisterEvent("MODIFIER_STATE_CHANGED")   -- 修饰按键按下
     -- BarCore.Frame:RegisterEvent("UNIT_AURA")
     BarCore.Frame:SetScript("OnEvent", function(self, event, ...)
         local args = {...}
@@ -48,13 +49,18 @@ function BarCore:Start()
                 HbFrame:UpdateRegisterForClicks()
             end
         end
+        -- 当玩家技能发生改变的时候，如果配置文件中有需要更新的ItemAttr，则更新ItemAttr（这是由于API无法获取非当前玩家拥有技能的信息）
+        if event== "PLAYER_TALENT_UPDATE" or "SPELLS_CHANGED" then
+            HbFrame:CompleteItemAttr()
+        end
         if event == "SPELL_UPDATE_COOLDOWN" or
             event == "PLAYER_EQUIPMENT_CHANGED" or
             event == "SPELLS_CHANGED" or
             event == "PLAYER_TALENT_UPDATE" or
             event == "PLAYER_TARGET_CHANGED" or
             event == "BAG_UPDATE" or
-            event == "PLAYER_REGEN_ENABLED"
+            event == "PLAYER_REGEN_ENABLED" or
+            event == "MODIFIER_STATE_CHANGED"
         then
             HbFrame:UpdateAllEframes(event)
         end

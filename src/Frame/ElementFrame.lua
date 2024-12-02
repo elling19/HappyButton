@@ -151,6 +151,11 @@ function ElementFrame:GetCbs(eleConfig)
         ---@type ElementCbInfo
         local cb = { f = ECB.CallbackOfSingleMode, p = item, r = {}, btns = {}, e = E:GetEvents(item) }
         return { cb, }
+    elseif eleConfig.type == const.ELEMENT_TYPE.MACRO then
+        local macro = E:ToMacro(eleConfig)
+        ---@type ElementCbInfo
+        local cb = { f = ECB.CallbackOfMacroMode, p = macro, r = {}, btns = {}, e = E:GetEvents(macro) }
+        return { cb, }
     elseif eleConfig.type == const.ELEMENT_TYPE.ITEM_GROUP then
         local itemGroup = E:ToItemGroup(eleConfig)
         ---@type ElementCbInfo
@@ -477,6 +482,14 @@ function ElementFrame:CloseEditMode()
         self.EditModeBg:Hide()
         self:SetBarShow()
     end
+end
+
+-- 更新配置文件中的物品属性
+function ElementFrame:CompleteItemAttr()
+    if self.Config == nil then
+        return
+    end
+    E:CompleteItemAttr(self.Config)
 end
 
 -- 卸载框体
