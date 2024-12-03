@@ -57,6 +57,12 @@ for e, needUpdate in pairs(registerEvents) do
     end
 end
 
+-- 限流事件
+local throttlingEvents = {
+    ["SPELL_UPDATE_COOLDOWN"] = {},
+    ["BAG_UPDATE_COOLDOWN"] = {}
+}
+
 -- 注册事件
 function BarCore:Start()
     for event, _ in pairs(registerEvents) do
@@ -84,7 +90,17 @@ function BarCore:Start()
         end
         for _, e in ipairs(updateEvents) do
             if e == event then
-                HbFrame:UpdateAllEframes(e, args)
+                if throttlingEvents[e] == nil then
+                    HbFrame:UpdateAllEframes(e, args)
+                else
+                    if throttlingEvents[e].waiting ~= true then
+                        throttlingEvents[e].waiting = true
+                        C_Timer.After(0.2, function()
+                            throttlingEvents[e].waiting = false
+                            HbFrame:UpdateAllEframes(e, args)
+                        end)
+                    end
+                end
                 break
             end
         end
