@@ -134,17 +134,17 @@ end
 
 --- 获取config的监听事件
 --- @param config ElementConfig
---- @return table<string, boolean>
+--- @return table<EventString, any[][]> -- key为事件名称，value为一个二维数组，每一个数组表示一组事件参数。当数组为空的时候表示不限制
 function E:GetEvents(config)
-    ---@type table<string, boolean>
+    ---@type table<string, any[]>
     local events = {
-        ["PLAYER_REGEN_DISABLED"] = true,  -- 进入战斗
-        ["PLAYER_REGEN_ENABLED"] = true, -- 退出战斗
-        ["PLAYER_TARGET_CHANGED"] = true,
+        ["PLAYER_ENTERING_WORLD"] = {},  -- 读蓝条
+        ["PLAYER_REGEN_DISABLED"] = {},  -- 进入战斗
+        ["PLAYER_REGEN_ENABLED"] = {}, -- 退出战斗
     }
     if config.listenEvents ~= nil then
         for event, _ in pairs(config.listenEvents) do
-            events[event] = true
+            events[event] = {}
         end
     end
     local hasItem = false
@@ -174,39 +174,99 @@ function E:GetEvents(config)
             hasPet = true
         end
     end
-    if hasItem or hasEquipment then
-        events["BAG_UPDATE"] = true
+    if hasSpell then
+        events["SPELLS_CHANGED"] = {}
+        events["SPELL_UPDATE_COOLDOWN"] = {}
+    end
+    if hasItem then
+        events["BAG_UPDATE"] = {}
+        events["BAG_UPDATE_COOLDOWN"] = {}
+        events["UNIT_SPELLCAST_SUCCEEDED"] = {{"player"}, }
     end
     if hasEquipment then
-        events["PLAYER_EQUIPMENT_CHANGED"] = true
+        events["BAG_UPDATE"] = {}
+        events["BAG_UPDATE_COOLDOWN"] = {}
+        events["PLAYER_EQUIPMENT_CHANGED"] = {}
+        events["UNIT_SPELLCAST_SUCCEEDED"] = {{"player"}, }
     end
-    if hasSpell then
-        events["SPELLS_CHANGED"] = true
-        events["PLAYER_TALENT_UPDATE"] = true
-        events["SPELL_UPDATE_COOLDOWN"] = true
+    if hasToy then
+        events["SPELL_UPDATE_COOLDOWN"] = {}
+        events["NEW_TOY_ADDED"] = {}
+        events["UNIT_SPELLCAST_SUCCEEDED"] = {{"player"}, }
+    end
+    if hasMount then
+        events["MOUNT_JOURNAL_USABILITY_CHANGED"] = {}
+        events["NEW_MOUNT_ADDED"] = {}
+    end
+    if hasPet then
+        events["PET_BAR_UPDATE_COOLDOWN"] = {}
+        events["NEW_PET_ADDED"] = {}
+        events["UNIT_SPELLCAST_SUCCEEDED"] = {{"player"}, }
     end
     if config.type == const.ELEMENT_TYPE.MACRO then
-        events["MODIFIER_STATE_CHANGED"] = true
-        events["UPDATE_MOUSEOVER_UNIT"] = true
-        events["SPELL_UPDATE_COOLDOWN"] = true
+        events["MODIFIER_STATE_CHANGED"] = {}
+        events["UPDATE_MOUSEOVER_UNIT"] = {}
+        events["SPELL_UPDATE_COOLDOWN"] = {}
+        events["UNIT_SPELLCAST_SUCCEEDED"] = {{"player"}, }
     end
     if config.triggers and #config.triggers > 0 then
         for _, trigger in ipairs(config.triggers) do
             if trigger.type == "aura" then
-                events["UNIT_AURA"] = true
+                events["UNIT_AURA"] = {}
             end
         end
     end
-    -- 递归查找
+    -- 递归查找，并且合并去除重复的参数列表
     if config.elements and #config.elements then
         for _, childEle in ipairs(config.elements) do
             local childEvents = E:GetEvents(childEle)
-            for k, v in pairs(childEvents) do
-                events[k] = true
+            for k, tt in pairs(childEvents) do
+                if events[k] == nil then
+                    events[k] = U.Table.DeepCopy(tt)
+                else
+                    for _, t in ipairs(tt) do
+                        local hasSame = false
+                        for _, _t in ipairs(events[k]) do
+                            if U.Table.Equal(t, _t) then
+                                hasSame = true
+                                break
+                            end
+                        end
+                        if hasSame == false then
+                            table.insert(events[k], t)
+                        end
+                        hasSame = false
+                    end
+                end
             end
         end
     end
     return events
+end
+
+--- 比较元素的events对象参数和事件参数，如果能够匹配返回true
+---@param elementEventParams any[][]
+---@param eventParam any[]
+---@return boolean
+function E:CompareEventParam(elementEventParams, eventParam)
+    -- 如果元素参数二维数据为空，表示不设置条件
+    if #elementEventParams == 0 then
+        return true
+    end
+    for _, elementEventParam in ipairs(elementEventParams) do
+        local met = true
+        for k, param in ipairs(elementEventParam) do
+            -- 当元素参数为-1的时候，表示这个参数不比较
+            if param ~= -1 and param ~= eventParam[k] then
+                met = false
+                break
+            end
+        end
+        if met == true then
+            return true
+        end
+    end
+    return false
 end
 
 -- 更新config的ItemAttr

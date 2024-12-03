@@ -116,39 +116,20 @@ function Item:IsLearnedAndUsable(itemID, itemType)
     return false
 end
 
--- 确认物品是否可以使用并且不在冷却中
--- 判断物品是否可用
----@param itemID number
----@param itemType ItemType
+-- 确认物品是否已经冷却完毕
+---@param cooldownInfo CooldownInfo | nil
 ---@return boolean
-function Item:IsUseableAndCooldown(itemID, itemType)
-    if not self:IsLearnedAndUsable(itemID, itemType) then
-        return false
-    end
-    if itemID == nil then
-        return false
-    end
-    if itemType == const.ITEM_TYPE.ITEM or itemType == const.ITEM_TYPE.EQUIPMENT or itemType == const.ITEM_TYPE.TOY then
-        local _, duration, enableCooldownTimer = Api.GetItemCooldown(itemID) -- 检查是否冷却中
-        if enableCooldownTimer == false then
-            return true
-        end
-        if duration ~= 0 and duration > 1.5 then -- 需要判断是否是公共冷却
-            return false
-        end
+function Item:IsCooldown(cooldownInfo)
+    if cooldownInfo == nil then
         return true
-    elseif itemType == const.ITEM_TYPE.SPELL then
-        local spellCooldownInfo = Api.GetSpellCooldown(itemID)
-        if spellCooldownInfo.isEnabled == false then
-            return true
-        end
-        if spellCooldownInfo.duration ~= 0 and spellCooldownInfo.duration > 1.5 then -- 需要判断是否是公共冷却
-            return false
-        end
+    end
+    if cooldownInfo.enable == false then
         return true
-    else
+    end
+    if cooldownInfo.duration ~= 0 and cooldownInfo.duration > 1.5 then -- 需要判断是否是公共冷却
         return false
     end
+    return true
 end
 
 -- 判断物品是否被装备
@@ -349,4 +330,33 @@ function Item:CompleteItemAttr(itemAttr)
             end)
         end
     end
+end
+
+-- 获取物品冷却信息
+---@param itemAttr ItemAttr
+---@return CooldownInfo | nil
+function Item:GetCooldown(itemAttr)
+    if itemAttr.type == const.ITEM_TYPE.ITEM or itemAttr.type == const.ITEM_TYPE.EQUIPMENT or itemAttr.type == const.ITEM_TYPE.TOY then
+        return Api.GetItemCooldown(itemAttr.id)
+    elseif itemAttr.type == const.ITEM_TYPE.SPELL then
+        local spellCooldownInfo = Api.GetSpellCooldown(itemAttr.id)
+        if spellCooldownInfo then
+            return {
+                startTime = spellCooldownInfo.startTime,
+                duration = spellCooldownInfo.duration,
+                enable = spellCooldownInfo.isEnabled
+            }
+        end
+    elseif itemAttr.type == const.ITEM_TYPE.PET then
+        local _, petGUID = C_PetJournal.FindPetIDByName(itemAttr.name)
+        if petGUID then
+            local start, duration, isEnabled = C_PetJournal.GetPetCooldownByGUID(petGUID)
+            return {
+                startTime = start,
+                duration = duration,
+                enable = isEnabled == 1
+            }
+        end
+    end
+    return nil
 end

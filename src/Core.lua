@@ -19,30 +19,57 @@ end
 
 -- 使用定时器替代UNIT_AURA事件执行
 C_Timer.NewTicker(0.5, function()
-    HbFrame:UpdateAllEframes("UNIT_AURA")
+    HbFrame:UpdateAllEframes("UNIT_AURA", {})
 end)
+
+---@type table<EventString, boolean> key表示事件名称，value表示是否循环监听
+local registerEvents = {
+    ["PLAYER_ENTERING_WORLD"] = true,           -- 读地图
+    ["PLAYER_LOGIN"] = true,                    -- 登录
+    ["UNIT_SPELLCAST_SUCCEEDED"] = true,        -- 施法成功
+    ["SPELL_UPDATE_COOLDOWN"] = true,           -- 触发冷却
+    ["PLAYER_REGEN_ENABLED"] = true,            -- 退出战斗事件
+    ["PLAYER_EQUIPMENT_CHANGED"] = true,        -- 装备改变（物品、装备）
+    ["SPELLS_CHANGED"] = true,                  -- 技能改变（技能）
+    ["PLAYER_TALENT_UPDATE"] = true,            -- 天赋改变（技能）
+    ["PLAYER_TARGET_CHANGED"] = true,           -- 目标改变（脚本、触发器）
+    ["BAG_UPDATE"] = true,                      -- 背包物品改变(物品、装备)
+    ["BAG_UPDATE_COOLDOWN"] = true,             -- 背包物品冷却触发(物品、装备)
+    ["MODIFIER_STATE_CHANGED"] = true,          -- 修饰按键按下
+    ["UPDATE_MOUSEOVER_UNIT"] = true,           -- 鼠标指向改变
+    ["ZONE_CHANGED"] = true,                    -- 区域改变
+    ["MOUNT_JOURNAL_USABILITY_CHANGED"] = true, -- 坐骑可用改变
+    ["NEW_MOUNT_ADDED"] = true,                 -- 学会新的坐骑
+    ["PET_BAR_UPDATE_COOLDOWN"] = true,         -- 宠物相关
+    ["NEW_PET_ADDED"] = true,                   -- 学会新的宠物
+    ["NEW_TOY_ADDED"] = true,                   -- 学会新的玩具
+    ["ADDON_LOADED"] = false,                   -- 加载插件
+    ["CVAR_UPDATE"] = false,                    -- 改变cvar
+    ["PLAYER_REGEN_DISABLED"] = false,          -- 进入战斗事件
+}
+
+-- 需要更新图标的事件
+---@type EventString[]
+local updateEvents = {}
+for e, needUpdate in pairs(registerEvents) do
+    if needUpdate == true then
+        table.insert(updateEvents, e)
+    end
+end
 
 -- 注册事件
 function BarCore:Start()
-    -- 注册相关事件以立即更新宏（如玩家登录或冷却更新）
-    BarCore.Frame:RegisterEvent("ADDON_LOADED")             -- 插件加载
-    BarCore.Frame:RegisterEvent("CVAR_UPDATE")              -- 改变cvar的值
-    BarCore.Frame:RegisterEvent("PLAYER_LOGIN")             -- 登录
-    BarCore.Frame:RegisterEvent("SPELL_UPDATE_COOLDOWN")    -- 触发冷却
-    BarCore.Frame:RegisterEvent("PLAYER_REGEN_DISABLED")    -- 进入战斗事件
-    BarCore.Frame:RegisterEvent("PLAYER_REGEN_ENABLED")     -- 退出战斗事件
-    BarCore.Frame:RegisterEvent("PLAYER_EQUIPMENT_CHANGED") -- 装备改变（物品、装备）
-    BarCore.Frame:RegisterEvent("SPELLS_CHANGED")           -- 技能改变（技能）
-    BarCore.Frame:RegisterEvent("PLAYER_TALENT_UPDATE")     -- 天赋改变（技能）
-    BarCore.Frame:RegisterEvent("PLAYER_TARGET_CHANGED")    -- 目标改变（脚本、触发器）
-    BarCore.Frame:RegisterEvent("BAG_UPDATE")               -- 背包物品改变(物品、装备)
-    BarCore.Frame:RegisterEvent("MODIFIER_STATE_CHANGED")   -- 修饰按键按下
-    BarCore.Frame:RegisterEvent("UPDATE_MOUSEOVER_UNIT")    -- 鼠标指向改变
+    for event, _ in pairs(registerEvents) do
+        BarCore.Frame:RegisterEvent(event)
+    end
     -- BarCore.Frame:RegisterEvent("UNIT_AURA")
-    BarCore.Frame:SetScript("OnEvent", function(self, event, ...)
-        local args = {...}
+    BarCore.Frame:SetScript("OnEvent", function(_, event, ...)
+        local args = { ... }
         if event == "PLAYER_LOGIN" then
             BarCore:Initial()
+        end
+        if event == "PLAYER_REGEN_DISABLED" then
+            HbFrame:OnCombatEvent()
         end
         if event == "CVAR_UPDATE" then
             -- 如果用户修改了鼠标按下CVAR，需要通知按钮改变RegisterForClicks
@@ -52,23 +79,14 @@ function BarCore:Start()
             end
         end
         -- 当玩家技能发生改变的时候，如果配置文件中有需要更新的ItemAttr，则更新ItemAttr（这是由于API无法获取非当前玩家拥有技能的信息）
-        if event== "PLAYER_TALENT_UPDATE" or "SPELLS_CHANGED" then
+        if event == "PLAYER_TALENT_UPDATE" or "SPELLS_CHANGED" then
             HbFrame:CompleteItemAttr()
         end
-        if event == "SPELL_UPDATE_COOLDOWN" or
-            event == "PLAYER_EQUIPMENT_CHANGED" or
-            event == "SPELLS_CHANGED" or
-            event == "PLAYER_TALENT_UPDATE" or
-            event == "PLAYER_TARGET_CHANGED" or
-            event == "BAG_UPDATE" or
-            event == "PLAYER_REGEN_ENABLED" or
-            event == "MODIFIER_STATE_CHANGED" or
-            event == "UPDATE_MOUSEOVER_UNIT"
-        then
-            HbFrame:UpdateAllEframes(event)
-        end
-        if event == "PLAYER_REGEN_DISABLED" then
-            HbFrame:OnCombatEvent()
+        for _, e in ipairs(updateEvents) do
+            if e == event then
+                HbFrame:UpdateAllEframes(e, args)
+                break
+            end
         end
     end)
 end

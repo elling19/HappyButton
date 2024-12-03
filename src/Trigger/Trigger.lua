@@ -182,7 +182,7 @@ function Trigger:GetItemTriggerCond(triggerConfig)
     end
     result.isLearned = Item:IsLearned(item.id, item.type)
     result.isUsable = Item:IsLearnedAndUsable(item.id, item.type)
-    result.isCooldown = Item:IsUseableAndCooldown(item.id, item.type)
+    result.isCooldown = Item:IsCooldown(Item:GetCooldown(item))
     if item.type == const.ITEM_TYPE.ITEM then
         result.count = Api.GetItemCount(item.id, false)
     elseif item.type == const.ITEM_TYPE.SPELL then

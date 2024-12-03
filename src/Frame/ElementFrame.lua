@@ -29,7 +29,7 @@ local LoadCondition = addon:GetModule("LoadCondition")
 ---@field p ElementConfig -- p: params
 ---@field r CbResult[]
 ---@field btns Btn[]  -- 按钮，数量和CbResult保持一致
----@field e table<string, boolean>
+---@field e table<EventString, any[][]>
 
 ---@class Bar
 ---@field BarFrame nil|table|Button
@@ -37,7 +37,7 @@ local LoadCondition = addon:GetModule("LoadCondition")
 
 ---@class ElementFrame: AceModule
 ---@field Cbs ElementCbInfo[]
----@field Events table<string, boolean>
+---@field Events table<EventString, any[][]>
 ---@field Config ElementConfig  -- 当前Frame的配置文件
 ---@field Window Frame
 ---@field Bar Bar
@@ -133,7 +133,7 @@ function ElementFrame:ReLoadUI()
     self:UpdateWindow()
     self:UpdateBar()
     self:CreateEditModeFrame()
-    self:OutCombatUpdate()
+    self:OutCombatUpdate("PLAYER_ENTERING_WORLD", {})
     -- 设置初始的时候是否隐藏
     if self.Config.isDisplayMouseEnter == true then
         self:SetBarTransparency()
@@ -224,19 +224,22 @@ function ElementFrame:UpdateBar()
 end
 
 -- 更新
----@param event string | nil
-function ElementFrame:Update(event)
+---@param event EventString
+---@param eventArgs any[]
+function ElementFrame:Update(event, eventArgs)
     if InCombatLockdown() then
-        self:InCombatUpdate(event)
+        self:InCombatUpdate(event, eventArgs)
     else
-        self:OutCombatUpdate(event)
+        self:OutCombatUpdate(event, eventArgs)
     end
 end
 
 -- 战斗外更新
----@param event string | nil
-function ElementFrame:OutCombatUpdate(event)
-    if event and self.Events[event] == nil then
+---@param event EventString
+---@param eventArgs any[]
+function ElementFrame:OutCombatUpdate(event, eventArgs)
+    -- 事件不在监听范围内则跳过
+    if self.Events[event] == nil or not E:CompareEventParam(self.Events[event], eventArgs) then
         return
     end
     -- 首先判断载入条件
@@ -250,7 +253,7 @@ function ElementFrame:OutCombatUpdate(event)
             ---@type CbResult[]
             local cbResults = {}
             -- 如果当前事件不是这个cb需要监听的事件，则使用上一次cb
-            if cb.e[event] == nil then
+            if cb.e[event] == nil or not E:CompareEventParam(self.Events[event], eventArgs) then
                 cbResults = cb.r
             else
                 -- 判断是否通过展示条件判断，如果不通过，则相当于当前元素全部隐藏
@@ -259,7 +262,7 @@ function ElementFrame:OutCombatUpdate(event)
                     -- 反向遍历 rs 数组
                     for i = #cbResults, 1, -1 do
                         local r = cbResults[i]
-                        ECB:UpdateSelfTrigger(r)
+                        ECB:UpdateSelfTrigger(r, event, eventArgs)
                         ECB:UseTrigger(cb.p, r)
                         -- 战斗外更新，如果发现隐藏按钮则是移除按钮
                         local hideBtn = false
@@ -287,7 +290,7 @@ function ElementFrame:OutCombatUpdate(event)
                     table.insert(cb.btns, btn)
                 end
                 local btn = cb.btns[cbIndex]
-                btn:UpdateByElementFrame(cbIndex, btnIndex, event)
+                btn:UpdateByElementFrame(cbIndex, btnIndex, event, eventArgs)
                 btnIndex  = btnIndex + 1
             end
             -- 如果按钮过多，删除冗余按钮
@@ -310,8 +313,9 @@ function ElementFrame:OutCombatUpdate(event)
 end
 
 -- 战斗中更新
----@param event string | nil
-function ElementFrame:InCombatUpdate(event)
+---@param event EventString
+---@param args table
+function ElementFrame:InCombatUpdate(event, args)
     if event and self.Events[event] == nil then
         return
     end
@@ -322,7 +326,7 @@ function ElementFrame:InCombatUpdate(event)
         for _, cb in ipairs(self.Cbs) do
             if cb.btns then
                 for _, btn in ipairs(cb.btns) do
-                    btn:UpdateBySelf(event)
+                    btn:UpdateBySelf(event, args)
                 end
             end
         end

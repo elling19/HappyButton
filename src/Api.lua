@@ -13,8 +13,6 @@ Api.GetItemInfoInstant = (C_Item and C_Item.GetItemInfoInstant) and C_Item.GetIt
 ---@diagnostic disable-next-line: deprecated
 Api.GetItemInfo = (C_Item and C_Item.GetItemInfo) and C_Item.GetItemInfo or GetItemInfo
 ---@diagnostic disable-next-line: deprecated
-Api.GetItemCooldown = (C_Item and C_Item.GetItemCooldown) and C_Item.GetItemCooldown or C_Container.GetItemCooldown or GetItemCooldown
----@diagnostic disable-next-line: deprecated
 Api.GetItemCount = (C_Item and C_Item.GetItemCount) and C_Item.GetItemCount or GetItemCount
 ---@diagnostic disable-next-line: deprecated
 Api.IsUsableItem = (C_Item and C_Item.IsUsableItem) and C_Item.IsUsableItem or IsUsableItem
@@ -69,6 +67,46 @@ Api.GetSpellCooldown = function (spellIdentifier)
         }
         return spellCooldownInfo
     end
+end
+
+---@param itemIdentifier string | number
+---@return CooldownInfo | nil
+Api.GetItemCooldown = function (itemIdentifier)
+    if C_Item and C_Item.GetItemCooldown then
+        local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(itemIdentifier)
+        if startTimeSeconds then
+            return {
+                startTime = startTimeSeconds,
+                duration = durationSeconds,
+                enable = enableCooldownTimer
+            }
+        end
+    end
+    ---@diagnostic disable-next-line: deprecated
+    if GetItemCooldown then
+        ---@diagnostic disable-next-line: deprecated
+        local startTime, duration, enable = GetItemCooldown(itemIdentifier)
+        if startTime then
+            return {
+                startTime = startTime,
+                duration = duration,
+                enable = enable
+            }
+        end
+    end
+    ---@diagnostic disable-next-line: deprecated
+    if C_Container and C_Container.GetItemCooldown and tonumber(itemIdentifier) ~= nil then
+    ---@diagnostic disable-next-line: param-type-mismatch
+       local startTime, duration, enable = C_Container.GetItemCooldown(itemIdentifier)
+       if startTime then
+        return {
+            startTime = startTime,
+            duration = duration,
+            enable = enable == 1
+        }
+       end
+    end
+    return nil
 end
 
 ---@param unitId UnitToken

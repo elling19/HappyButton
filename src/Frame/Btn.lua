@@ -9,6 +9,9 @@ local const = addon:GetModule('CONST')
 ---@class Utils: AceModule
 local U = addon:GetModule('Utils')
 
+---@class E: AceModule
+local E = addon:GetModule("Element")
+
 ---@class Item: AceModule
 local Item = addon:GetModule("Item")
 
@@ -81,8 +84,9 @@ end
 --- 按钮🔘从Frame中获取CbResult并更新
 --- @param cbIndex number 当前callback的下标
 --- @param btnIndex number 当前按钮下标，用来更新位置
---- @param event string | nil
-function Btn:UpdateByElementFrame(cbIndex, btnIndex, event)
+---@param event EventString
+---@param eventArgs any[]
+function Btn:UpdateByElementFrame(cbIndex, btnIndex, event, eventArgs)
     self.CbResult = self.CbInfo.r[cbIndex]
     local bar = self.EFrame.Bar
     if self.EFrame.Config.elesGrowth == const.GROWTH.LEFTTOP or self.EFrame.Config.elesGrowth == const.GROWTH.LEFTBOTTOM then
@@ -97,30 +101,28 @@ function Btn:UpdateByElementFrame(cbIndex, btnIndex, event)
         -- 默认右下
         self.Button:SetPoint("LEFT", bar.BarFrame, "LEFT", self.EFrame.IconWidth * (btnIndex - 1), 0)
     end
-    if event and self.CbInfo.e[event] == nil then
+    if self.CbInfo.e[event] == nil or not E:CompareEventParam(self.CbInfo.e[event], eventArgs) then
         return
     end
     self:Update()
 end
 
 -- 按钮自身更新CbResult
----@param event EventString | nil
-function Btn:UpdateBySelf(event)
-    if event and self.CbInfo.e[event] == nil then
+---@param event EventString
+---@param eventArgs any[]
+function Btn:UpdateBySelf(event, eventArgs)
+    if self.CbInfo.e[event] == nil or not E:CompareEventParam(self.CbInfo.e[event], eventArgs) then
         return
     end
-    if event == "SPELL_UPDATE_COOLDOWN" then
-        self:SetCooldown()
-    else
-        -- 宏在更新的时候需要改变宏图标
-        if self.CbInfo.p.type == const.ELEMENT_TYPE.MACRO then
-            self.CbResult.item = ECB.UpdateMacroItemInfo(self.CbInfo.p)
-        end
-        ECB:UpdateSelfTrigger(self.CbResult)
-        ECB:UseTrigger(self.CbInfo.p, self.CbResult)
-        self:Update()
+    -- 宏在更新的时候需要改变宏图标
+    if self.CbInfo.p.type == const.ELEMENT_TYPE.MACRO then
+        self.CbResult.item = ECB.UpdateMacroItemInfo(self.CbInfo.p)
     end
+    ECB:UpdateSelfTrigger(self.CbResult, event, eventArgs)
+    ECB:UseTrigger(self.CbInfo.p, self.CbResult)
+    self:Update()
 end
+
 
 function Btn:Update()
     if not InCombatLockdown() then
@@ -447,27 +449,8 @@ function Btn:SetCooldown()
         self:CreateCoolDown()
     end
     -- 更新冷却倒计时
-    if item.type == const.ITEM_TYPE.ITEM then
-        local startTimeSeconds, durationSeconds, enableCooldownTimer = Api.GetItemCooldown(item.id)
-        CooldownFrame_Set(self.Cooldown, startTimeSeconds, durationSeconds, enableCooldownTimer)
-    elseif item.type == const.ITEM_TYPE.EQUIPMENT then
-        local startTimeSeconds, durationSeconds, enableCooldownTimer = Api.GetItemCooldown(item.id)
-        CooldownFrame_Set(self.Cooldown, startTimeSeconds, durationSeconds, enableCooldownTimer)
-    elseif item.type == const.ITEM_TYPE.TOY then
-        local startTimeSeconds, durationSeconds, enableCooldownTimer = Api.GetItemCooldown(item.id)
-        CooldownFrame_Set(self.Cooldown, startTimeSeconds, durationSeconds, enableCooldownTimer)
-    elseif item.type == const.ITEM_TYPE.SPELL then
-        local spellCooldownInfo = Api.GetSpellCooldown(item.id)
-        if spellCooldownInfo then
-            CooldownFrame_Set(self.Cooldown, spellCooldownInfo.startTime, spellCooldownInfo.duration,
-                spellCooldownInfo.isEnabled)
-        end
-    elseif item.type == const.ITEM_TYPE.PET then
-        local speciesId, petGUID = C_PetJournal.FindPetIDByName(item.name)
-        if petGUID then
-            local start, duration, isEnabled = C_PetJournal.GetPetCooldownByGUID(petGUID)
-            CooldownFrame_Set(self.Cooldown, start, duration, isEnabled)
-        end
+    if r.itemCooldown then
+        CooldownFrame_Set(self.Cooldown, r.itemCooldown.startTime, r.itemCooldown.duration, r.itemCooldown.enable)
     end
 end
 

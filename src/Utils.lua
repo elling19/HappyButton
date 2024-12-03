@@ -14,6 +14,7 @@ local const = addon:GetModule('CONST')
 ---@field GetArrayIndex fun(table: table, element: any): number
 ---@field DeepCopy fun(original: table): table
 ---@field SafeGet fun(table: table, ...: string|number): any?
+---@field Equal fun(t1: table, t2: table): boolean
 local UtilsTable = {}
 
 ---@class UtilsPrint
@@ -147,6 +148,39 @@ function UtilsTable.SafeGet(t, ...)
         end
     end
     return v
+end
+
+-- 比较两个table是否相等
+---@param t1 table
+---@param t2 table
+---@return boolean
+function UtilsTable.Equal(t1, t2)
+    -- 如果两个表引用的是同一个表
+    if t1 == t2 then
+        return true
+    end
+
+    -- 如果两个表不是表类型，直接返回 false
+    if type(t1) ~= "table" or type(t2) ~= "table" then
+        return false
+    end
+
+    -- 检查 t1 中的每个键值对是否都在 t2 中
+    for key, value in pairs(t1) do
+        -- 如果 t2 中没有该键，或者该键的值不相等
+        if t2[key] == nil or not UtilsTable.Equal(value, t2[key]) then
+            return false
+        end
+    end
+
+    -- 检查 t2 中的每个键值对是否都在 t1 中
+    for key, _ in pairs(t2) do
+        -- 如果 t1 中没有该键，说明 t1 和 t2 不相等
+        if t1[key] == nil then
+            return false
+        end
+    end
+    return true
 end
 
 -- 修改全局打印方法，在打印信息前加上插件名称
