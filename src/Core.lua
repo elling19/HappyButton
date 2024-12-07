@@ -63,6 +63,11 @@ local throttlingEvents = {
     ["BAG_UPDATE_COOLDOWN"] = {}
 }
 
+-- 延迟事件
+local delayEvents = {
+    ["UPDATE_MOUSEOVER_UNIT"] = true,
+}
+
 -- 注册事件
 function BarCore:Start()
     for event, _ in pairs(registerEvents) do
@@ -90,9 +95,7 @@ function BarCore:Start()
         end
         for _, e in ipairs(updateEvents) do
             if e == event then
-                if throttlingEvents[e] == nil then
-                    HbFrame:UpdateAllEframes(e, args)
-                else
+                if throttlingEvents[e] ~= nil then
                     if throttlingEvents[e].waiting ~= true then
                         throttlingEvents[e].waiting = true
                         C_Timer.After(0.2, function()
@@ -100,6 +103,12 @@ function BarCore:Start()
                             HbFrame:UpdateAllEframes(e, args)
                         end)
                     end
+                elseif delayEvents[e] ~= nil then
+                    C_Timer.After(0.1, function()
+                        HbFrame:UpdateAllEframes(e, args)
+                    end)
+                else
+                    HbFrame:UpdateAllEframes(e, args)
                 end
                 break
             end

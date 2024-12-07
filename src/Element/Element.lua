@@ -138,6 +138,9 @@ end
 function E:GetItemAttrEvents(itemAttr)
     ---@type table<string, any[]>
     local events = {}
+    if itemAttr == nil then
+        return events
+    end
     if itemAttr.type == const.ITEM_TYPE.ITEM then
         events["BAG_UPDATE"] = {}
         events["BAG_UPDATE_COOLDOWN"] = {}
@@ -197,6 +200,9 @@ function E:GetMacroEvents(macroAttr)
                     for _, booleanCond in ipairs(cond.booleanConds) do
                         if booleanCond.type == "mod" then
                             E:MergeEvents(events, {["MODIFIER_STATE_CHANGED"] = {}})
+                        end
+                        if booleanCond.isTarget == true then
+                            E:MergeEvents(events, {["PLAYER_TARGET_CHANGED"] = {}})
                         end
                     end
                 end

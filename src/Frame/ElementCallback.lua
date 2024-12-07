@@ -164,16 +164,20 @@ function ECB.CallbackOfMacroMode(element, _)
             local macroCondString = nil ---@type nil | string
             local commandMet = false -- 用来判断每一条宏命令的条件语句是否满足条件，如果有一个条件满足，则整条语句可以执行
             if command.conds then
-                for _, cond in ipairs(command.conds) do
-                    local condString, condMet = Macro:CgCond(cond, true)
-                    if condMet == true then
-                        commandMet = true
-                    end
-                    if condString ~= nil then
-                        if macroCondString == nil then
-                            macroCondString = ""
+                if #command.conds == 0 then
+                    commandMet = true
+                else
+                    for _, cond in ipairs(command.conds) do
+                        local condString, condMet = Macro:CgCond(cond, true)
+                        if condMet == true then
+                            commandMet = true
                         end
-                        macroCondString = macroCondString .. "[" .. condString .. "]"
+                        if condString ~= nil then
+                            if macroCondString == nil then
+                                macroCondString = ""
+                            end
+                            macroCondString = macroCondString .. "[" .. condString .. "]"
+                        end
                     end
                 end
             else
