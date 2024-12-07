@@ -2389,25 +2389,24 @@ function ConfigOptions.ElementsOptions()
                         #addon.db.profile.elements)
                 end
             },
-            -- addMacro = {
-            --     order = 6,
-            --     width = 1,
-            --     type = 'execute',
-            --     name = L["New Macro"],
-            --     func = function()
-            --         local item = E:New(Config.GetNewElementTitle(L["Macro"],
-            --                 addon.db
-            --                 .profile
-            --                 .elements),
-            --             const.ELEMENT_TYPE.MACRO)
-            --         table.insert(addon.db.profile.elements, item)
-            --         HbFrame:AddEframe(item)
-            --         AceConfigDialog:SelectGroup(addonName, "element",
-            --             "elementMenu" ..
-            --             #addon.db.profile.elements)
-            --     end
-            -- },
-
+            addMacro = {
+                order = 6,
+                width = 1,
+                type = 'execute',
+                name = L["New Macro"],
+                func = function()
+                    local item = E:New(Config.GetNewElementTitle(L["Macro"],
+                            addon.db
+                            .profile
+                            .elements),
+                        const.ELEMENT_TYPE.MACRO)
+                    table.insert(addon.db.profile.elements, item)
+                    HbFrame:AddEframe(item)
+                    AceConfigDialog:SelectGroup(addonName, "element",
+                        "elementMenu" ..
+                        #addon.db.profile.elements)
+                end
+            },
             sapce1 = { order = 7, type = 'description', name = "\n\n\n" },
             itemHeading = {
                 order = 8,
@@ -2576,7 +2575,7 @@ function ConfigOptions.Options()
                         order = 4,
                         width = 2,
                         type = "description",
-                        name = L["Version"] .. ": " .. "Beta-0.1.6"
+                        name = L["Version"] .. ": " .. "Beta-0.2.0"
                     }
                 }
             },

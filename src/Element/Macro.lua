@@ -1211,9 +1211,3 @@ function Macro:GetEventsFromAst(macroAst)
     end
     return events
 end
-
--- 测试宏功能
-function Macro:Test()
-    local macro = "#showtooltip 疾跑\n/cast [nomod] 疾跑\n/use [mod:alt, target=player] 佯攻"
-    Macro:Ast(macro)
-end

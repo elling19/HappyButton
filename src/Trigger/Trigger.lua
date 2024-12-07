@@ -195,3 +195,10 @@ function Trigger:GetItemTriggerCond(triggerConfig)
     end
     return result
 end
+
+---@param confine TriggerConfine
+---@return ItemTriggerConfine
+function Trigger:ToItemConfine(confine)
+    ---@type ItemTriggerConfine
+    return confine
+end
