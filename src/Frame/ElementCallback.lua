@@ -45,6 +45,7 @@ local ECB = addon:NewModule("ElementCallback")
 ---@field itemCooldown CooldownInfo | nil
 ---@field macro string | nil
 ---@field effects EffectConfig[] | nil
+---@field isHideBtn boolean | nil  是否隐藏按钮
 ---@field leftClickCallback function | nil
 local CbResult = {}
 
@@ -52,7 +53,6 @@ local CbResult = {}
 -- 函数永远只能返回包含一个CbResult的列表
 ---@param element ItemGroupConfig
 ---@param lastCbResults CbResult[] 上一次更新的结果
----@return CbResult[]
 function ECB.CallbackOfRandomMode(element, lastCbResults)
     -- 如果上一次结果可用，则继续使用上一次的结果
     if lastCbResults and #lastCbResults then
@@ -61,7 +61,7 @@ function ECB.CallbackOfRandomMode(element, lastCbResults)
             local isUsable = Item:IsLearnedAndUsable(r.item.id, r.item.type)
             local isCooldown = Item:IsCooldown(Item:GetCooldown(r.item))
             if isUsable and isCooldown then
-                return lastCbResults
+                return
             end
         end
     end
@@ -98,14 +98,13 @@ function ECB.CallbackOfRandomMode(element, lastCbResults)
     else
         cb = ECB:NilCallback()
     end
-    return { cb, }
+    lastCbResults = { cb, }
 end
 
 -- 顺序选择callback
 -- 函数永远只能返回包含一个CbResult的列表
 ---@param element ItemGroupConfig
 ---@param lastCbResults CbResult[] 上一次更新的结果
----@return CbResult[]
 function ECB.CallbackOfSeqMode(element, lastCbResults)
     if lastCbResults and #lastCbResults then
         local r = lastCbResults[1]
@@ -113,7 +112,7 @@ function ECB.CallbackOfSeqMode(element, lastCbResults)
             local isUsable = Item:IsLearnedAndUsable(r.item.id, r.item.type)
             local isCooldown = Item:IsCooldown(Item:GetCooldown(r.item))
             if isUsable and isCooldown then
-                return lastCbResults
+                return
             end
         end
     end
@@ -139,21 +138,21 @@ function ECB.CallbackOfSeqMode(element, lastCbResults)
             cb = ECB:NilCallback()
         end
     end
-    return { cb, }
+    lastCbResults = { cb, }
 end
 
 -- 宏callback
 -- 函数永远只能返回包含一个CbResult的列表
 ---@param element MacroConfig
----@param _ CbResult[] 上一次更新的结果
----@return CbResult[]
-function ECB.CallbackOfMacroMode(element, _)
+---@param lastCbResults CbResult[] 上一次更新的结果
+function ECB.CallbackOfMacroMode(element, lastCbResults)
     ---@type CbResult
     local cb = {}
     local ast = element.extraAttr.ast
     if ast == nil then
         cb = ECB:NilCallback()
-        return { cb, }
+        lastCbResults = { cb, }
+        return
     end
     if ast.tooltip ~= nil then
         cb.item = ast.tooltip
@@ -219,7 +218,7 @@ function ECB.CallbackOfMacroMode(element, _)
         end
         cb.macro = table.concat(macroStrings, "\n")
     end
-    return { cb, }
+    lastCbResults = { cb, }
 end
 
 -- 获取宏图标
@@ -278,18 +277,17 @@ end
 -- 单个展示模式callback
 -- 函数永远只能返回包含一个CbResult的列表
 ---@param element ItemConfig
----@param _ CbResult[]
----@return CbResult[]
-function ECB.CallbackOfSingleMode(element, _)
-    local cb = ECB:CallbackByItemConfig(element)
-    return { cb, }
+---@param lastCbResults CbResult[] 上一次更新的结果
+function ECB.CallbackOfSingleMode(element, lastCbResults)
+    if #lastCbResults == 0 then
+        table.insert(lastCbResults, ECB:CallbackByItemConfig(element))
+    end
 end
 
 -- 脚本模式
 ---@param element ScriptConfig
----@param _ CbResult[]
----@return CbResult[]
-function ECB.CallbackOfScriptMode(element, _)
+---@param lastCbResults CbResult[]
+function ECB.CallbackOfScriptMode(element, lastCbResults)
     local script = E:ToScript(element)
     local cbResults = {} ---@type CbResult[]
     local func, loadstringErr = loadstring(script.extraAttr.script)
@@ -307,14 +305,15 @@ function ECB.CallbackOfScriptMode(element, _)
     -- 兼容返回列表和单个cbResult
     if not U.Table.IsArray(cbResult) then
         table.insert(cbResults, cbResult)
-        return cbResults
+        lastCbResults = cbResults
+        return
     end
     for _, cb in ipairs(cbResult) do
         if cb then
             table.insert(cbResults, cb)
         end
     end
-    return cbResults
+    lastCbResults = cbResults
 end
 
 ---@param element ItemConfig
@@ -353,17 +352,17 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
     if cbResult.item then
         -- 物品、装备
         if const.ITEM_TYPE.ITEM == cbResult.item.type or const.ITEM_TYPE.EQUIPMENT == cbResult.item.type then
-            if cbResult.isLearned == false or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE", "PLAYER_EQUIPMENT_CHANGED" }, event) then
+            if cbResult.isLearned == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE", "PLAYER_EQUIPMENT_CHANGED" }, event) then
                 cbResult.isLearned = Item:IsLearned(cbResult.item.id, cbResult.item.type)
                 -- 如果物品没有学会，则默认不会对可用性和冷却进行判断以减少API调用
                 if cbResult.isLearned == false then
                     return
                 end
             end
-            if cbResult.isUsable == false or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE_COOLDOWN", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_EQUIPMENT_CHANGED" }, event) then
+            if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE_COOLDOWN", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_EQUIPMENT_CHANGED" }, event) then
                 cbResult.isUsable = Item:IsLearnedAndUsable(cbResult.item.id, cbResult.item.type)
             end
-            if cbResult.isCooldown == false or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE_COOLDOWN", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_EQUIPMENT_CHANGED" }, event) then
+            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE_COOLDOWN", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_EQUIPMENT_CHANGED" }, event) then
                 cbResult.itemCooldown = Item:GetCooldown(cbResult.item)
                 cbResult.isCooldown = Item:IsCooldown(cbResult.itemCooldown)
             end
@@ -371,20 +370,20 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
         end
         -- 技能
         if const.ITEM_TYPE.SPELL == cbResult.item.type then
-            if cbResult.isLearned == false or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "SPELLS_CHANGED" }, event) then
+            if cbResult.isLearned == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "SPELLS_CHANGED" }, event) then
                 cbResult.isLearned = Item:IsLearned(cbResult.item.id, cbResult.item.type)
                 if cbResult.isLearned == false then
                     return
                 end
             end
-            if cbResult.isUsable == false or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "SPELL_UPDATE_COOLDOWN" }, event) then
+            if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "SPELL_UPDATE_COOLDOWN" }, event) then
                 cbResult.isUsable = Item:IsLearnedAndUsable(cbResult.item.id, cbResult.item.type)
             end
-            if cbResult.isCooldown == false or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "SPELL_UPDATE_COOLDOWN" }, event) then
+            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "SPELL_UPDATE_COOLDOWN" }, event) then
                 cbResult.itemCooldown = Item:GetCooldown(cbResult.item)
                 cbResult.isCooldown = Item:IsCooldown(cbResult.itemCooldown)
             end
-            if cbResult.count == false or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "SPELL_UPDATE_COOLDOWN" }, event) then
+            if cbResult.count == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "SPELL_UPDATE_COOLDOWN" }, event) then
                 local chargeInfo = Api.GetSpellCharges(cbResult.item.id)
                 if chargeInfo then
                     cbResult.count = chargeInfo.currentCharges
@@ -393,16 +392,16 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
         end
         -- 玩具
         if const.ITEM_TYPE.TOY == cbResult.item.type then
-            if cbResult.isLearned == false or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "NEW_TOY_ADDED" }, event) then
+            if cbResult.isLearned == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "NEW_TOY_ADDED" }, event) then
                 cbResult.isLearned = Item:IsLearned(cbResult.item.id, cbResult.item.type)
                 if cbResult.isLearned == false then
                     return
                 end
             end
-            if cbResult.isUsable == false or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "SPELL_UPDATE_COOLDOWN" }, event) then
+            if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "SPELL_UPDATE_COOLDOWN" }, event) then
                 cbResult.isUsable = Item:IsLearnedAndUsable(cbResult.item.id, cbResult.item.type)
             end
-            if cbResult.isCooldown == false or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED", "SPELL_UPDATE_COOLDOWN" }, event) then
+            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED", "SPELL_UPDATE_COOLDOWN" }, event) then
                 cbResult.itemCooldown = Item:GetCooldown(cbResult.item)
                 cbResult.isCooldown = Item:IsCooldown(cbResult.itemCooldown)
             end
@@ -410,29 +409,29 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
         end
         -- 坐骑
         if const.ITEM_TYPE.MOUNT == cbResult.item.type then
-            if cbResult.isLearned == false or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "NEW_MOUNT_ADDED" }, event) then
+            if cbResult.isLearned == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "NEW_MOUNT_ADDED" }, event) then
                 cbResult.isLearned = Item:IsLearned(cbResult.item.id, cbResult.item.type)
                 if cbResult.isLearned == false then
                     return
                 end
             end
-            if cbResult.isUsable == false or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "MOUNT_JOURNAL_USABILITY_CHANGED" }, event) then
+            if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "MOUNT_JOURNAL_USABILITY_CHANGED" }, event) then
                 cbResult.isUsable = Item:IsLearnedAndUsable(cbResult.item.id, cbResult.item.type)
             end
             cbResult.count = nil
         end
         -- 宠物
         if const.ITEM_TYPE.PET == cbResult.item.type then
-            if cbResult.isLearned == false or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "NEW_PET_ADDED" }, event) then
+            if cbResult.isLearned == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "NEW_PET_ADDED" }, event) then
                 cbResult.isLearned = Item:IsLearned(cbResult.item.id, cbResult.item.type)
                 if cbResult.isLearned == false then
                     return
                 end
             end
-            if cbResult.isUsable == false or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "PET_BAR_UPDATE_COOLDOWN" }, event) then
+            if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "PET_BAR_UPDATE_COOLDOWN" }, event) then
                 cbResult.isUsable = Item:IsLearnedAndUsable(cbResult.item.id, cbResult.item.type)
             end
-            if cbResult.isCooldown == false or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED", "PET_BAR_UPDATE_COOLDOWN" }, event) then
+            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED", "PET_BAR_UPDATE_COOLDOWN" }, event) then
                 cbResult.itemCooldown = Item:GetCooldown(cbResult.item)
                 cbResult.isCooldown = Item:IsCooldown(cbResult.itemCooldown)
             end
