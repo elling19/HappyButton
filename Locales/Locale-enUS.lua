@@ -4,6 +4,7 @@ L["Version"] = true
 L["Welcome to use HappyButton."] = true
 L["Can not register Bar: must be a callback function."] = true
 L["You cannot use this in combat."] = true
+L["Settings"] = true
 L["Teleport"] = true
 L["Class"] = true
 L["Profession"] = true
