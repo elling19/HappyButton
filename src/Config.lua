@@ -354,135 +354,24 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             end
         end
         local iconPath = "|T" .. showIcon .. ":16|t"
-        
+
         local args = {}
-        local baseSettingOrder = 1
-        local baseSettingArgs = {}
-        local baseSettingOptions = {
+        --------------------------
+        -- 元素设置
+        --------------------------
+        local elementSettingOrder = 1
+        local elementSettingArgs = {}
+        local elementSettingOptions = {
             type = "group",
-            name = L["General Settings"],
+            name = L["Element Settings"],
             order = settingOrder,
-            args = baseSettingArgs
+            args = elementSettingArgs
         }
         settingOrder = settingOrder + 1
-        args.baseSetting = baseSettingOptions
-        baseSettingArgs.moveUp = {
-            order = baseSettingOrder,
-            width = 1,
-            type = 'execute',
-            name = L["Move Up"],
-            disabled = function ()
-                return i <= 1
-            end,
-            func = function()
-                if i > 1 then
-                    elements[i], elements[i - 1] = elements[i - 1], elements[i]
-                end
-                local moveUpSelectGroups = U.Table.DeepCopyList(selectGroups)
-                table.insert(moveUpSelectGroups, "elementMenu" .. i - 1)
-                AceConfigDialog:SelectGroup(addonName, unpack(moveUpSelectGroups))
-                HbFrame:ReloadEframeUI(updateFrameConfig)
-            end
-        }
-        baseSettingOrder = baseSettingOrder + 1
-        baseSettingArgs.moveDown = {
-            order = baseSettingOrder,
-            width = 1,
-            type = 'execute',
-            name = L["Move Down"],
-            disabled = function ()
-                return i >= #elements
-            end,
-            func = function()
-                if i < #elements then
-                    elements[i], elements[i + 1] = elements[i + 1], elements[i]
-                end
-                local moveDownSelectGroups = U.Table.DeepCopyList(selectGroups)
-                table.insert(moveDownSelectGroups, "elementMenu" .. i + 1)
-                AceConfigDialog:SelectGroup(addonName, unpack(moveDownSelectGroups))
-                HbFrame:ReloadEframeUI(updateFrameConfig)
-            end
-        }
-        baseSettingArgs.moveRoot = {
-            order = baseSettingOrder,
-            width = 1,
-            type = 'execute',
-            name = L["Move Top Level"],
-            disabled = function ()
-                return isRoot == true
-            end,
-            func = function()
-                if isRoot == false then
-                    table.remove(elements, i)
-                    table.insert(addon.db.profile.elements, ele)
-                    AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
-                    HbFrame:ReloadEframeUI(updateFrameConfig)
-                end
-            end
-        }
-        baseSettingOrder = baseSettingOrder + 1
-        local childEleOptions = {}
-        for _, _ele in ipairs(elements) do
-            if _ele.type == const.ELEMENT_TYPE.BAR then
-                childEleOptions[_] = E:GetTitleWithIcon(_ele)
-            end
-        end
-        baseSettingArgs.moveTo = {
-            order = baseSettingOrder,
-            width = 1,
-            name = L["Move Down Level"],
-            type = "select",
-            values = childEleOptions,
-            set = function(_, val)
-                table.insert(elements[val].elements, ele)
-                local moveToSelectGroups = U.Table.DeepCopyList(selectGroups)
-                table.insert(moveToSelectGroups, "elementMenu" .. val)
-                table.insert(moveToSelectGroups, "elementMenu" .. #(elements[val].elements))
-                table.remove(elements, i)
-                if topEleConfig == nil then
-                    HbFrame:DeleteEframe(ele)
-                    HbFrame:ReloadEframeUI(elements[val])
-                else
-                    HbFrame:ReloadEframeUI(topEleConfig)
-                end
-                AceConfigDialog:SelectGroup(addonName, unpack(moveToSelectGroups))
-            end
-        }
-        baseSettingOrder = baseSettingOrder + 1
-        baseSettingArgs.delete = {
-            order = baseSettingOrder,
-            width = 1,
-            type = 'execute',
-            name = L["Delete"],
-            confirm = true,
-            func = function()
-                table.remove(elements, i)
-                if topEleConfig == nil then
-                    HbFrame:DeleteEframe(ele)
-                else
-                    HbFrame:ReloadEframeUI(topEleConfig)
-                end
-                AceConfigDialog:SelectGroup(addonName, unpack(selectGroups))
-            end
-        }
-        baseSettingOrder = baseSettingOrder + 1
-        baseSettingArgs.export = {
-            order = baseSettingOrder,
-            width = 1,
-            type = 'execute',
-            name = L['Export'],
-            func = function()
-                local serializedData = AceSerializer:Serialize(ele)
-                local compressedData =
-                    LibDeflate:CompressDeflate(serializedData)
-                local base64Encoded = LibDeflate:EncodeForPrint(compressedData)
-                Config.ShowExportDialog(base64Encoded)
-            end
-        }
-        baseSettingOrder = baseSettingOrder + 1
+        args.elementSetting = elementSettingOptions
         if ele.type ~= const.ELEMENT_TYPE.ITEM then
-            baseSettingArgs.title = {
-                order = baseSettingOrder,
+            elementSettingArgs.title = {
+                order = elementSettingOrder,
                 width = 1,
                 type = 'input',
                 name = L['Element Title'],
@@ -501,9 +390,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     addon:UpdateOptions()
                 end
             }
-            baseSettingOrder = baseSettingOrder + 1
-            baseSettingArgs.icon = {
-                order = baseSettingOrder,
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.icon = {
+                order = elementSettingOrder,
                 width = 1,
                 type = 'input',
                 name = L["Element Icon ID or Path"],
@@ -514,12 +403,12 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     addon:UpdateOptions()
                 end
             }
-            baseSettingOrder = baseSettingOrder + 1
+            elementSettingOrder = elementSettingOrder + 1
         end
         if isRoot then
-            baseSettingArgs.iconWidth = {
+            elementSettingArgs.iconWidth = {
                 step = 1,
-                order = baseSettingOrder,
+                order = elementSettingOrder,
                 width = 1,
                 type = 'range',
                 name = L["Icon Width"],
@@ -533,10 +422,10 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     HbFrame:ReloadEframeUI(updateFrameConfig)
                 end
             }
-            baseSettingOrder = baseSettingOrder + 1
-            baseSettingArgs.iconHeight = {
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.iconHeight = {
                 step = 1,
-                order = baseSettingOrder,
+                order = elementSettingOrder,
                 width = 1,
                 type = 'range',
                 name = L["Icon Height"],
@@ -550,22 +439,8 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     HbFrame:ReloadEframeUI(updateFrameConfig)
                 end
             }
-            baseSettingOrder = baseSettingOrder + 1
+            elementSettingOrder = elementSettingOrder + 1
         end
-
-        --------------------------
-        -- 元素设置
-        --------------------------
-        local elementSettingOrder = 1
-        local elementSettingArgs = {}
-        local elementSettingOptions = {
-            type = "group",
-            name = L["Element Settings"],
-            order = settingOrder,
-            args = elementSettingArgs
-        }
-        settingOrder = settingOrder + 1
-        args.elementSetting = elementSettingOptions
         if ele.type == const.ELEMENT_TYPE.ITEM then
             local item = E:ToItem(ele)
             local extraAttr = item.extraAttr
@@ -817,97 +692,6 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             }
             elementSettingOrder = elementSettingOrder + 1
         end
-        -- 物品条添加子元素
-        if ele.type == const.ELEMENT_TYPE.BAR then
-            elementSettingArgs.addBarDesc = {
-                order = elementSettingOrder,
-                width = 2,
-                type = 'description',
-                name = L["Add Child Elements"]
-            }
-            elementSettingOrder = elementSettingOrder + 1
-            elementSettingArgs.addBar = {
-                order = elementSettingOrder,
-                width = 1,
-                type = 'execute',
-                name = L["New Bar"],
-                func = function()
-                    local bar = E:New(Config.GetNewElementTitle(L["Bar"],
-                            ele.elements),
-                        const.ELEMENT_TYPE.BAR)
-                    table.insert(ele.elements, bar)
-                    HbFrame:ReloadEframeUI(updateFrameConfig)
-                    AceConfigDialog:SelectGroup(addonName, unpack(
-                        selectGroupsAfterAddItem))
-                end
-            }
-            elementSettingOrder = elementSettingOrder + 1
-            elementSettingArgs.addItemGroup = {
-                order = elementSettingOrder,
-                width = 1,
-                type = 'execute',
-                name = L["New ItemGroup"],
-                func = function()
-                    local itemGroup = E:NewItemGroup(
-                        Config.GetNewElementTitle(
-                            L["ItemGroup"], ele.elements))
-                    table.insert(ele.elements, itemGroup)
-                    HbFrame:ReloadEframeUI(updateFrameConfig)
-                    AceConfigDialog:SelectGroup(addonName, unpack(
-                        selectGroupsAfterAddItem))
-                end
-            }
-            elementSettingOrder = elementSettingOrder + 1
-            elementSettingArgs.addScript = {
-                order = elementSettingOrder,
-                width = 1,
-                type = 'execute',
-                name = L["New Script"],
-                func = function()
-                    local script = E:New(
-                        Config.GetNewElementTitle(L["Script"],
-                            ele.elements),
-                        const.ELEMENT_TYPE.SCRIPT)
-                    table.insert(ele.elements, script)
-                    HbFrame:ReloadEframeUI(updateFrameConfig)
-                    AceConfigDialog:SelectGroup(addonName, unpack(
-                        selectGroupsAfterAddItem))
-                end
-            }
-            elementSettingOrder = elementSettingOrder + 1
-            elementSettingArgs.addItem = {
-                order = elementSettingOrder,
-                width = 1,
-                type = 'execute',
-                name = L["New Item"],
-                func = function()
-                    local item = E:New(Config.GetNewElementTitle(L["Item"],
-                            ele.elements),
-                        const.ELEMENT_TYPE.ITEM)
-                    table.insert(ele.elements, item)
-                    HbFrame:ReloadEframeUI(updateFrameConfig)
-                    AceConfigDialog:SelectGroup(addonName, unpack(
-                        selectGroupsAfterAddItem))
-                end
-            }
-            elementSettingOrder = elementSettingOrder + 1
-            elementSettingArgs.addMacro = {
-                order = elementSettingOrder,
-                width = 1,
-                type = 'execute',
-                name = L["New Macro"],
-                func = function()
-                    local macro = E:New(Config.GetNewElementTitle(L["Macro"],
-                            ele.elements),
-                        const.ELEMENT_TYPE.MACRO)
-                    table.insert(ele.elements, macro)
-                    HbFrame:ReloadEframeUI(updateFrameConfig)
-                    AceConfigDialog:SelectGroup(addonName, unpack(
-                        selectGroupsAfterAddItem))
-                end
-            }
-            elementSettingOrder = elementSettingOrder + 1
-        end
         -----------------------------------------
         --- 宏条件设置
         -----------------------------------------
@@ -1041,6 +825,134 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 end,
             }
         end
+        -------------------
+        -- 基本设置
+        ------------------
+        local baseSettingOrder = 1
+        local baseSettingArgs = {}
+        local baseSettingOptions = {
+            type = "group",
+            name = L["General Settings"],
+            order = settingOrder,
+            args = baseSettingArgs
+        }
+        settingOrder = settingOrder + 1
+        args.baseSetting = baseSettingOptions
+        baseSettingArgs.moveUp = {
+            order = baseSettingOrder,
+            width = 1,
+            type = 'execute',
+            name = L["Move Up"],
+            disabled = function ()
+                return i <= 1
+            end,
+            func = function()
+                if i > 1 then
+                    elements[i], elements[i - 1] = elements[i - 1], elements[i]
+                end
+                local moveUpSelectGroups = U.Table.DeepCopyList(selectGroups)
+                table.insert(moveUpSelectGroups, "elementMenu" .. i - 1)
+                AceConfigDialog:SelectGroup(addonName, unpack(moveUpSelectGroups))
+                HbFrame:ReloadEframeUI(updateFrameConfig)
+            end
+        }
+        baseSettingOrder = baseSettingOrder + 1
+        baseSettingArgs.moveDown = {
+            order = baseSettingOrder,
+            width = 1,
+            type = 'execute',
+            name = L["Move Down"],
+            disabled = function ()
+                return i >= #elements
+            end,
+            func = function()
+                if i < #elements then
+                    elements[i], elements[i + 1] = elements[i + 1], elements[i]
+                end
+                local moveDownSelectGroups = U.Table.DeepCopyList(selectGroups)
+                table.insert(moveDownSelectGroups, "elementMenu" .. i + 1)
+                AceConfigDialog:SelectGroup(addonName, unpack(moveDownSelectGroups))
+                HbFrame:ReloadEframeUI(updateFrameConfig)
+            end
+        }
+        baseSettingArgs.moveRoot = {
+            order = baseSettingOrder,
+            width = 1,
+            type = 'execute',
+            name = L["Move Top Level"],
+            disabled = function ()
+                return isRoot == true
+            end,
+            func = function()
+                if isRoot == false then
+                    table.remove(elements, i)
+                    table.insert(addon.db.profile.elements, ele)
+                    AceConfigDialog:SelectGroup(addonName, "element", "elementMenu" .. #addon.db.profile.elements)
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end
+            end
+        }
+        baseSettingOrder = baseSettingOrder + 1
+        local childEleOptions = {}
+        for _, _ele in ipairs(elements) do
+            if _ele.type == const.ELEMENT_TYPE.BAR then
+                childEleOptions[_] = E:GetTitleWithIcon(_ele)
+            end
+        end
+        baseSettingArgs.moveTo = {
+            order = baseSettingOrder,
+            width = 1,
+            name = L["Move Down Level"],
+            type = "select",
+            values = childEleOptions,
+            set = function(_, val)
+                table.insert(elements[val].elements, ele)
+                local moveToSelectGroups = U.Table.DeepCopyList(selectGroups)
+                table.insert(moveToSelectGroups, "elementMenu" .. val)
+                table.insert(moveToSelectGroups, "elementMenu" .. #(elements[val].elements))
+                table.remove(elements, i)
+                if topEleConfig == nil then
+                    HbFrame:DeleteEframe(ele)
+                    HbFrame:ReloadEframeUI(elements[val])
+                else
+                    HbFrame:ReloadEframeUI(topEleConfig)
+                end
+                AceConfigDialog:SelectGroup(addonName, unpack(moveToSelectGroups))
+            end
+        }
+        baseSettingOrder = baseSettingOrder + 1
+        baseSettingArgs.delete = {
+            order = baseSettingOrder,
+            width = 1,
+            type = 'execute',
+            name = L["Delete"],
+            confirm = true,
+            func = function()
+                table.remove(elements, i)
+                if topEleConfig == nil then
+                    HbFrame:DeleteEframe(ele)
+                else
+                    HbFrame:ReloadEframeUI(topEleConfig)
+                end
+                AceConfigDialog:SelectGroup(addonName, unpack(selectGroups))
+            end
+        }
+        baseSettingOrder = baseSettingOrder + 1
+        baseSettingArgs.export = {
+            order = baseSettingOrder,
+            width = 1,
+            type = 'execute',
+            name = L['Export'],
+            func = function()
+                local serializedData = AceSerializer:Serialize(ele)
+                local compressedData =
+                    LibDeflate:CompressDeflate(serializedData)
+                local base64Encoded = LibDeflate:EncodeForPrint(compressedData)
+                Config.ShowExportDialog(base64Encoded)
+            end
+        }
+        baseSettingOrder = baseSettingOrder + 1
+
         ---------------------------------------------------------
         -- 按键绑定设置
         ---------------------------------------------------------
@@ -2282,6 +2194,90 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
         end
         if ele.type == const.ELEMENT_TYPE.BAR then
             local barArgs = {}
+            barArgs["addChildren"] = {
+                type = "group",
+                inline = true,
+                name = L["Add Child Elements"],
+                args = {
+                    addBar = {
+                        order = 2,
+                        width = 1,
+                        type = 'execute',
+                        name = L["New Bar"],
+                        func = function()
+                            local bar = E:New(Config.GetNewElementTitle(L["Bar"],
+                                    ele.elements),
+                                const.ELEMENT_TYPE.BAR)
+                            table.insert(ele.elements, bar)
+                            HbFrame:ReloadEframeUI(updateFrameConfig)
+                            AceConfigDialog:SelectGroup(addonName, unpack(
+                                selectGroupsAfterAddItem))
+                        end
+                    },
+                    addItemGroup = {
+                        order = 3,
+                        width = 1,
+                        type = 'execute',
+                        name = L["New ItemGroup"],
+                        func = function()
+                            local itemGroup = E:NewItemGroup(
+                                Config.GetNewElementTitle(
+                                    L["ItemGroup"], ele.elements))
+                            table.insert(ele.elements, itemGroup)
+                            HbFrame:ReloadEframeUI(updateFrameConfig)
+                            AceConfigDialog:SelectGroup(addonName, unpack(
+                                selectGroupsAfterAddItem))
+                        end
+                    },
+                    addItem = {
+                        order = 4,
+                        width = 1,
+                        type = 'execute',
+                        name = L["New Item"],
+                        func = function()
+                            local item = E:New(Config.GetNewElementTitle(L["Item"],
+                                    ele.elements),
+                                const.ELEMENT_TYPE.ITEM)
+                            table.insert(ele.elements, item)
+                            HbFrame:ReloadEframeUI(updateFrameConfig)
+                            AceConfigDialog:SelectGroup(addonName, unpack(
+                                selectGroupsAfterAddItem))
+                        end
+                    },
+                    addMacro = {
+                        order = 5,
+                        width = 1,
+                        type = 'execute',
+                        name = L["New Macro"],
+                        func = function()
+                            local macro = E:New(Config.GetNewElementTitle(L["Macro"],
+                                    ele.elements),
+                                const.ELEMENT_TYPE.MACRO)
+                            table.insert(ele.elements, macro)
+                            HbFrame:ReloadEframeUI(updateFrameConfig)
+                            AceConfigDialog:SelectGroup(addonName, unpack(
+                                selectGroupsAfterAddItem))
+                        end
+                    },
+                    addScript = {
+                        order = 6,
+                        width = 1,
+                        type = 'execute',
+                        name = L["New Script"],
+                        func = function()
+                            local script = E:New(
+                                Config.GetNewElementTitle(L["Script"],
+                                    ele.elements),
+                                const.ELEMENT_TYPE.SCRIPT)
+                            table.insert(ele.elements, script)
+                            HbFrame:ReloadEframeUI(updateFrameConfig)
+                            AceConfigDialog:SelectGroup(addonName, unpack(
+                                selectGroupsAfterAddItem))
+                        end
+                    }
+                },
+                order = 1
+            }
             barArgs["barSetting"] = {
                 type = "group",
                 name = "|cffffcc00" .. "|T" .. 136243 .. ":16|t" .. L["Settings"] .. "|r",
