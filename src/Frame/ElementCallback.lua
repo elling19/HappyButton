@@ -53,6 +53,7 @@ local CbResult = {}
 -- 函数永远只能返回包含一个CbResult的列表
 ---@param element ItemGroupConfig
 ---@param lastCbResults CbResult[] 上一次更新的结果
+---@return CbResult[]
 function ECB.CallbackOfRandomMode(element, lastCbResults)
     -- 如果上一次结果可用，则继续使用上一次的结果
     if lastCbResults and #lastCbResults then
@@ -61,7 +62,7 @@ function ECB.CallbackOfRandomMode(element, lastCbResults)
             local isUsable = Item:IsLearnedAndUsable(r.item.id, r.item.type)
             local isCooldown = Item:IsCooldown(Item:GetCooldown(r.item))
             if isUsable and isCooldown then
-                return
+                return lastCbResults
             end
         end
     end
@@ -98,13 +99,14 @@ function ECB.CallbackOfRandomMode(element, lastCbResults)
     else
         cb = ECB:NilCallback()
     end
-    lastCbResults = { cb, }
+    return { cb, }
 end
 
 -- 顺序选择callback
 -- 函数永远只能返回包含一个CbResult的列表
 ---@param element ItemGroupConfig
 ---@param lastCbResults CbResult[] 上一次更新的结果
+---@return CbResult[]
 function ECB.CallbackOfSeqMode(element, lastCbResults)
     if lastCbResults and #lastCbResults then
         local r = lastCbResults[1]
@@ -112,7 +114,7 @@ function ECB.CallbackOfSeqMode(element, lastCbResults)
             local isUsable = Item:IsLearnedAndUsable(r.item.id, r.item.type)
             local isCooldown = Item:IsCooldown(Item:GetCooldown(r.item))
             if isUsable and isCooldown then
-                return
+                return lastCbResults
             end
         end
     end
@@ -138,21 +140,21 @@ function ECB.CallbackOfSeqMode(element, lastCbResults)
             cb = ECB:NilCallback()
         end
     end
-    lastCbResults = { cb, }
+    return { cb, }
 end
 
 -- 宏callback
 -- 函数永远只能返回包含一个CbResult的列表
 ---@param element MacroConfig
 ---@param lastCbResults CbResult[] 上一次更新的结果
+---@return CbResult[]
 function ECB.CallbackOfMacroMode(element, lastCbResults)
     ---@type CbResult
     local cb = {}
     local ast = element.extraAttr.ast
     if ast == nil then
         cb = ECB:NilCallback()
-        lastCbResults = { cb, }
-        return
+        return { cb, }
     end
     if ast.tooltip ~= nil then
         cb.item = ast.tooltip
@@ -218,7 +220,7 @@ function ECB.CallbackOfMacroMode(element, lastCbResults)
         end
         cb.macro = table.concat(macroStrings, "\n")
     end
-    lastCbResults = { cb, }
+    return { cb, }
 end
 
 -- 获取宏图标
@@ -278,15 +280,18 @@ end
 -- 函数永远只能返回包含一个CbResult的列表
 ---@param element ItemConfig
 ---@param lastCbResults CbResult[] 上一次更新的结果
+---@return CbResult[]
 function ECB.CallbackOfSingleMode(element, lastCbResults)
     if #lastCbResults == 0 then
         table.insert(lastCbResults, ECB:CallbackByItemConfig(element))
     end
+    return lastCbResults
 end
 
 -- 脚本模式
 ---@param element ScriptConfig
 ---@param lastCbResults CbResult[]
+---@return CbResult[]
 function ECB.CallbackOfScriptMode(element, lastCbResults)
     local script = E:ToScript(element)
     local cbResults = {} ---@type CbResult[]
@@ -305,15 +310,14 @@ function ECB.CallbackOfScriptMode(element, lastCbResults)
     -- 兼容返回列表和单个cbResult
     if not U.Table.IsArray(cbResult) then
         table.insert(cbResults, cbResult)
-        lastCbResults = cbResults
-        return
+        return cbResults
     end
     for _, cb in ipairs(cbResult) do
         if cb then
             table.insert(cbResults, cb)
         end
     end
-    lastCbResults = cbResults
+    return cbResults
 end
 
 ---@param element ItemConfig
