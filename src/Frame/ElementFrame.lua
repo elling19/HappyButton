@@ -332,7 +332,7 @@ function ElementFrame:ExcuteCb(cb, btnIndex, event, eventArgs)
     if cb.passLoadCond == true then
         -- 如果当前事件不是这个cb需要监听的事件，则使用上一次cb;否则执行回调函数cb
         if cb.e[event] ~= nil and E:CompareEventParam(cb.e[event], eventArgs) then
-            cb.f(cb.p, cb.r)
+            cb.r = cb.f(cb.p, cb.r)
             -- 反向遍历 rs 数组
             for i = #cb.r, 1, -1 do
                 ECB:UpdateSelfTrigger(cb.r[i], event, eventArgs)
