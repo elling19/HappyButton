@@ -143,25 +143,23 @@ function E:GetItemAttrEvents(itemAttr)
     end
     if itemAttr.type == const.ITEM_TYPE.ITEM then
         events["BAG_UPDATE"] = {}
-        events["BAG_UPDATE_COOLDOWN"] = {}
         events["UNIT_SPELLCAST_SUCCEEDED"] = {{"player"}, }
         return events
     end
     if itemAttr.type == const.ITEM_TYPE.EQUIPMENT then
         events["BAG_UPDATE"] = {}
-        events["BAG_UPDATE_COOLDOWN"] = {}
         events["PLAYER_EQUIPMENT_CHANGED"] = {}
         events["UNIT_SPELLCAST_SUCCEEDED"] = {{"player"}, }
         return events
     end
     if itemAttr.type == const.ITEM_TYPE.TOY then
-        events["SPELL_UPDATE_COOLDOWN"] = {}
         events["NEW_TOY_ADDED"] = {}
         events["UNIT_SPELLCAST_SUCCEEDED"] = {{"player"}, }
         return events
     end
     if itemAttr.type == const.ITEM_TYPE.SPELL then
         events["SPELLS_CHANGED"] = {}
+        events["UNIT_SPELLCAST_SUCCEEDED"] = {{"player"}, }
         events["SPELL_UPDATE_COOLDOWN"] = {}
         return events
     end
@@ -299,6 +297,28 @@ function E:GetEvents(config)
     end
     return events
 end
+
+
+--- 获取config的是否加载监听事件
+--- @param config ElementConfig
+--- @return table<EventString, any[][]> -- key为事件名称，value为一个二维数组，每一个数组表示一组事件参数。当数组为空的时候表示不限制
+function E:GetLoadCondEvents(config)
+    ---@type table<string, any[]>
+    local events = {
+        ["HB_UPDATE_CONFIG"] = {},  -- 自定义事件
+        ["PLAYER_ENTERING_WORLD"] = {},  -- 读蓝条
+    }
+    if config.loadCond == nil then
+        return events
+    end
+    -- 开启战斗检查
+    if config.loadCond.CombatCond ~= nil then
+        events["PLAYER_REGEN_DISABLED"] = {}
+        events["PLAYER_REGEN_ENABLED"] = {}
+    end
+    return events
+end
+
 
 --- 比较元素的events对象参数和事件参数，如果能够匹配返回true
 ---@param elementEventParams any[][]

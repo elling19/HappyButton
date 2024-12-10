@@ -34,7 +34,6 @@ local registerEvents = {
     ["PLAYER_TALENT_UPDATE"] = true,            -- 天赋改变（技能）
     ["PLAYER_TARGET_CHANGED"] = true,           -- 目标改变（脚本、触发器）
     ["BAG_UPDATE"] = true,                      -- 背包物品改变(物品、装备)
-    ["BAG_UPDATE_COOLDOWN"] = true,             -- 背包物品冷却触发(物品、装备)
     ["MODIFIER_STATE_CHANGED"] = true,          -- 修饰按键按下
     ["UPDATE_MOUSEOVER_UNIT"] = true,           -- 鼠标指向改变
     ["ZONE_CHANGED"] = true,                    -- 区域改变
@@ -60,12 +59,13 @@ end
 -- 限流事件
 local throttlingEvents = {
     ["SPELL_UPDATE_COOLDOWN"] = {},
-    ["BAG_UPDATE_COOLDOWN"] = {}
+    ["BAG_UPDATE"] = {},
 }
 
 -- 延迟事件
 local delayEvents = {
     ["UPDATE_MOUSEOVER_UNIT"] = true,
+    ["UNIT_SPELLCAST_SUCCEEDED"] = true
 }
 
 -- 注册事件
@@ -97,10 +97,10 @@ function BarCore:Start()
             if e == event then
                 if throttlingEvents[e] ~= nil then
                     if throttlingEvents[e].waiting ~= true then
+                        HbFrame:UpdateAllEframes(e, args)
                         throttlingEvents[e].waiting = true
                         C_Timer.After(0.2, function()
                             throttlingEvents[e].waiting = false
-                            HbFrame:UpdateAllEframes(e, args)
                         end)
                     end
                 elseif delayEvents[e] ~= nil then

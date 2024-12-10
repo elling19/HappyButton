@@ -29,14 +29,17 @@ local LoadCondition = addon:GetModule("LoadCondition")
 ---@field p ElementConfig -- p: params
 ---@field r CbResult[]
 ---@field btns Btn[]  -- 按钮，数量和CbResult保持一致
----@field e table<EventString, any[][]>
+---@field e table<EventString, any[][]>  -- 监听物品及触发器事件
+---@field loadCondEvents table<EventString, any[][]>  -- 监听物品加载条件事件
+---@field passLoadCond boolean | nil -- 是否通过物品加载条件，nil表示没有判断
+---@field c ElementCbInfo[] | nil  -- 子元素的callback
 
 ---@class Bar
 ---@field BarFrame nil|table|Button
 ---@field Icon string | number | nil
 
 ---@class ElementFrame: AceModule
----@field Cbs ElementCbInfo[]
+---@field Cbs ElementCbInfo | nil
 ---@field Events table<EventString, any[][]>
 ---@field Config ElementConfig  -- 当前Frame的配置文件
 ---@field Window Frame
@@ -57,7 +60,6 @@ function ElementFrame:IsHorizontal()
         or self.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM
         or self.Config.elesGrowth == const.GROWTH.RIGHTTOP
 end
-
 
 -- 获取框体相对屏幕的位置
 ---@param frame  Frame
@@ -118,22 +120,13 @@ function ElementFrame:ReLoadUI()
     self.IconHeight = self.Config.iconHeight or addon.G.iconHeight
     self.IconWidth = self.Config.iconWidth or addon.G.iconWidth
     -- 移除旧的Cbs中的按钮
-    if self.Cbs then
-        for _, cbs in ipairs(self.Cbs) do
-            if cbs.btns then
-                for i = #cbs.btns, 1, -1 do
-                    cbs.btns[i]:Delete()
-                    cbs.btns[i] = nil
-                end
-            end
-        end
-    end
+    self:ClearCbBtns(self.Cbs)
     self.Cbs = self:GetCbs(self.Config)
     self.Events = E:GetEvents(self.Config)
     self:UpdateWindow()
     self:UpdateBar()
     self:CreateEditModeFrame()
-    self:OutCombatUpdate("PLAYER_ENTERING_WORLD", {})
+    self:Update("PLAYER_ENTERING_WORLD", {})
     -- 设置初始的时候是否隐藏
     if self.Config.isDisplayMouseEnter == true then
         self:SetBarTransparency()
@@ -141,56 +134,51 @@ function ElementFrame:ReLoadUI()
 end
 
 ---@param eleConfig ElementConfig
----@return ElementCbInfo[]
+---@return ElementCbInfo | nil
 function ElementFrame:GetCbs(eleConfig)
-    if eleConfig.loadCond and LoadCondition:Pass(eleConfig.loadCond) == false then
-        return {}
-    end
     if eleConfig.type == const.ELEMENT_TYPE.ITEM then
         local item = E:ToItem(eleConfig)
         ---@type ElementCbInfo
-        local cb = { f = ECB.CallbackOfSingleMode, p = item, r = {}, btns = {}, e = E:GetEvents(item) }
-        return { cb, }
+        local cb = { f = ECB.CallbackOfSingleMode, p = item, r = {}, btns = {}, e = E:GetEvents(item), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
+        return cb
     elseif eleConfig.type == const.ELEMENT_TYPE.MACRO then
         local macro = E:ToMacro(eleConfig)
         ---@type ElementCbInfo
-        local cb = { f = ECB.CallbackOfMacroMode, p = macro, r = {}, btns = {}, e = E:GetEvents(macro) }
-        return { cb, }
+        local cb = { f = ECB.CallbackOfMacroMode, p = macro, r = {}, btns = {}, e = E:GetEvents(macro), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
+        return cb
     elseif eleConfig.type == const.ELEMENT_TYPE.ITEM_GROUP then
         local itemGroup = E:ToItemGroup(eleConfig)
         ---@type ElementCbInfo
         local cb
         if itemGroup.extraAttr.mode == const.ITEMS_GROUP_MODE.RANDOM then
-            cb = { f = ECB.CallbackOfRandomMode, p = itemGroup, r = {}, btns = {}, e = E:GetEvents(itemGroup) }
+            cb = { f = ECB.CallbackOfRandomMode, p = itemGroup, r = {}, btns = {}, e = E:GetEvents(itemGroup), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
         end
         if itemGroup.extraAttr.mode == const.ITEMS_GROUP_MODE.SEQ then
-            cb = { f = ECB.CallbackOfSeqMode, p = itemGroup, r = {}, btns = {}, e = E:GetEvents(itemGroup) }
+            cb = { f = ECB.CallbackOfSeqMode, p = itemGroup, r = {}, btns = {}, e = E:GetEvents(itemGroup), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
         end
-        return { cb, }
+        return cb
     elseif eleConfig.type == const.ELEMENT_TYPE.SCRIPT then
         local script = E:ToScript(eleConfig)
         if script.extraAttr.script then
             ---@type ElementCbInfo
-            local cb = { f = ECB.CallbackOfScriptMode, p = script, r = {}, btns = {}, e = E:GetEvents(script) }
-            return { cb, }
+            local cb = { f = ECB.CallbackOfScriptMode, p = script, r = {}, btns = {}, e = E:GetEvents(script), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
+            return cb
         else
-            return {}
+            return nil
         end
     elseif eleConfig.type == const.ELEMENT_TYPE.BAR then
         ---@type ElementCbInfo[]
-        local cbs = {}
+        local cCb = {}
         local bar = E:ToBar(eleConfig)
-        for _, _eleConfig in ipairs(bar.elements) do
-            if _eleConfig.loadCond and _eleConfig.loadCond then
-                local eleConfigCbs = self:GetCbs(_eleConfig)
-                for _, _cbs in ipairs(eleConfigCbs) do
-                    table.insert(cbs, _cbs)
-                end
+        if bar.elements then
+            for _, _eleConfig in ipairs(bar.elements) do
+                table.insert(cCb, ElementFrame:GetCbs(_eleConfig))
             end
         end
-        return cbs
+        local cb = { f = nil, p = bar, r = {}, btns = {}, e = E:GetEvents(bar), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = cCb }
+        return cb
     end
-    return {}
+    return nil
 end
 
 -- 创建Bar
@@ -223,10 +211,12 @@ function ElementFrame:UpdateBar()
     self.Bar.BarFrame:SetHeight(self.IconHeight)
 end
 
+
 -- 更新
 ---@param event EventString
 ---@param eventArgs any[]
 function ElementFrame:Update(event, eventArgs)
+    self:UpdateCbPassLoadCond(self.Cbs, event, eventArgs)
     if InCombatLockdown() then
         self:InCombatUpdate(event, eventArgs)
     else
@@ -234,71 +224,172 @@ function ElementFrame:Update(event, eventArgs)
     end
 end
 
+
+-- 根据事件更新Cb是否通过加载条件
+---@param cb ElementCbInfo
+---@param event EventString
+---@param eventArgs any[]
+function ElementFrame:UpdateCbPassLoadCond(cb, event, eventArgs)
+    if cb == nil then
+        return
+    end
+    -- 如果是加载条件的事件，先更新加载条件
+    if cb.loadCondEvents[event] ~= nil or cb.passLoadCond == nil then
+        cb.passLoadCond = LoadCondition:Pass(cb.p.loadCond)
+    end
+    if cb.c then
+        for _, c in ipairs(cb.c) do
+            self:UpdateCbPassLoadCond(c, event, eventArgs)
+        end
+    end
+end
+
+-- 删除cb下面的btn信息
+---@param cb ElementCbInfo
+function ElementFrame:ClearCbBtns(cb)
+    if cb == nil then
+        return
+    end
+    if cb.r then
+        cb.r = {}
+    end
+    if cb.btns then
+        for i = #cb.btns, 1, -1 do
+            cb.btns[i]:Delete()
+            cb.btns[i] = nil
+        end
+    end
+    if cb.c then
+        for _, c in ipairs(cb.c) do
+            self:ClearCbBtns(c)
+        end
+    end
+end
+
+-- 统计cb下面的btn数量
+---@param cb ElementCbInfo
+---@return number
+function ElementFrame:CountCbBtnNumber(cb)
+    if cb == nil then
+        return 0
+    end
+    local count = 0
+    if cb.btns then
+        count = count + #cb.btns
+    end
+    if cb.c then
+        for _, c in ipairs(cb.c) do
+            count = count + self:CountCbBtnNumber(c)
+        end
+    end
+    return count
+end
+
+-- 更新cb下面的btn
+---@param cb ElementCbInfo
+---@param event EventString
+---@param eventArgs any[]
+function ElementFrame:CbBtnsUpdateBySelf(cb, event, eventArgs)
+    if cb == nil then
+        return
+    end
+    if cb.btns then
+        for _, btn in ipairs(cb.btns) do
+            btn:UpdateBySelf(event, eventArgs)
+        end
+    end
+    if cb.c then
+        for _, c in ipairs(cb.c) do
+            self:CbBtnsUpdateBySelf(c, event, eventArgs)
+        end
+    end
+end
+
+
+-- 执行cb函数
+---@param cb ElementCbInfo
+---@param btnIndex {index: number}  -- 用来维护当前frame的btn顺序
+---@param event EventString
+---@param eventArgs any[]
+function ElementFrame:ExcuteCb(cb, btnIndex, event, eventArgs)
+    if cb == nil then
+        return
+    end
+    -- 如果是物品条，判断物品条的加载条件是否满足，满足则继续，不满足则递归清除物品的cb
+    if cb.p.type == const.ELEMENT_TYPE.BAR then
+        if cb.passLoadCond == true then
+            if cb.p.elements then
+                for _, c in ipairs(cb.c) do
+                    self:ExcuteCb(c, btnIndex, event, eventArgs)
+                end
+            end
+        else
+            self:ClearCbBtns(cb)
+        end
+        return
+    end
+    -- 非物品条，先判断物品是否满足加载条件
+    if cb.passLoadCond == true then
+        -- 如果当前事件不是这个cb需要监听的事件，则使用上一次cb;否则执行回调函数cb
+        if cb.e[event] ~= nil and E:CompareEventParam(cb.e[event], eventArgs) then
+            cb.f(cb.p, cb.r)
+            -- 反向遍历 rs 数组
+            for i = #cb.r, 1, -1 do
+                ECB:UpdateSelfTrigger(cb.r[i], event, eventArgs)
+                ECB:UseTrigger(cb.p, cb.r[i])
+                -- 战斗外更新，如果发现隐藏按钮则是移除按钮
+                if cb.r[i].effects then
+                    for _, effect in ipairs(cb.r[i].effects) do
+                        if effect.type == "btnHide" and effect.status == true then
+                            cb.r[i].isHideBtn = true
+                            break
+                        end
+                    end
+                end
+            end
+        end
+    else
+        cb.r = {}
+    end
+    local cbBtnIndex = 0
+    for _, r in ipairs(cb.r) do
+        if r.isHideBtn ~= true then
+            btnIndex.index = btnIndex.index + 1
+            cbBtnIndex = cbBtnIndex + 1
+            -- 如果图标不足，补全图标
+            if cbBtnIndex > #cb.btns then
+                local btn = Btn:New(self, cb, cbBtnIndex)
+                table.insert(cb.btns, btn)
+            end
+            local btn = cb.btns[cbBtnIndex]
+            btn:UpdateByElementFrame(cbBtnIndex, btnIndex.index, event, eventArgs)
+        end
+    end
+    -- 如果按钮过多，删除冗余按钮
+    if cbBtnIndex < #cb.btns then
+        for i = #cb.btns, cbBtnIndex + 1, -1 do
+            cb.btns[i]:Delete()
+            cb.btns[i] = nil
+        end
+    end
+end
+
 -- 战斗外更新
 ---@param event EventString
 ---@param eventArgs any[]
 function ElementFrame:OutCombatUpdate(event, eventArgs)
+    -- 首先判断载入条件
+    if self.Cbs.passLoadCond == false then
+        self:HideWindow()
+        return
+    end
     -- 事件不在监听范围内则跳过
     if self.Events[event] == nil or not E:CompareEventParam(self.Events[event], eventArgs) then
         return
     end
-    -- 首先判断载入条件
-    if LoadCondition:Pass(self.Config.loadCond) == false then
-        self:HideWindow()
-        return
-    end
-    if self.Cbs then
-        local btnIndex = 0
-        for _, cb in ipairs(self.Cbs) do
-            -- 如果当前事件不是这个cb需要监听的事件，则使用上一次cb
-            if cb.e[event] == nil or not E:CompareEventParam(self.Events[event], eventArgs) then
-            else
-                -- 判断是否通过展示条件判断，如果不通过，则相当于当前元素全部隐藏
-                if LoadCondition:Pass(cb.p.loadCond) == true then
-                    cb.f(cb.p, cb.r)
-                    -- 反向遍历 rs 数组
-                    for i = #cb.r, 1, -1 do
-                        ECB:UpdateSelfTrigger(cb.r[i], event, eventArgs)
-                        ECB:UseTrigger(cb.p, cb.r[i])
-                        -- 战斗外更新，如果发现隐藏按钮则是移除按钮
-                        if cb.r[i].effects then
-                            for _, effect in ipairs(cb.r[i].effects) do
-                                if effect.type == "btnHide" and effect.status == true then
-                                    cb.r[i].isHideBtn = true
-                                    break
-                                end
-                            end
-                        end
-                    end
-                else
-                    cb.r = {}
-                end
-            end
-            local cbBtnIndex = 0
-            for _, r in ipairs(cb.r) do
-                if r.isHideBtn ~= true then
-                    btnIndex = btnIndex + 1
-                    cbBtnIndex = cbBtnIndex + 1
-                    -- 如果图标不足，补全图标
-                    if cbBtnIndex > #cb.btns then
-                        local btn = Btn:New(self, cb, cbBtnIndex)
-                        table.insert(cb.btns, btn)
-                    end
-                    local btn = cb.btns[cbBtnIndex]
-                    btn:UpdateByElementFrame(cbBtnIndex, btnIndex, event, eventArgs)
-                end
-            end
-            -- 如果按钮过多，删除冗余按钮
-            if btnIndex < #cb.btns then
-                for i = #cb.btns, btnIndex + 1, -1 do
-                    cb.btns[i]:Delete()
-                    cb.btns[i] = nil
-                end
-            end
-        end
-    end
-
-    self:SetWindowSize()
+    local btnIndex = { index = 0 }
+    self:ExcuteCb(self.Cbs, btnIndex, event, eventArgs)
+    -- self:SetWindowSize()
     if self.Config.loadCond and self.Config.loadCond.CombatCond == true then
         self:HideWindow()
     else
@@ -308,23 +399,15 @@ end
 
 -- 战斗中更新
 ---@param event EventString
----@param args table
-function ElementFrame:InCombatUpdate(event, args)
+---@param eventArgs any[]
+function ElementFrame:InCombatUpdate(event, eventArgs)
     if event and self.Events[event] == nil then
         return
     end
     if LoadCondition:Pass(self.Config.loadCond) == false then
         return
     end
-    if self.Cbs then
-        for _, cb in ipairs(self.Cbs) do
-            if cb.btns then
-                for _, btn in ipairs(cb.btns) do
-                    btn:UpdateBySelf(event, args)
-                end
-            end
-        end
-    end
+    self:CbBtnsUpdateBySelf(self.Cbs, event, eventArgs)
 end
 
 function ElementFrame:InitialWindow()
@@ -418,7 +501,6 @@ function ElementFrame:CreateEditModeFrame()
     self.EditModeBg:Hide()
 end
 
-
 --- 将单个Bar类型设置成透明
 function ElementFrame:SetBarTransparency()
     self.Bar.BarFrame:SetAlpha(0)
@@ -441,15 +523,9 @@ end
 
 -- 设置窗口宽度：窗口会遮挡视图，会减少鼠标可点击范围，因此窗口宽度尽可能小
 function ElementFrame:SetWindowSize()
-    local buttonNum = 1
-    if self.Cbs then
-        buttonNum = 0
-        for _, cb in ipairs(self.Cbs) do
-            if cb.btns then
-                buttonNum = buttonNum + #cb.btns
-            end
-        end
-        buttonNum = buttonNum or 1
+    local buttonNum = self:CountCbBtnNumber(self.Cbs)
+    if buttonNum == 0 then
+        buttonNum = 1
     end
     if self:IsHorizontal() then
         self.Window:SetWidth(self.IconWidth * buttonNum)

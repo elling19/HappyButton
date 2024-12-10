@@ -37,6 +37,7 @@ end
 ---@param eleConfig ElementConfig
 function HbFrame:AddEframe(eleConfig)
     if self.EFrames[eleConfig.id] ~= nil then
+        self.EFrames[eleConfig.id]:Update("PLAYER_ENTERING_WORLD", {})
         return
     end
     self.EFrames[eleConfig.id] = ElementFrame:New(eleConfig)
