@@ -68,11 +68,8 @@ end
 ---@param itemID number
 ---@param itemType ItemType
 ---@return boolean
-function Item:IsLearnedAndUsable(itemID, itemType)
+function Item:IsUsable(itemID, itemType)
     if itemID == nil or itemType == nil then
-        return false
-    end
-    if not self:IsLearned(itemID, itemType) then
         return false
     end
     if itemType == const.ITEM_TYPE.ITEM or itemType == const.ITEM_TYPE.EQUIPMENT then

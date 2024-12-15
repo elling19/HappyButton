@@ -113,9 +113,9 @@ end
 ---@param index number UnitAura 支持index和name，C_UnitAuras.GetBuffDataByIndex只支持number，
 ---@param filter string? UnitAura 支持“|”和“空格”拆分，C_UnitAuras.GetBuffDataByIndex支持管道符和空格
 ---@return {expirationTime: number, spellId: number}?
-Api.GetBuffDataByIndex = function (unitId, index, filter)
-    if C_UnitAuras and C_UnitAuras.GetBuffDataByIndex then
-        local auraData = C_UnitAuras.GetBuffDataByIndex(unitId, index, filter)
+Api.GetAuraDataByIndex = function (unitId, index, filter)
+    if C_UnitAuras and C_UnitAuras.GetAuraDataByIndex then
+        local auraData = C_UnitAuras.GetAuraDataByIndex(unitId, index, filter)
         if auraData == nil then
             return nil
         end

@@ -7,6 +7,12 @@ local U = addon:GetModule('Utils')
 ---@class HbFrame: AceModule
 local HbFrame = addon:GetModule("HbFrame")
 
+---@class AuraCache: AceModule
+local AuraCache = addon:GetModule("AuraCache")
+
+---@class ItemCache: AceModule
+local ItemCache = addon:GetModule("ItemCache")
+
 ---@class BarCore: AceModule
 local BarCore = addon:NewModule("BarCore")
 
@@ -14,6 +20,7 @@ BarCore.Frame = CreateFrame("Frame")
 
 -- 初始化配置
 function BarCore:Initial()
+    ItemCache:Initial()
     HbFrame:Initial()
 end
 
@@ -28,6 +35,7 @@ local registerEvents = {
     ["PLAYER_LOGIN"] = true,                    -- 登录
     ["UNIT_SPELLCAST_SUCCEEDED"] = true,        -- 施法成功
     ["SPELL_UPDATE_COOLDOWN"] = true,           -- 触发冷却
+    ["SPELL_UPDATE_CHARGES"] = true,            -- 技能充能改变
     ["PLAYER_REGEN_ENABLED"] = true,            -- 退出战斗事件
     ["PLAYER_EQUIPMENT_CHANGED"] = true,        -- 装备改变（物品、装备）
     ["SPELLS_CHANGED"] = true,                  -- 技能改变（技能）
@@ -42,6 +50,7 @@ local registerEvents = {
     ["PET_BAR_UPDATE_COOLDOWN"] = true,         -- 宠物相关
     ["NEW_PET_ADDED"] = true,                   -- 学会新的宠物
     ["NEW_TOY_ADDED"] = true,                   -- 学会新的玩具
+    ["UNIT_AURA"] = true,                       -- 光环改变
     ["ADDON_LOADED"] = false,                   -- 加载插件
     ["CVAR_UPDATE"] = false,                    -- 改变cvar
     ["PLAYER_REGEN_DISABLED"] = false,          -- 进入战斗事件
@@ -73,7 +82,6 @@ function BarCore:Start()
     for event, _ in pairs(registerEvents) do
         BarCore.Frame:RegisterEvent(event)
     end
-    -- BarCore.Frame:RegisterEvent("UNIT_AURA")
     BarCore.Frame:SetScript("OnEvent", function(_, event, ...)
         local args = { ... }
         if event == "PLAYER_LOGIN" then
@@ -88,6 +96,9 @@ function BarCore:Start()
             if cvar_name == "ActionButtonUseKeyDown" then
                 HbFrame:UpdateRegisterForClicks()
             end
+        end
+        if event == "UNIT_AURA" or event == "PLAYER_TARGET_CHANGED" then
+            AuraCache:Update(event, args)
         end
         -- 当玩家技能发生改变的时候，如果配置文件中有需要更新的ItemAttr，则更新ItemAttr（这是由于API无法获取非当前玩家拥有技能的信息）
         if event == "PLAYER_TALENT_UPDATE" or "SPELLS_CHANGED" then

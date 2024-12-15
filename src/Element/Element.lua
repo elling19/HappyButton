@@ -160,6 +160,7 @@ function E:GetItemAttrEvents(itemAttr)
     if itemAttr.type == const.ITEM_TYPE.SPELL then
         events["SPELLS_CHANGED"] = {}
         events["UNIT_SPELLCAST_SUCCEEDED"] = {{"player"}, }
+        events["SPELL_UPDATE_CHARGES"] = {}
         events["SPELL_UPDATE_COOLDOWN"] = {}
         return events
     end

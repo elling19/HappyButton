@@ -59,7 +59,7 @@ function ECB.CallbackOfRandomMode(element, lastCbResults)
     if lastCbResults and #lastCbResults then
         local r = lastCbResults[1]
         if r and r.item then
-            local isUsable = Item:IsLearnedAndUsable(r.item.id, r.item.type)
+            local isUsable = Item:IsUsable(r.item.id, r.item.type)
             local isCooldown = Item:IsCooldown(Item:GetCooldown(r.item))
             if isUsable and isCooldown then
                 return lastCbResults
@@ -70,7 +70,7 @@ function ECB.CallbackOfRandomMode(element, lastCbResults)
     local cooldownItemList = {} ---@type ItemConfig[]
     for _, ele in ipairs(element.elements) do
         local item = E:ToItem(ele)
-        local isUsable = Item:IsLearnedAndUsable(item.extraAttr.id, item.extraAttr.type)
+        local isUsable = Item:IsUsable(item.extraAttr.id, item.extraAttr.type)
         local isCooldown = Item:IsCooldown(Item:GetCooldown(item.extraAttr))
         if isUsable then
             table.insert(usableItemList, item)
@@ -111,7 +111,7 @@ function ECB.CallbackOfSeqMode(element, lastCbResults)
     if lastCbResults and #lastCbResults then
         local r = lastCbResults[1]
         if r and r.item then
-            local isUsable = Item:IsLearnedAndUsable(r.item.id, r.item.type)
+            local isUsable = Item:IsUsable(r.item.id, r.item.type)
             local isCooldown = Item:IsCooldown(Item:GetCooldown(r.item))
             if isUsable and isCooldown then
                 return lastCbResults
@@ -122,7 +122,7 @@ function ECB.CallbackOfSeqMode(element, lastCbResults)
     local cb
     for _, ele in ipairs(element.elements) do
         local item = E:ToItem(ele)
-        local isUsable = Item:IsLearnedAndUsable(item.extraAttr.id, item.extraAttr.type)
+        local isUsable = Item:IsUsable(item.extraAttr.id, item.extraAttr.type)
         if isUsable == true then
             local isCooldown = Item:IsCooldown(Item:GetCooldown(item.extraAttr))
             if isCooldown then
@@ -364,7 +364,7 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
                 end
             end
             if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE_COOLDOWN", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_EQUIPMENT_CHANGED" }, event) then
-                cbResult.isUsable = Item:IsLearnedAndUsable(cbResult.item.id, cbResult.item.type)
+                cbResult.isUsable = Item:IsUsable(cbResult.item.id, cbResult.item.type)
             end
             if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE_COOLDOWN", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_EQUIPMENT_CHANGED" }, event) then
                 cbResult.itemCooldown = Item:GetCooldown(cbResult.item)
@@ -380,14 +380,14 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
                     return
                 end
             end
-            if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "SPELL_UPDATE_COOLDOWN" }, event) then
-                cbResult.isUsable = Item:IsLearnedAndUsable(cbResult.item.id, cbResult.item.type)
+            if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED" }, event) then
+                cbResult.isUsable = Item:IsUsable(cbResult.item.id, cbResult.item.type)
             end
-            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "SPELL_UPDATE_COOLDOWN" }, event) then
+            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED" }, event) then
                 cbResult.itemCooldown = Item:GetCooldown(cbResult.item)
                 cbResult.isCooldown = Item:IsCooldown(cbResult.itemCooldown)
             end
-            if cbResult.count == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "SPELL_UPDATE_COOLDOWN" }, event) then
+            if cbResult.count == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "SPELL_UPDATE_CHARGES" }, event) then
                 local chargeInfo = Api.GetSpellCharges(cbResult.item.id)
                 if chargeInfo then
                     cbResult.count = chargeInfo.currentCharges
@@ -402,10 +402,10 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
                     return
                 end
             end
-            if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "SPELL_UPDATE_COOLDOWN" }, event) then
-                cbResult.isUsable = Item:IsLearnedAndUsable(cbResult.item.id, cbResult.item.type)
+            if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", }, event) then
+                cbResult.isUsable = Item:IsUsable(cbResult.item.id, cbResult.item.type)
             end
-            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED", "SPELL_UPDATE_COOLDOWN" }, event) then
+            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED" }, event) then
                 cbResult.itemCooldown = Item:GetCooldown(cbResult.item)
                 cbResult.isCooldown = Item:IsCooldown(cbResult.itemCooldown)
             end
@@ -420,7 +420,7 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
                 end
             end
             if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "MOUNT_JOURNAL_USABILITY_CHANGED" }, event) then
-                cbResult.isUsable = Item:IsLearnedAndUsable(cbResult.item.id, cbResult.item.type)
+                cbResult.isUsable = Item:IsUsable(cbResult.item.id, cbResult.item.type)
             end
             cbResult.count = nil
         end
@@ -433,7 +433,7 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
                 end
             end
             if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "PET_BAR_UPDATE_COOLDOWN" }, event) then
-                cbResult.isUsable = Item:IsLearnedAndUsable(cbResult.item.id, cbResult.item.type)
+                cbResult.isUsable = Item:IsUsable(cbResult.item.id, cbResult.item.type)
             end
             if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED", "PET_BAR_UPDATE_COOLDOWN" }, event) then
                 cbResult.itemCooldown = Item:GetCooldown(cbResult.item)

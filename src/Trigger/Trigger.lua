@@ -156,7 +156,7 @@ function Trigger:GetAuraTriggerCond(triggerConfig)
     result.remainingTime = 0
     if UnitExists(target) then
         for i = 1, 100 do
-            local aura = Api.GetBuffDataByIndex(target, i, filter)
+            local aura = Api.GetAuraDataByIndex(target, i, filter)
             if aura and aura.spellId == auraId then
                 result.exist = true
                 result.remainingTime = aura.expirationTime - GetTime()
@@ -181,7 +181,7 @@ function Trigger:GetItemTriggerCond(triggerConfig)
         return result
     end
     result.isLearned = Item:IsLearned(item.id, item.type)
-    result.isUsable = Item:IsLearnedAndUsable(item.id, item.type)
+    result.isUsable = Item:IsUsable(item.id, item.type)
     result.isCooldown = Item:IsCooldown(Item:GetCooldown(item))
     if item.type == const.ITEM_TYPE.ITEM then
         result.count = Api.GetItemCount(item.id, false)
