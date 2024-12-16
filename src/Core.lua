@@ -20,6 +20,7 @@ BarCore.Frame = CreateFrame("Frame")
 
 -- 初始化配置
 function BarCore:Initial()
+    AuraCache:Initial()
     ItemCache:Initial()
     HbFrame:Initial()
 end

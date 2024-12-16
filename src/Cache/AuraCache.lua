@@ -16,6 +16,8 @@ local Api = addon:GetModule("Api")
 ---@class AuraCache: AceModule
 ---@field player table<number, AuraCacheInfo>
 ---@field target table<number, AuraCacheInfo>
+---@field playerTask table<number, number[]>  -- 玩家aura剩余时间<spellID, remainingTime[]>
+---@field targetTask table<number, number[]>  -- 目标aura剩余时间<spellID, remainingTime[]>
 local AuraCache = addon:NewModule("AuraCache")
 
 ---@class AuraCacheInfo
@@ -26,6 +28,12 @@ local AuraCache = addon:NewModule("AuraCache")
 ---@field charges number
 ---@field isHarmful boolean
 ---@field isHelpful boolean
+
+function AuraCache:Initial()
+    AuraCache.player = {}
+    AuraCache.playerTask = {}
+    AuraCache.targetTask = {}
+end
 
 ---@param auraData  AuraData
 ---@return AuraCacheInfo
@@ -100,6 +108,7 @@ end
 
 ---@param event EventString
 ---@param eventArgs any
+---@return EventString, any
 function AuraCache:Update(event, eventArgs)
     if event == "PLAYER_TARGET_CHANGED" then
         if UnitExists("target") then
@@ -107,23 +116,23 @@ function AuraCache:Update(event, eventArgs)
         else
             AuraCache.target = nil
         end
-        return
+        return event, eventArgs
     end
     if event == "UNIT_AURA" then
         local target = eventArgs[1]
         -- 目前只处理玩家和目标的光环
         if target ~= "player" and target ~= "target" then
-            return
+            return event, eventArgs
         end
         -- 没有AuraCache:InitialTargetAura方法，则全部更新，因为UnitAura无法获取instanceID来更新
         if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then
             AuraCache[target] = AuraCache:InitialTargetAura(target)
-            return
+            return event, eventArgs
         end
         -- 如果target数据为空，则更新全部
         if AuraCache[target] == nil then
             AuraCache[target] = AuraCache:InitialTargetAura(target)
-            return
+            return event, eventArgs
         end
         ---@type UnitAuraUpdateInfo
         local updateInfo = eventArgs[2]
@@ -157,4 +166,5 @@ function AuraCache:Update(event, eventArgs)
             end
         end
     end
+    return event, eventArgs
 end
