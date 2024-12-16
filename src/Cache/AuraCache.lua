@@ -168,3 +168,8 @@ function AuraCache:Update(event, eventArgs)
     end
     return event, eventArgs
 end
+
+function AuraCache:CollectTask()
+    
+    
+end
