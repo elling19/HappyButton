@@ -1,5 +1,5 @@
----@alias spellName string
----@alias spellID number
+---@alias SpellName string
+---@alias SpellID number
 
 ---@meta _
 ---@class CooldownInfo
