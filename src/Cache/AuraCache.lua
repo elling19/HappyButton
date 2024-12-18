@@ -24,7 +24,7 @@ local Api = addon:GetModule("Api")
 
 
 ---@class AuraCacheTaskInfo
----@field triggers {remainingTime: number}[]
+---@field triggers {remainingTime: number, exist: boolean}[]
 
 ---@class AuraCacheTargetInfo
 ---@field auras table<SpellID, AuraCacheInfo> | nil
