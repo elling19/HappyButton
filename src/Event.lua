@@ -14,3 +14,9 @@ addon:RegisterMessage(const.EVENT.EXIT_EDIT_MODE, function()
     addon.G.IsEditMode = false
     HbFrame:CloseEditMode()
 end)
+
+
+-- 自定义光环改变事件
+addon:RegisterMessage(const.EVENT.HB_UNIT_AURA, function(target, spellID)
+    HbFrame:UpdateAllEframes(const.EVENT.HB_UNIT_AURA, {target, spellID})
+end)

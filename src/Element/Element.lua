@@ -19,6 +19,8 @@ local Item = addon:GetModule("Item")
 ---@class Trigger: AceModule
 local Trigger = addon:GetModule("Trigger")
 
+---@class AuraCache: AceModule
+local AuraCache = addon:GetModule("AuraCache")
 
 ---@return ElementConfig
 ---@param title string
@@ -281,7 +283,11 @@ function E:GetEvents(config)
     if config.triggers and #config.triggers > 0 then
         for _, trigger in ipairs(config.triggers) do
             if trigger.type == "aura" then
-                events["UNIT_AURA"] = {}
+                local confine = Trigger:ToAuraConfine(trigger.confine)
+                ---@type table<EventString, any[][]>
+                local e = {}
+                e[const.EVENT.HB_UNIT_AURA] = {{confine.target, confine.spellId}, }
+                E:MergeEvents(events, e)
             end
             if trigger.type == "item" then
                 local confine = Trigger:ToItemConfine(trigger.confine)
@@ -306,7 +312,7 @@ end
 function E:GetLoadCondEvents(config)
     ---@type table<string, any[]>
     local events = {
-        ["HB_UPDATE_CONFIG"] = {},  -- 自定义事件
+        [const.EVENT.HB_UPDATE_CONFIG] = {},  -- 自定义事件
         ["PLAYER_ENTERING_WORLD"] = {},  -- 读蓝条
     }
     if config.loadCond == nil then
@@ -366,6 +372,39 @@ function E:CompleteItemAttr(config)
                     if command.param and command.param.items then
                         for _, item in ipairs(command.param.items) do
                             Item:CompleteItemAttr(item)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end
+
+-- 收集Aura信息
+--- @param config ElementConfig
+function E:CollectAuraTask(config)
+    ---@type table<string, TriggerConfig>
+    local auraTriggers = {}
+    if config.triggers then
+        for _, trigger in ipairs(config.triggers) do
+            if trigger.type == "aura" then
+                auraTriggers[trigger.id] = trigger
+            end
+        end
+    end
+    if config.condGroups then
+        for _, cond in ipairs(config.condGroups) do
+            if cond.conditions then
+                for _, condition in ipairs(cond.conditions) do
+                    if auraTriggers[condition.leftTriggerId] then
+                        ---@type TriggerConfig
+                        local trigger = auraTriggers[condition.leftTriggerId]
+                        local confine = Trigger:ToAuraConfine(trigger.confine)
+                        if condition.leftVal == "remainingTime" then
+                            AuraCache:AddTask(confine.target, confine.spellId, tonumber(condition.rightValue), true)
+                        end
+                        if condition.leftVal == "exist" then
+                            AuraCache:AddTask(confine.target, confine.spellId, nil, true)
                         end
                     end
                 end

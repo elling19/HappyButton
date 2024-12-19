@@ -382,4 +382,6 @@ end
 ]]
 const.EVENT = {
     EXIT_EDIT_MODE = "EXIT_EDIT_MODE", -- 退出编辑模式
+    HB_UNIT_AURA = "HB_UNIT_AURA",  -- 自定义光环通知
+    HB_UPDATE_CONFIG = "HB_UPDATE_CONFIG"  -- 自定义更新配置事件
 }

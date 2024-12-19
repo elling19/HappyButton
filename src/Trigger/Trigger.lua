@@ -167,6 +167,14 @@ function Trigger:GetAuraTriggerCond(triggerConfig)
     return result
 end
 
+
+---@param confine TriggerConfine
+---@return AuraTriggerConfine
+function Trigger:ToAuraConfine(confine)
+    ---@type AuraTriggerConfine
+    return confine
+end
+
 ---@param triggerConfig TriggerConfig
 ---@return table<ItemTriggerCond, any>
 function Trigger:GetItemTriggerCond(triggerConfig)

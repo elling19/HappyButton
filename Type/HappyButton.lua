@@ -9,7 +9,7 @@ function HappyButton:RegisterMessage(event, func) end
 
 --- 发送事件
 ---@param event string
-function HappyButton:SendMessage(event) end
+function HappyButton:SendMessage(event, ...) end
 
 
 -- 注册命令

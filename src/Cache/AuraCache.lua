@@ -24,7 +24,8 @@ local Api = addon:GetModule("Api")
 
 
 ---@class AuraCacheTaskInfo
----@field triggers {remainingTime: number, exist: boolean}[]
+---@field remainingTimes number[]
+---@field exist true | nil
 
 ---@class AuraCacheTargetInfo
 ---@field auras table<SpellID, AuraCacheInfo> | nil
@@ -118,7 +119,6 @@ end
 
 ---@param event EventString
 ---@param eventArgs any
----@return EventString, any
 function AuraCache:Update(event, eventArgs)
     if event == "PLAYER_TARGET_CHANGED" then
         if UnitExists("target") then
@@ -128,25 +128,25 @@ function AuraCache:Update(event, eventArgs)
             AuraCache.target.auras = {}
         end
         AuraCache:CreateTargetAllTickerTasks("target")
-        return event, eventArgs
+        return
     end
     if event == "UNIT_AURA" then
         local target = eventArgs[1]
         -- 目前只处理玩家和目标的光环
         if target ~= "player" and target ~= "target" then
-            return event, eventArgs
+            return
         end
         -- 没有AuraCache:InitialTargetAura方法，则全部更新，因为UnitAura无法获取instanceID来更新
         if not C_UnitAuras or not C_UnitAuras.GetAuraDataByIndex then
             AuraCache[target] = AuraCache:InitialTargetAura(target)
             AuraCache:CreateTargetAllTickerTasks(target)
-            return event, eventArgs
+            return
         end
         -- 如果target数据为空，则更新全部
         if AuraCache[target].auras == nil then
             AuraCache[target] = AuraCache:InitialTargetAura(target)
             AuraCache:CreateTargetAllTickerTasks(target)
-            return event, eventArgs
+            return
         end
         ---@type UnitAuraUpdateInfo
         local updateInfo = eventArgs[2]
@@ -184,7 +184,6 @@ function AuraCache:Update(event, eventArgs)
             end
         end
     end
-    return event, eventArgs
 end
 
 
@@ -198,23 +197,23 @@ function AuraCache:CreateTargetTickerTask(spellId, target)
         return
     end
     local auraInfo = AuraCache[target].auras[spellId]
-    for _, trigger in ipairs(task.triggers) do
-        if auraInfo then
-            if trigger.remainingTime then
-                local realRemainingTime = auraInfo.expirationTime - GetTime() -- 计算出当前aura剩余时间，去和触发器的剩余时间比较
-                if realRemainingTime > trigger.remainingTime then
-                    -- 当前剩余时间 - 触发器预设剩余时间 + 0.05秒延迟
-                    C_Timer.NewTicker(realRemainingTime - trigger.remainingTime + 0.05, function ()
-                        print("HB_UNIT_AURA", target, auraInfo.spellId)
-                    end)
-                else
-                    -- 如果时间已经过了，那么立即执行
-                    print("HB_UNIT_AURA", target, auraInfo.spellId)
-                end
+    if auraInfo == nil then
+         -- 如果没有这个buff了，立即执行
+        addon:SendMessage(const.EVENT.HB_UNIT_AURA, target, spellId)
+        return
+    end
+    if task.remainingTimes then
+        for _, remainingTime in ipairs(task.remainingTimes) do
+            local realRemainingTime = auraInfo.expirationTime - GetTime() -- 计算出当前aura剩余时间，去和触发器的剩余时间比较
+            if realRemainingTime > remainingTime then
+                -- 当前剩余时间 - 触发器预设剩余时间 + 0.05秒延迟
+                C_Timer.NewTicker(realRemainingTime - remainingTime + 0.05, function ()
+                    addon:SendMessage(const.EVENT.HB_UNIT_AURA, target, auraInfo.spellId)
+                end)
+            else
+                -- 如果时间已经过了，那么立即执行
+                addon:SendMessage(const.EVENT.HB_UNIT_AURA, target, auraInfo.spellId)
             end
-        else
-            -- 如果没有这个buff了，立即执行
-            print("HB_UNIT_AURA", target, auraInfo.spellId)
         end
     end
 end
@@ -229,18 +228,16 @@ function AuraCache:CreateTargetAllTickerTasks(target)
     end
     for spellID, task in pairs(tasks) do
         -- 立即触发一次
-        print("HB_UNIT_AURA", target, spellID)
+        addon:SendMessage(const.EVENT.HB_UNIT_AURA, target, spellID)
         local aura = AuraCache[target].auras[spellID]
         if aura then
-            for _, trigger in ipairs(task.triggers) do
-                if trigger.remainingTime then
-                    local realRemainingTime = aura.expirationTime - GetTime()
-                    if realRemainingTime > trigger.remainingTime then
-                        -- 当前剩余时间 - 触发器预设剩余时间 + 0.05秒延迟
-                        C_Timer.NewTicker(realRemainingTime - trigger.remainingTime + 0.05, function ()
-                            print("HB_UNIT_AURA", target, aura.spellId)
-                        end)
-                    end
+            for _, remainingTime in ipairs(task.remainingTimes) do
+                local realRemainingTime = aura.expirationTime - GetTime()
+                if realRemainingTime > remainingTime then
+                    -- 当前剩余时间 - 触发器预设剩余时间 + 0.05秒延迟
+                    C_Timer.NewTicker(realRemainingTime - remainingTime + 0.05, function ()
+                        addon:SendMessage(const.EVENT.HB_UNIT_AURA, target, aura.spellId)
+                    end)
                 end
             end
         end
@@ -250,8 +247,8 @@ end
 -- 添加任务
 ---@param target UnitId
 ---@param spellID SpellID
----@param remainingTime number
----@param exist boolean
+---@param remainingTime number | nil
+---@param exist true | nil
 function AuraCache:AddTask(target, spellID, remainingTime, exist)
     if AuraCache[target] == nil then
         return
@@ -259,36 +256,14 @@ function AuraCache:AddTask(target, spellID, remainingTime, exist)
     if AuraCache[target].tasks[spellID] == nil then
         ---@type AuraCacheTaskInfo
         AuraCache[target].tasks[spellID] = {
-            triggers = {{remainingTime = remainingTime, exist = exist}, }
+            remainingTimes = {},
+            exist = nil
         }
-    else
-        table.insert(AuraCache[target].tasks[spellID].triggers, {remainingTime = remainingTime, exist = exist})
     end
-end
-
--- 移除任务
----@param target UnitId
----@param spellID SpellID
----@param remainingTime number
----@param exist boolean
-function AuraCache:RemoveTask(target, spellID, remainingTime, exist)
-    if AuraCache[target] == nil then
-        return
+    if remainingTime then
+        table.insert(AuraCache[target].tasks[spellID].remainingTimes, remainingTime)
     end
-    if AuraCache[target].tasks[spellID] == nil then
-        return
-    end
-    if AuraCache[target].tasks[spellID].triggers == nil then
-        AuraCache[target].tasks[spellID] = nil
-    end
-    for i = #AuraCache[target].tasks[spellID].triggers, 1, -1 do
-        local trigger = AuraCache[target].tasks[spellID].triggers[i]
-        if trigger.remainingTime == remainingTime and trigger.exist == exist then
-            table.remove(AuraCache[target].tasks[spellID].triggers, i)  -- 删除元素
-            break
-        end
-    end
-    if #AuraCache[target].tasks[spellID].triggers == 0 then
-        AuraCache[target].tasks[spellID] = nil
+    if exist ~= nil then
+        AuraCache[target].tasks[spellID].exist = true
     end
 end

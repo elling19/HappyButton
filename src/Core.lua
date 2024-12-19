@@ -20,9 +20,8 @@ BarCore.Frame = CreateFrame("Frame")
 
 -- 初始化配置
 function BarCore:Initial()
-    AuraCache:Initial()
-    ItemCache:Initial()
     HbFrame:Initial()
+    AuraCache:Initial()
 end
 
 -- 使用定时器替代UNIT_AURA事件执行
