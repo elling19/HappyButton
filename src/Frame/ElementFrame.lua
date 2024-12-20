@@ -379,6 +379,9 @@ end
 ---@param event EventString
 ---@param eventArgs any[]
 function ElementFrame:OutCombatUpdate(event, eventArgs)
+    if self.Cbs == nil then
+        return
+    end
     -- 首先判断载入条件
     if self.Cbs.passLoadCond == false then
         self:HideWindow()
