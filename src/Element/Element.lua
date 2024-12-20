@@ -379,36 +379,3 @@ function E:CompleteItemAttr(config)
         end
     end
 end
-
--- 收集Aura信息
---- @param config ElementConfig
-function E:CollectAuraTask(config)
-    ---@type table<string, TriggerConfig>
-    local auraTriggers = {}
-    if config.triggers then
-        for _, trigger in ipairs(config.triggers) do
-            if trigger.type == "aura" then
-                auraTriggers[trigger.id] = trigger
-            end
-        end
-    end
-    if config.condGroups then
-        for _, cond in ipairs(config.condGroups) do
-            if cond.conditions then
-                for _, condition in ipairs(cond.conditions) do
-                    if auraTriggers[condition.leftTriggerId] then
-                        ---@type TriggerConfig
-                        local trigger = auraTriggers[condition.leftTriggerId]
-                        local confine = Trigger:ToAuraConfine(trigger.confine)
-                        if condition.leftVal == "remainingTime" then
-                            AuraCache:AddTask(confine.target, confine.spellId, tonumber(condition.rightValue), true)
-                        end
-                        if condition.leftVal == "exist" then
-                            AuraCache:AddTask(confine.target, confine.spellId, nil, true)
-                        end
-                    end
-                end
-            end
-        end
-    end
-end

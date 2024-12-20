@@ -19,6 +19,9 @@ local Item = addon:GetModule("Item")
 ---@class Trigger: AceModule
 local Trigger = addon:NewModule("Trigger")
 
+---@class AuraCache: AceModule
+local AuraCache = addon:GetModule("AuraCache")
+
 local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 
 -- 创建自身触发器
@@ -123,48 +126,6 @@ function Trigger:GetConditionsOptions(triggerType)
         options[k] = L[k]
     end
     return options
-end
-
-
----@param triggerConfig TriggerConfig
----@return table<AuraTriggerCond, any>
-function Trigger:GetAuraTriggerCond(triggerConfig)
-    ---@type table<AuraTriggerCond, any>
-    local result = {}
-    local trigger = Trigger:ToAuraTriggerConfig(triggerConfig)
-    if not trigger.confine then
-        return result
-    end
-    local target = trigger.confine.target or "player"
-    local auraId = trigger.confine.spellId
-    if not auraId then
-        return result
-    end
-    local filter
-    if trigger.confine.type == "buff" then
-        filter = "HELPFUL"
-    end
-    if trigger.confine.type == "defbuff" then
-        filter = "HARMFUL"
-    end
-    if UnitExists(target) and UnitIsEnemy("player", target) then
-        result.targetIsEnemy = true
-    else
-        result.targetIsEnemy = false
-    end
-    result.exist = false
-    result.remainingTime = 0
-    if UnitExists(target) then
-        for i = 1, 100 do
-            local aura = Api.GetAuraDataByIndex(target, i, filter)
-            if aura and aura.spellId == auraId then
-                result.exist = true
-                result.remainingTime = aura.expirationTime - GetTime()
-                break
-            end
-        end
-    end
-    return result
 end
 
 

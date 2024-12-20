@@ -17,6 +17,9 @@ end)
 
 
 -- 自定义光环改变事件
-addon:RegisterMessage(const.EVENT.HB_UNIT_AURA, function(target, spellID)
-    HbFrame:UpdateAllEframes(const.EVENT.HB_UNIT_AURA, {target, spellID})
+addon:RegisterMessage(const.EVENT.HB_UNIT_AURA, function(event, ...)
+    local args = {...}
+    local target = args[1]
+    local spellId = args[2]
+    HbFrame:UpdateAllEframes(const.EVENT.HB_UNIT_AURA, {target, spellId})
 end)

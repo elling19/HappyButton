@@ -30,6 +30,9 @@ local Api = addon:GetModule("Api")
 ---@class Macro: AceModule
 local Macro = addon:GetModule("Macro")
 
+---@class AuraCache: AceModule
+local AuraCache = addon:GetModule("AuraCache")
+
 ---@class ElementCallback: AceModule
 local ECB = addon:NewModule("ElementCallback")
 
@@ -59,9 +62,7 @@ function ECB.CallbackOfRandomMode(element, lastCbResults)
     if lastCbResults and #lastCbResults then
         local r = lastCbResults[1]
         if r and r.item then
-            local isUsable = Item:IsUsable(r.item.id, r.item.type)
-            local isCooldown = Item:IsCooldown(Item:GetCooldown(r.item))
-            if isUsable and isCooldown then
+            if Item:IsLearned(r.item.id, r.item.type) and Item:IsUsable(r.item.id, r.item.type) and Item:IsCooldown(Item:GetCooldown(r.item)) then
                 return lastCbResults
             end
         end
@@ -70,12 +71,13 @@ function ECB.CallbackOfRandomMode(element, lastCbResults)
     local cooldownItemList = {} ---@type ItemConfig[]
     for _, ele in ipairs(element.elements) do
         local item = E:ToItem(ele)
+        local isLearned = Item:IsLearned(item.extraAttr.id, item.extraAttr.type)
         local isUsable = Item:IsUsable(item.extraAttr.id, item.extraAttr.type)
         local isCooldown = Item:IsCooldown(Item:GetCooldown(item.extraAttr))
-        if isUsable then
+        if isLearned and isUsable then
             table.insert(usableItemList, item)
         end
-        if isUsable and isCooldown then
+        if isLearned and isUsable and isCooldown then
             table.insert(cooldownItemList, item)
         end
     end
@@ -111,9 +113,7 @@ function ECB.CallbackOfSeqMode(element, lastCbResults)
     if lastCbResults and #lastCbResults then
         local r = lastCbResults[1]
         if r and r.item then
-            local isUsable = Item:IsUsable(r.item.id, r.item.type)
-            local isCooldown = Item:IsCooldown(Item:GetCooldown(r.item))
-            if isUsable and isCooldown then
+            if Item:IsLearned(r.item.id, r.item.type) and Item:IsUsable(r.item.id, r.item.type) and Item:IsCooldown(Item:GetCooldown(r.item)) then
                 return lastCbResults
             end
         end
@@ -122,8 +122,9 @@ function ECB.CallbackOfSeqMode(element, lastCbResults)
     local cb
     for _, ele in ipairs(element.elements) do
         local item = E:ToItem(ele)
+        local isLearned = Item:IsLearned(item.extraAttr.id, item.extraAttr.type)
         local isUsable = Item:IsUsable(item.extraAttr.id, item.extraAttr.type)
-        if isUsable == true then
+        if isLearned and isUsable then
             local isCooldown = Item:IsCooldown(Item:GetCooldown(item.extraAttr))
             if isCooldown then
                 cb = ECB:CallbackByItemConfig(item)
@@ -496,12 +497,45 @@ function ECB:UseTrigger(eleConfig, cbResult)
                         end
                     end
                     if leftTrigger.type == "aura" then
-                        local auraTriggerCond = Trigger:GetAuraTriggerCond(leftTrigger)
-                        local leftValue = auraTriggerCond[cond.leftVal]
-                        ---@diagnostic disable-next-line: param-type-mismatch
-                        local r = Condition:ExecOperator(leftValue, cond.operator, cond.rightValue)
-                        if r:is_ok() then
-                            condResult = r:unwrap()
+                        ---@type table<AuraTriggerCond, any>
+                        local auraTriggerCond = {}
+                        local trigger = Trigger:ToAuraTriggerConfig(leftTrigger)
+                        if trigger.confine then
+                            local target = trigger.confine.target or "player"
+                            if UnitExists(target) and UnitIsEnemy("player", target) then
+                                auraTriggerCond.targetIsEnemy = true
+                            else
+                                auraTriggerCond.targetIsEnemy = false
+                            end
+                            local spellId = trigger.confine.spellId
+                            if spellId then
+                                auraTriggerCond.exist = false
+                                auraTriggerCond.remainingTime = 0
+                                local aura = AuraCache:Get(target, spellId)
+                                if aura then
+                                    if aura.isHelpful and trigger.confine.type == "buff" then
+                                        auraTriggerCond.exist = true
+                                        auraTriggerCond.remainingTime = aura.expirationTime - GetTime()
+                                    end
+                                    if aura.isHarmful and trigger.confine.type == "defbuff" then
+                                        auraTriggerCond.exist = true
+                                        auraTriggerCond.remainingTime = aura.expirationTime - GetTime()
+                                    end
+                                end
+                                -- 追加需要处理的缓存
+                                local leftValue = auraTriggerCond[cond.leftVal]
+                                if cond.leftVal == "exist" then
+                                    AuraCache:PutTask(target, spellId, nil, true)
+                                end
+                                if cond.leftVal == "remainingTime" then
+                                    AuraCache:PutTask(target, spellId, tonumber(cond.rightValue), true)
+                                end
+                                ---@diagnostic disable-next-line: param-type-mismatch
+                                local r = Condition:ExecOperator(leftValue, cond.operator, cond.rightValue)
+                                if r:is_ok() then
+                                    condResult = r:unwrap()
+                                end
+                            end
                         end
                     end
                     if leftTrigger.type == "item" then

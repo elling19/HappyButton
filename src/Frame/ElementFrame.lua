@@ -337,7 +337,8 @@ function ElementFrame:ExcuteCb(cb, btnIndex, event, eventArgs)
             for i = #cb.r, 1, -1 do
                 ECB:UpdateSelfTrigger(cb.r[i], event, eventArgs)
                 ECB:UseTrigger(cb.p, cb.r[i])
-                -- 战斗外更新，如果发现隐藏按钮则是移除按钮
+                -- 战斗外更新，如果发现隐藏按钮则是移除按钮，首先需要将状态改成false
+                cb.r[i].isHideBtn = false
                 if cb.r[i].effects then
                     for _, effect in ipairs(cb.r[i].effects) do
                         if effect.type == "btnHide" and effect.status == true then

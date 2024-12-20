@@ -20,14 +20,9 @@ BarCore.Frame = CreateFrame("Frame")
 
 -- 初始化配置
 function BarCore:Initial()
-    HbFrame:Initial()
     AuraCache:Initial()
+    HbFrame:Initial()
 end
-
--- 使用定时器替代UNIT_AURA事件执行
-C_Timer.NewTicker(0.5, function()
-    HbFrame:UpdateAllEframes("UNIT_AURA", {})
-end)
 
 ---@type table<EventString, boolean> key表示事件名称，value表示是否循环监听
 local registerEvents = {
