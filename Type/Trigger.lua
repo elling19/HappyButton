@@ -62,4 +62,5 @@
 ---@alias AuraTriggerCond
 --- | "remainingTime"
 --- | "targetIsEnemy"
+--- | "targetCanAttack"
 --- | "exist"

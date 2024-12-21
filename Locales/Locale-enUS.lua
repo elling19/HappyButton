@@ -199,6 +199,7 @@ L["isUsable"] = "Is Usable"
 L["isCooldown"] = "Is Cooldown"
 L["remainingTime"] = "Remaining Time"
 L["targetIsEnemy"] = "Target Is Enemy"
+L["targetCanAttack"] = "target Can Attack"
 L["exist"] = true
 
 -- 触发器效果

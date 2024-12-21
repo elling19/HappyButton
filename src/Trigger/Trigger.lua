@@ -102,6 +102,7 @@ function Trigger:GetConditions(triggerType)
         return {
             remainingTime = "number",
             targetIsEnemy = "boolean",
+            targetCanAttack = "boolean",
             exist = "boolean"
         } ---@type table<AuraTriggerCond, type>
     end

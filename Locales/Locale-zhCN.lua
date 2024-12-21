@@ -200,6 +200,7 @@ L["isUsable"] = "可用"
 L["isCooldown"] = "冷却完毕"
 L["remainingTime"] = "剩余时间"
 L["targetIsEnemy"] = "目标是否敌对"
+L["targetCanAttack"] = "目标是否可攻击"
 L["exist"] = "存在"
 
 -- 触发器效果

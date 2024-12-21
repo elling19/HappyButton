@@ -45,20 +45,11 @@ local registerEvents = {
     ["PET_BAR_UPDATE_COOLDOWN"] = true,         -- 宠物相关
     ["NEW_PET_ADDED"] = true,                   -- 学会新的宠物
     ["NEW_TOY_ADDED"] = true,                   -- 学会新的玩具
-    ["UNIT_AURA"] = true,                       -- 光环改变
+    ["UNIT_AURA"] = false,                      -- 光环改变
     ["ADDON_LOADED"] = false,                   -- 加载插件
     ["CVAR_UPDATE"] = false,                    -- 改变cvar
     ["PLAYER_REGEN_DISABLED"] = false,          -- 进入战斗事件
 }
-
--- 需要更新图标的事件
----@type EventString[]
-local updateEvents = {}
-for e, needUpdate in pairs(registerEvents) do
-    if needUpdate == true then
-        table.insert(updateEvents, e)
-    end
-end
 
 -- 限流事件
 local throttlingEvents = {
@@ -99,24 +90,21 @@ function BarCore:Start()
         if event == "PLAYER_TALENT_UPDATE" or "SPELLS_CHANGED" then
             HbFrame:CompleteItemAttr()
         end
-        for _, e in ipairs(updateEvents) do
-            if e == event then
-                if throttlingEvents[e] ~= nil then
-                    if throttlingEvents[e].waiting ~= true then
-                        HbFrame:UpdateAllEframes(e, args)
-                        throttlingEvents[e].waiting = true
-                        C_Timer.After(0.2, function()
-                            throttlingEvents[e].waiting = false
-                        end)
-                    end
-                elseif delayEvents[e] ~= nil then
-                    C_Timer.After(0.1, function()
-                        HbFrame:UpdateAllEframes(e, args)
+        if registerEvents[event] == true then
+            if throttlingEvents[event] ~= nil then
+                if throttlingEvents[event].waiting ~= true then
+                    HbFrame:UpdateAllEframes(event, args)
+                    throttlingEvents[event].waiting = true
+                    C_Timer.After(0.2, function()
+                        throttlingEvents[event].waiting = false
                     end)
-                else
-                    HbFrame:UpdateAllEframes(e, args)
                 end
-                break
+            elseif delayEvents[event] ~= nil then
+                C_Timer.After(0.1, function()
+                    HbFrame:UpdateAllEframes(event, args)
+                end)
+            else
+                HbFrame:UpdateAllEframes(event, args)
             end
         end
     end)

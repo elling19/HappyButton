@@ -367,7 +367,7 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
             if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE_COOLDOWN", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_EQUIPMENT_CHANGED" }, event) then
                 cbResult.isUsable = Item:IsUsable(cbResult.item.id, cbResult.item.type)
             end
-            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE_COOLDOWN", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_EQUIPMENT_CHANGED" }, event) then
+            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE_COOLDOWN", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_EQUIPMENT_CHANGED", "MODIFIER_STATE_CHANGED"}, event) then
                 cbResult.itemCooldown = Item:GetCooldown(cbResult.item)
                 cbResult.isCooldown = Item:IsCooldown(cbResult.itemCooldown)
             end
@@ -384,7 +384,7 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
             if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED" }, event) then
                 cbResult.isUsable = Item:IsUsable(cbResult.item.id, cbResult.item.type)
             end
-            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED" }, event) then
+            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED", "MODIFIER_STATE_CHANGED" }, event) then
                 cbResult.itemCooldown = Item:GetCooldown(cbResult.item)
                 cbResult.isCooldown = Item:IsCooldown(cbResult.itemCooldown)
             end
@@ -406,7 +406,7 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
             if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", }, event) then
                 cbResult.isUsable = Item:IsUsable(cbResult.item.id, cbResult.item.type)
             end
-            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED" }, event) then
+            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED", "MODIFIER_STATE_CHANGED"}, event) then
                 cbResult.itemCooldown = Item:GetCooldown(cbResult.item)
                 cbResult.isCooldown = Item:IsCooldown(cbResult.itemCooldown)
             end
@@ -436,7 +436,7 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
             if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "PET_BAR_UPDATE_COOLDOWN" }, event) then
                 cbResult.isUsable = Item:IsUsable(cbResult.item.id, cbResult.item.type)
             end
-            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED", "PET_BAR_UPDATE_COOLDOWN" }, event) then
+            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED", "PET_BAR_UPDATE_COOLDOWN", "MODIFIER_STATE_CHANGED" }, event) then
                 cbResult.itemCooldown = Item:GetCooldown(cbResult.item)
                 cbResult.isCooldown = Item:IsCooldown(cbResult.itemCooldown)
             end
@@ -501,7 +501,17 @@ function ECB:UseTrigger(eleConfig, cbResult)
                         local auraTriggerCond = {}
                         local trigger = Trigger:ToAuraTriggerConfig(leftTrigger)
                         if trigger.confine then
-                            local target = trigger.confine.target or "player"
+                            auraTriggerCond.targetIsEnemy = false
+                            auraTriggerCond.targetCanAttack = false
+                            local target = trigger.confine.target
+                            if target ~= nil or target ~= "player" then
+                                if UnitIsEnemy("player", target) then
+                                    auraTriggerCond.targetIsEnemy = true
+                                end
+                                if UnitCanAttack("player", "target") then
+                                    auraTriggerCond.targetCanAttack = true
+                                end
+                            end
                             if UnitExists(target) and UnitIsEnemy("player", target) then
                                 auraTriggerCond.targetIsEnemy = true
                             else
@@ -509,6 +519,13 @@ function ECB:UseTrigger(eleConfig, cbResult)
                             end
                             local spellId = trigger.confine.spellId
                             if spellId then
+                                -- 追加需要处理的缓存
+                                if cond.leftVal == "exist" then
+                                    AuraCache:PutTask(target, spellId, nil, true)
+                                end
+                                if cond.leftVal == "remainingTime" then
+                                    AuraCache:PutTask(target, spellId, tonumber(cond.rightValue), true)
+                                end
                                 auraTriggerCond.exist = false
                                 auraTriggerCond.remainingTime = 0
                                 local aura = AuraCache:Get(target, spellId)
@@ -522,14 +539,7 @@ function ECB:UseTrigger(eleConfig, cbResult)
                                         auraTriggerCond.remainingTime = aura.expirationTime - GetTime()
                                     end
                                 end
-                                -- 追加需要处理的缓存
                                 local leftValue = auraTriggerCond[cond.leftVal]
-                                if cond.leftVal == "exist" then
-                                    AuraCache:PutTask(target, spellId, nil, true)
-                                end
-                                if cond.leftVal == "remainingTime" then
-                                    AuraCache:PutTask(target, spellId, tonumber(cond.rightValue), true)
-                                end
                                 ---@diagnostic disable-next-line: param-type-mismatch
                                 local r = Condition:ExecOperator(leftValue, cond.operator, cond.rightValue)
                                 if r:is_ok() then
