@@ -8,6 +8,15 @@ local Client = addon:GetModule("Client")
 ---@class Api: AceModule
 local Api = addon:NewModule("Api")
 
+local C_Spell = C_Spell
+local C_Item = C_Item
+local C_Container = C_Container
+local C_UnitAuras = C_UnitAuras
+---@diagnostic disable-next-line: deprecated
+local UnitAura = UnitAura
+---@diagnostic disable-next-line: deprecated
+local GetSpellCooldown = GetSpellCooldown
+
 ---@diagnostic disable-next-line: deprecated
 Api.GetItemInfoInstant = (C_Item and C_Item.GetItemInfoInstant) and C_Item.GetItemInfoInstant or GetItemInfoInstant
 ---@diagnostic disable-next-line: deprecated

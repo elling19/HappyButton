@@ -23,3 +23,8 @@ addon:RegisterMessage(const.EVENT.HB_UNIT_AURA, function(event, ...)
     local spellId = args[2]
     HbFrame:UpdateAllEframes(const.EVENT.HB_UNIT_AURA, {target, spellId})
 end)
+
+-- 自定义GCD更新
+addon:RegisterMessage(const.EVENT.HB_GCD_UPDATE, function()
+    HbFrame:UpdateAllEframes(const.EVENT.HB_GCD_UPDATE, {})
+end)

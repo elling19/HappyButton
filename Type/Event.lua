@@ -18,3 +18,4 @@
 --- | "PET_BAR_UPDATE_COOLDOWN"
 --- | "NEW_TOY_ADDED"
 --- | "HB_UNIT_AURA"  -- 自定义事件（光环改变）
+--- | "HB_GCD_UPDATE"  -- 自定义事件（GCD更新）

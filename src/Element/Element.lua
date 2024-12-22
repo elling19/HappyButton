@@ -163,7 +163,7 @@ function E:GetItemAttrEvents(itemAttr)
         events["SPELLS_CHANGED"] = {}
         events["UNIT_SPELLCAST_SUCCEEDED"] = {{"player"}, }
         events["SPELL_UPDATE_CHARGES"] = {}
-        events["SPELL_UPDATE_COOLDOWN"] = {}
+        events[const.EVENT.HB_GCD_UPDATE] = {}
         return events
     end
     if itemAttr.type == const.ITEM_TYPE.MOUNT then

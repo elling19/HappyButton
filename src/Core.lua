@@ -7,6 +7,9 @@ local U = addon:GetModule('Utils')
 ---@class HbFrame: AceModule
 local HbFrame = addon:GetModule("HbFrame")
 
+---@class PlayerCache: AceModule
+local PlayerCache = addon:GetModule("PlayerCache")
+
 ---@class AuraCache: AceModule
 local AuraCache = addon:GetModule("AuraCache")
 
@@ -20,7 +23,9 @@ BarCore.Frame = CreateFrame("Frame")
 
 -- 初始化配置
 function BarCore:Initial()
+    PlayerCache:Initial()
     AuraCache:Initial()
+    ItemCache:Initial()
     HbFrame:Initial()
 end
 
@@ -29,7 +34,6 @@ local registerEvents = {
     ["PLAYER_ENTERING_WORLD"] = true,           -- 读地图
     ["PLAYER_LOGIN"] = true,                    -- 登录
     ["UNIT_SPELLCAST_SUCCEEDED"] = true,        -- 施法成功
-    ["SPELL_UPDATE_COOLDOWN"] = true,           -- 触发冷却
     ["SPELL_UPDATE_CHARGES"] = true,            -- 技能充能改变
     ["PLAYER_REGEN_ENABLED"] = true,            -- 退出战斗事件
     ["PLAYER_EQUIPMENT_CHANGED"] = true,        -- 装备改变（物品、装备）
@@ -45,6 +49,7 @@ local registerEvents = {
     ["PET_BAR_UPDATE_COOLDOWN"] = true,         -- 宠物相关
     ["NEW_PET_ADDED"] = true,                   -- 学会新的宠物
     ["NEW_TOY_ADDED"] = true,                   -- 学会新的玩具
+    ["SPELL_UPDATE_COOLDOWN"] = false,          -- 触发冷却
     ["UNIT_AURA"] = false,                      -- 光环改变
     ["ADDON_LOADED"] = false,                   -- 加载插件
     ["CVAR_UPDATE"] = false,                    -- 改变cvar
@@ -53,7 +58,6 @@ local registerEvents = {
 
 -- 限流事件
 local throttlingEvents = {
-    ["SPELL_UPDATE_COOLDOWN"] = {},
     ["BAG_UPDATE"] = {},
 }
 
@@ -86,6 +90,9 @@ function BarCore:Start()
         if event == "UNIT_AURA" or event == "PLAYER_TARGET_CHANGED" then
             AuraCache:Update(event, args)
         end
+        if event == "SPELL_UPDATE_COOLDOWN" then
+            ItemCache:UpdateGcd()
+        end
         -- 当玩家技能发生改变的时候，如果配置文件中有需要更新的ItemAttr，则更新ItemAttr（这是由于API无法获取非当前玩家拥有技能的信息）
         if event == "PLAYER_TALENT_UPDATE" or "SPELLS_CHANGED" then
             HbFrame:CompleteItemAttr()
@@ -101,7 +108,14 @@ function BarCore:Start()
                 end
             elseif delayEvents[event] ~= nil then
                 C_Timer.After(0.1, function()
-                    HbFrame:UpdateAllEframes(event, args)
+                    -- 施法完成事件只监控玩家
+                    if event == "UNIT_SPELLCAST_SUCCEEDED" then
+                        if args[1] == "player" then
+                            HbFrame:UpdateAllEframes(event, args)
+                        end
+                    else
+                        HbFrame:UpdateAllEframes(event, args)
+                    end
                 end)
             else
                 HbFrame:UpdateAllEframes(event, args)
