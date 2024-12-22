@@ -211,6 +211,7 @@ const.ATTACH_FRAME = {
 ---@type table<number, string>
 const.AttachFrameOptions = {
     ["UIParent"] = L["UIParent"],
+    ["CharacterFrame"] = L["CharacterFrame"],
     ["GameMenuFrame"] = L["GameMenuFrame"],
     ["Minimap"] = L["Minimap"],
     ["ProfessionsBookFrame"] = L["ProfessionsBookFrame"],

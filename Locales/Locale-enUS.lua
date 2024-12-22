@@ -123,6 +123,7 @@ L["ProfessionsBookFrame"] = true  -- 专业
 L["WorldMapFrame"] = true  -- 世界地图
 L["CollectionsJournal"] = true  -- 收集箱
 L["PVEFrame"] = true -- 地下城和团队副本
+L["CharacterFrame"] = true -- 角色框体
 
 
 L["Position Settings"] = true

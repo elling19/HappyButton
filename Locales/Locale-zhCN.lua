@@ -125,6 +125,7 @@ L["ProfessionsBookFrame"] = "专业"
 L["WorldMapFrame"] = "世界地图"
 L["CollectionsJournal"] = "收集箱"
 L["PVEFrame"] = "地下城和团队副本"
+L["CharacterFrame"] = "角色面板"
 
 
 L["Combat Load Condition"] = "战斗状态加载条件"
