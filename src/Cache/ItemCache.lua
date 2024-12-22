@@ -302,7 +302,6 @@ end
 
 function ItemCache:UpdateGcd()
     local cooldownInfo = Api.GetSpellCooldown(PlayerCache.gcdSpellId)
-    print(cooldownInfo.startTime, cooldownInfo.duration, cooldownInfo.isEnabled)
     local needSendMessage = false
     if ItemCache.gcd == nil or ItemCache.gcd.cooldownInfo == nil or ItemCache.gcd.cooldownInfo.startTime == nil then
         -- 如果上一次的GCD信息无效，则更新
