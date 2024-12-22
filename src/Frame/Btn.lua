@@ -139,7 +139,9 @@ function Btn:Update()
             self:SetMacro()
         end
     else
-        self:SetScriptEvent()
+        if not InCombatLockdown() then
+            self:SetScriptEvent()
+        end
     end
     self:UpdateTexts()
     self:UpdateEffects()
