@@ -280,6 +280,10 @@ function E:GetEvents(config)
         local macro = E:ToMacro(config)
         E:MergeEvents(events, E:GetMacroEvents(macro.extraAttr))
     end
+    if config.type == const.ELEMENT_TYPE.SCRIPT then
+        -- 脚本类型自动增加玩家施法完成事件
+        E:MergeEvents(events, {["UNIT_SPELLCAST_SUCCEEDED"] = {{"player", }, }})
+    end
     if config.triggers and #config.triggers > 0 then
         for _, trigger in ipairs(config.triggers) do
             if trigger.type == "aura" then
