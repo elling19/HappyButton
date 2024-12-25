@@ -1083,6 +1083,43 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 }
                 bindkeySettingOrder = bindkeySettingOrder + 1
             end
+            if ele.bindKey then
+                bindkeySettingArgs.loadCondCombat = {
+                    order = bindkeySettingOrder,
+                    width = 1,
+                    type = 'toggle',
+                    name = L["Combat Load Condition"],
+                    set = function(_, val)
+                        if val == true then
+                            ele.bindKey.combat = true
+                        else
+                            ele.bindKey.combat = nil
+                        end
+                        HbFrame:UpdateEframe(updateFrameConfig)
+                    end,
+                    get = function(_)
+                        return ele.bindKey.combat ~= nil
+                    end
+                }
+                bindkeySettingOrder = bindkeySettingOrder + 1
+                if ele.bindKey.combat ~= nil then
+                    bindkeySettingArgs.loadCondCombatOptions = {
+                        order = bindkeySettingOrder,
+                        width = 1,
+                        type = 'select',
+                        values = const.LoadCondCombatOptions,
+                        name = "",
+                        set = function(_, val)
+                            ele.bindKey.combat = val
+                            HbFrame:UpdateEframe(updateFrameConfig)
+                        end,
+                        get = function(_)
+                            return ele.bindKey.combat
+                        end
+                    }
+                    bindkeySettingOrder = bindkeySettingOrder + 1
+                end
+            end
         end
         local displaySettingOrder = 1
         local displaySettingArgs = {}

@@ -165,6 +165,7 @@ function HbFrame:OnCombatEvent()
                 eFrame:HideWindow()
             else
                 eFrame:ShowWindow()
+                eFrame:CbBtnsUpdateBySelf(eFrame.Cbs, "PLAYER_REGEN_DISABLED", {})
             end
         else
             eFrame:HideWindow()
