@@ -134,8 +134,8 @@ function Btn:Update(event, eventArgs)
     if self.CbResult == nil then
         return
     end
+    self:SetIcon()
     if self.CbResult.item ~= nil then
-        self:SetIcon()
         self:SetCooldown()
         -- ⚠️ 非战斗状态才能更新macro
         if not InCombatLockdown() then
@@ -436,7 +436,7 @@ function Btn:SetIcon()
     if self.Icon == nil then
         self:CreateIcon()
     end
-    self.Icon:SetTexture(r.icon or r.item.icon or 134400)
+    self.Icon:SetTexture(r.icon or (r.item and r.item.icon) or 134400)
     -- 设置物品边框
     if self.CbResult.borderColor then
         self.Border:SetBackdropBorderColor(unpack(self.CbResult.borderColor))

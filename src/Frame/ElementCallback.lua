@@ -153,8 +153,10 @@ function ECB.CallbackOfMacroMode(element, lastCbResults)
     ---@type CbResult
     local cb = {}
     local ast = element.extraAttr.ast
+    if element.icon then
+        cb.icon = element.icon
+    end
     if ast == nil then
-        cb = ECB:NilCallback()
         return { cb, }
     end
     if ast.tooltip ~= nil then

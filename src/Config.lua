@@ -385,6 +385,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 end,
                 get = function() return ele.title end,
                 set = function(_, val)
+                    if val == "" or val == " " then
+                        val = nil
+                    end
                     ele.title = val
                     HbFrame:ReloadEframeUI(updateFrameConfig)
                     addon:UpdateOptions()
@@ -398,6 +401,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 name = L["Element Icon ID or Path"],
                 get = function() return ele.icon end,
                 set = function(_, val)
+                    if val == "" or val == " " then
+                        val = nil
+                    end
                     ele.icon = val
                     HbFrame:ReloadEframeUI(updateFrameConfig)
                     addon:UpdateOptions()
