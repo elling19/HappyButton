@@ -133,6 +133,11 @@ L["Combat Load Condition"] = "战斗状态加载条件"
 L["Load when out of combat"] = "战斗外加载"
 L["Load when in combat"] = "战斗中加载"
 
+L["AttachFrame Load Condition"] = "依附框体加载条件"
+L["Load when attach frame hide"] = "依附框体隐藏时加载"
+L["Load when attach frame show"] = "依附框体显示时加载"
+L["Not working when in combat"] = "战斗中此设置无效"
+
 L["Position Settings"] = "位置设置"
 L["Element Anchor Position"] = "元素锚点"
 L["AttachFrame"] = "依附框体"

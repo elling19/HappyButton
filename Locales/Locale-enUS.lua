@@ -137,6 +137,11 @@ L["Combat Load Condition"] = true
 L["Load when out of combat"] = true
 L["Load when in combat"] = true
 
+L["AttachFrame Load Condition"] = true
+L["Load when attach frame hide"] = true
+L["Load when attach frame show"] = true
+L["Not working when in combat"] = true
+
 L["Text Settings"] = true
 L["Use root element settings"] = true
 L["Item Name"] = true

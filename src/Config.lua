@@ -1141,6 +1141,42 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     }
                     bindkeySettingOrder = bindkeySettingOrder + 1
                 end
+                bindkeySettingArgs.loadAttachFrameShow = {
+                    order = bindkeySettingOrder,
+                    width = 1,
+                    type = 'toggle',
+                    name = L["AttachFrame Load Condition"],
+                    desc = L["Not working when in combat"],
+                    set = function(_, val)
+                        if val == true then
+                            ele.bindKey.attachFrame = true
+                        else
+                            ele.bindKey.attachFrame = nil
+                        end
+                        HbFrame:UpdateEframe(updateFrameConfig)
+                    end,
+                    get = function(_)
+                        return ele.bindKey.attachFrame ~= nil
+                    end
+                }
+                bindkeySettingOrder = bindkeySettingOrder + 1
+                if ele.bindKey.attachFrame ~= nil then
+                    bindkeySettingArgs.loadCondAttachFrameOptions = {
+                        order = bindkeySettingOrder,
+                        width = 1,
+                        type = 'select',
+                        values = const.LoadCondAttachFrameOptions,
+                        name = "",
+                        set = function(_, val)
+                            ele.bindKey.attachFrame = val
+                            HbFrame:UpdateEframe(updateFrameConfig)
+                        end,
+                        get = function(_)
+                            return ele.bindKey.attachFrame
+                        end
+                    }
+                    bindkeySettingOrder = bindkeySettingOrder + 1
+                end
             end
         end
         local displaySettingOrder = 1

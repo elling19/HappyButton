@@ -201,6 +201,12 @@ const.LoadCondCombatOptions = {
     [true] = L["Load when in combat"],
 }
 
+---@class LoadCondAttachFrameOptions
+const.LoadCondAttachFrameOptions = {
+    [false] = L["Load when attach frame hide"],
+    [true] = L["Load when attach frame show"],
+}
+
 ---@enum AttachFrame
 const.ATTACH_FRAME = {
     UIParent = "UIParent"
