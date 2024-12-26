@@ -21,6 +21,7 @@
 ---@field isDisplayMouseEnter boolean --是否鼠标移入显示
 ---@field iconWidth number | nil
 ---@field iconHeight number | nil
+---@field isShowQualityBorder boolean | nil --是否显示边框染色（默认不染色）
 ---@field title string
 ---@field type ElementType
 ---@field extraAttr any | nil

@@ -447,6 +447,22 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             }
             elementSettingOrder = elementSettingOrder + 1
         end
+        if ele.type ~= const.ELEMENT_TYPE.BAR then
+            elementSettingArgs.isShowQualityBorder = {
+                order = elementSettingOrder,
+                type = 'toggle',
+                name = L["Show Item Quality Color"],
+                width = 2,
+                get = function(_)
+                    return ele.isShowQualityBorder
+                end,
+                set = function(_, val)
+                    ele.isShowQualityBorder = val
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end
+            }
+            elementSettingOrder = elementSettingOrder + 1
+        end
         if ele.type == const.ELEMENT_TYPE.ITEM then
             local item = E:ToItem(ele)
             local extraAttr = item.extraAttr

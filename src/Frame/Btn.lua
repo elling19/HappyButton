@@ -438,7 +438,7 @@ function Btn:SetIcon()
     end
     self.Icon:SetTexture(r.icon or (r.item and r.item.icon) or 134400)
     -- 设置物品边框
-    if self.CbResult.borderColor then
+    if self.CbInfo.p.isShowQualityBorder == true and self.CbResult.borderColor then
         self.Border:SetBackdropBorderColor(unpack(self.CbResult.borderColor))
     else
         self.Border:SetBackdropBorderColor(unpack(const.DefaultItemColor))

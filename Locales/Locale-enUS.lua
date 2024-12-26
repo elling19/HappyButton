@@ -87,6 +87,7 @@ L["Horizontal"] = true
 L["Vertical"] = true
 L["Icon Width"] = true
 L["Icon Height"] = true
+L["Show Item Quality Color"] = true
 L["Display Rule"] = true
 L["Load"] = true
 L["Load Rule"] = true
