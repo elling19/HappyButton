@@ -20,3 +20,4 @@
 --- | "NEW_TOY_ADDED"
 --- | "HB_UNIT_AURA"  -- 自定义事件（光环改变）
 --- | "HB_GCD_UPDATE"  -- 自定义事件（GCD更新）
+--- | "HB_FRAME_CHANGE" -- 自定义事件（框体状态变化：监听框体是否显示）

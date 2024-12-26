@@ -213,6 +213,12 @@ function Btn:PassBindKeyCond(event)
             end
         end
     end
+    -- 依附框体显示条件不满足
+    if bindKey.attachFrame ~= nil then
+        if bindKey.attachFrame ~= self.EFrame.attachFrame:IsShown() then
+            return false
+        end
+    end
     return true
 end
 

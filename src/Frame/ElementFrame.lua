@@ -48,6 +48,8 @@ local LoadCondition = addon:GetModule("LoadCondition")
 ---@field IconHeight number
 ---@field IconWidth number
 ---@field CurrentBarIndex number | nil 当前选择的Bar的下标
+---@field attachFrameName string | nil -- 挂载frame的名字
+---@field attachFrame Frame | nil -- 挂载frame
 local ElementFrame = addon:NewModule("ElementFrame")
 
 
@@ -467,6 +469,23 @@ function ElementFrame:InitialWindow()
     end)
 end
 
+
+-- 获取当前依附的框体名称、框体
+---@return string, Frame
+function ElementFrame:GetAttachFrame()
+    -- 设置Window框体挂载目标
+    local attachFrame = UIParent
+    local attachFrameName = const.ATTACH_FRAME.UIParent
+    if self.Config.attachFrame and self.Config.attachFrame ~= const.ATTACH_FRAME.UIParent then
+        local frame = _G[self.Config.attachFrame]
+        if frame then
+            attachFrame = frame
+            attachFrameName = self.Config.attachFrame
+        end
+    end
+    return attachFrameName, attachFrame
+end
+
 function ElementFrame:UpdateWindow()
     if self:IsHorizontal() then
         self.Window:SetHeight(self.IconHeight)
@@ -481,19 +500,12 @@ function ElementFrame:UpdateWindow()
     local y = self.Config.posY or 0
 
     self.Window:ClearAllPoints()
-    -- 设置Window框体挂载目标
-    local attachFrame = UIParent
-    if self.Config.attachFrame and self.Config.attachFrame ~= const.ATTACH_FRAME.UIParent then
-        local frame = _G[self.Config.attachFrame]
-        if frame then
-            attachFrame = frame
-        end
-    end
-    self.Window:SetParent(attachFrame)
+    self.attachFrameName, self.attachFrame = self:GetAttachFrame()
+    self.Window:SetParent(self.attachFrame)
     -- 设置锚点位置
     local frameAnchorPos = self.Config.anchorPos or const.ANCHOR_POS.CENTER
     local attachFrameAnchorPos = self.Config.attachFrameAnchorPos or const.ANCHOR_POS.CENTER
-    self.Window:SetPoint(frameAnchorPos, attachFrame, attachFrameAnchorPos, x, y)
+    self.Window:SetPoint(frameAnchorPos, self.attachFrame, attachFrameAnchorPos, x, y)
 end
 
 -- 创建编辑模式背景

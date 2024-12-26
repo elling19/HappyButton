@@ -391,5 +391,6 @@ const.EVENT = {
     EXIT_EDIT_MODE = "EXIT_EDIT_MODE", -- 退出编辑模式
     HB_UNIT_AURA = "HB_UNIT_AURA",  -- 自定义光环通知
     HB_GCD_UPDATE = "HB_GCD_UPDATE",  -- GCD更新
-    HB_UPDATE_CONFIG = "HB_UPDATE_CONFIG"  -- 自定义更新配置事件
+    HB_UPDATE_CONFIG = "HB_UPDATE_CONFIG",  -- 自定义更新配置事件
+    HB_FRAME_CHANGE = "HB_FRAME_CHANGE"  -- 框体改变状态
 }

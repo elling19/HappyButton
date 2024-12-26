@@ -23,6 +23,7 @@ Src\Utils.lua
 Src\Api.lua
 Src\Item.lua
 Src\Cache\PlayerCache.lua
+Src\Cache\AttachFrameCache.lua
 Src\Cache\AuraCache.lua
 Src\Cache\ItemCache.lua
 Src\Trigger\TriggerConfig.lua

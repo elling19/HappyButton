@@ -10,6 +10,9 @@ local HbFrame = addon:GetModule("HbFrame")
 ---@class PlayerCache: AceModule
 local PlayerCache = addon:GetModule("PlayerCache")
 
+---@class AttachFrameCache: AceModule
+local AttachFrameCache = addon:GetModule("AttachFrameCache")
+
 ---@class AuraCache: AceModule
 local AuraCache = addon:GetModule("AuraCache")
 
@@ -24,6 +27,7 @@ BarCore.Frame = CreateFrame("Frame")
 -- 初始化配置
 function BarCore:Initial()
     PlayerCache:Initial()
+    AttachFrameCache:Initial()
     AuraCache:Initial()
     ItemCache:Initial()
     HbFrame:Initial()
