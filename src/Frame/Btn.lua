@@ -54,7 +54,8 @@ function Btn:New(eFrame, cbInfo, cbIndex)
     obj.EFrame = eFrame
     obj.CbInfo = cbInfo
     obj.CbResult = cbInfo.r[cbIndex]
-    obj.Button = CreateFrame("Button", ("HB-%s-%s-%s"):format(eFrame.Config.id, cbInfo.p.id, cbIndex), eFrame.Bar.BarFrame,
+    obj.Button = CreateFrame("Button", ("HB-%s-%s-%s"):format(eFrame.Config.id, cbInfo.p.id, cbIndex),
+        eFrame.Bar.BarFrame,
         "SecureActionButtonTemplate")
     obj.Button:SetSize(eFrame.IconWidth, eFrame.IconHeight)
     obj.effects = {}
@@ -124,7 +125,6 @@ function Btn:UpdateBySelf(event, eventArgs)
     self:Update(event, eventArgs)
 end
 
-
 ---@param event EventString
 ---@param eventArgs any[]
 function Btn:Update(event, eventArgs)
@@ -188,7 +188,6 @@ function Btn:UpdateBindkey(event)
     end
 end
 
-
 -- 判断是否满足按键绑定条件
 ---@param event EventString
 function Btn:PassBindKeyCond(event)
@@ -222,7 +221,6 @@ function Btn:PassBindKeyCond(event)
     return true
 end
 
-
 -- 设置绑定按键
 ---@param key string 绑定按键
 function Btn:SetOverrideBinding(key)
@@ -231,11 +229,10 @@ function Btn:SetOverrideBinding(key)
     self.BindKey = key
 end
 
-
 -- 取消绑定按键
 function Btn:ClearOverrideBinding()
     if self.BindKey ~= nil then
-         ---@diagnostic disable-next-line: param-type-mismatch
+        ---@diagnostic disable-next-line: param-type-mismatch
         SetOverrideBinding(self.Button, true, self.BindKey, nil)
         self.BindKey = nil
     end
@@ -377,9 +374,9 @@ function Btn:UpdateEffects()
         self.Icon:SetDesaturated(false)
     end
     if btnVertexColor and btnVertexColor.status == true then
-        self.Icon:SetVertexColor(1, 0, 0, 1)  -- 红色背景
+        self.Icon:SetVertexColor(1, 0, 0, 1) -- 红色背景
     else
-        self.Icon:SetVertexColor(1, 1, 1, 1)  -- 清除效果
+        self.Icon:SetVertexColor(1, 1, 1, 1) -- 清除效果
     end
     if borderGlow and borderGlow.status == true then
         if Client:IsRetail() then
@@ -564,6 +561,7 @@ function Btn:SetMouseEvent()
 end
 
 function Btn:Delete()
+    self:ClearOverrideBinding()
     self.Button:Hide()
     self.Button:ClearAllPoints()
     self.Border:Hide()

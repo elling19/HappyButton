@@ -26,8 +26,8 @@ end
 ---@param frameName string
 ---@param frame Frame
 function AttachFrameCache:Add(frameName, frame)
-    if AttachFrameCache.cache[frameName] ~= nil then
-        AttachFrameCache[frameName] = frame
+    if AttachFrameCache.cache[frameName] ~= frame and frameName ~= const.ATTACH_FRAME.UIParent then
+        AttachFrameCache.cache[frameName] = frame
         frame:HookScript("OnShow", function(_)
             addon:SendMessage(const.EVENT.HB_FRAME_CHANGE, frameName)
         end)

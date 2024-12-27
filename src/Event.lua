@@ -28,3 +28,10 @@ end)
 addon:RegisterMessage(const.EVENT.HB_GCD_UPDATE, function()
     HbFrame:UpdateAllEframes(const.EVENT.HB_GCD_UPDATE, {})
 end)
+
+-- 依附框架改变
+addon:RegisterMessage(const.EVENT.HB_FRAME_CHANGE, function(event, ...)
+    local args = {...}
+    local frameName = args[1]
+    HbFrame:UpdateAllEframes(const.EVENT.HB_FRAME_CHANGE, {frameName, })
+end)

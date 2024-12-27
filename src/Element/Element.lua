@@ -257,14 +257,23 @@ end
 
 --- 获取config的监听事件
 --- @param config ElementConfig
+--- @param rootConfig ElementConfig | nil 祖先元素，如果为nil表示config本身就是祖先元素
 --- @return table<EventString, any[][]> -- key为事件名称，value为一个二维数组，每一个数组表示一组事件参数。当数组为空的时候表示不限制
-function E:GetEvents(config)
+function E:GetEvents(config, rootConfig)
     ---@type table<string, any[]>
     local events = {
         ["PLAYER_ENTERING_WORLD"] = {},  -- 读蓝条
         ["PLAYER_REGEN_DISABLED"] = {},  -- 进入战斗
         ["PLAYER_REGEN_ENABLED"] = {}, -- 退出战斗
     }
+    -- 如果有按键绑定设置且关系到依附框体状态，则需要监听依附框体改变事件
+    if config.bindKey ~= nil and config.bindKey.attachFrame ~= nil then
+        local attachFrame = (rootConfig and rootConfig.attachFrame) or config.attachFrame
+         -- 判断是否有依附框体,如果有依附框体，需要监听依附框体的改变
+        if attachFrame ~= nil and attachFrame ~= const.ATTACH_FRAME.UIParent then
+            events[const.EVENT.HB_FRAME_CHANGE] = {{attachFrame}, }
+        end
+    end
     if config.listenEvents ~= nil then
         for event, _ in pairs(config.listenEvents) do
             events[event] = {}
@@ -303,7 +312,7 @@ function E:GetEvents(config)
     -- 递归查找，并且合并去除重复的参数列表
     if config.elements and #config.elements then
         for _, childEle in ipairs(config.elements) do
-            E:MergeEvents(events, E:GetEvents(childEle))
+            E:MergeEvents(events, E:GetEvents(childEle, rootConfig or config))
         end
     end
     return events

@@ -12,6 +12,9 @@ local E = addon:GetModule("Element")
 ---@class Item: AceModule
 local Item = addon:GetModule("Item")
 
+---@class AttachFrameCache: AceModule
+local AttachFrameCache = addon:GetModule("AttachFrameCache")
+
 ---@class Utils: AceModule
 local U = addon:GetModule('Utils')
 
@@ -123,8 +126,10 @@ function ElementFrame:ReLoadUI()
     self.IconWidth = self.Config.iconWidth or addon.G.iconWidth
     -- 移除旧的Cbs中的按钮
     self:ClearCbBtns(self.Cbs)
-    self.Cbs = self:GetCbs(self.Config)
-    self.Events = E:GetEvents(self.Config)
+    self.Cbs = self:GetCbs(self.Config, nil)
+    self.Events = E:GetEvents(self.Config, nil)
+    self.attachFrameName, self.attachFrame = self:GetAttachFrame()
+    AttachFrameCache:Add(self.attachFrameName, self.attachFrame)
     self:UpdateWindow()
     self:UpdateBar()
     self:CreateEditModeFrame()
@@ -136,34 +141,35 @@ function ElementFrame:ReLoadUI()
 end
 
 ---@param eleConfig ElementConfig
+---@param rootConfig ElementConfig | nil
 ---@return ElementCbInfo | nil
-function ElementFrame:GetCbs(eleConfig)
+function ElementFrame:GetCbs(eleConfig, rootConfig)
     if eleConfig.type == const.ELEMENT_TYPE.ITEM then
         local item = E:ToItem(eleConfig)
         ---@type ElementCbInfo
-        local cb = { f = ECB.CallbackOfSingleMode, p = item, r = {}, btns = {}, e = E:GetEvents(item), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
+        local cb = { f = ECB.CallbackOfSingleMode, p = item, r = {}, btns = {}, e = E:GetEvents(item, rootConfig), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
         return cb
     elseif eleConfig.type == const.ELEMENT_TYPE.MACRO then
         local macro = E:ToMacro(eleConfig)
         ---@type ElementCbInfo
-        local cb = { f = ECB.CallbackOfMacroMode, p = macro, r = {}, btns = {}, e = E:GetEvents(macro), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
+        local cb = { f = ECB.CallbackOfMacroMode, p = macro, r = {}, btns = {}, e = E:GetEvents(macro, rootConfig), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
         return cb
     elseif eleConfig.type == const.ELEMENT_TYPE.ITEM_GROUP then
         local itemGroup = E:ToItemGroup(eleConfig)
         ---@type ElementCbInfo
         local cb
         if itemGroup.extraAttr.mode == const.ITEMS_GROUP_MODE.RANDOM then
-            cb = { f = ECB.CallbackOfRandomMode, p = itemGroup, r = {}, btns = {}, e = E:GetEvents(itemGroup), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
+            cb = { f = ECB.CallbackOfRandomMode, p = itemGroup, r = {}, btns = {}, e = E:GetEvents(itemGroup, rootConfig), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
         end
         if itemGroup.extraAttr.mode == const.ITEMS_GROUP_MODE.SEQ then
-            cb = { f = ECB.CallbackOfSeqMode, p = itemGroup, r = {}, btns = {}, e = E:GetEvents(itemGroup), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
+            cb = { f = ECB.CallbackOfSeqMode, p = itemGroup, r = {}, btns = {}, e = E:GetEvents(itemGroup, rootConfig), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
         end
         return cb
     elseif eleConfig.type == const.ELEMENT_TYPE.SCRIPT then
         local script = E:ToScript(eleConfig)
         if script.extraAttr.script then
             ---@type ElementCbInfo
-            local cb = { f = ECB.CallbackOfScriptMode, p = script, r = {}, btns = {}, e = E:GetEvents(script), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
+            local cb = { f = ECB.CallbackOfScriptMode, p = script, r = {}, btns = {}, e = E:GetEvents(script, rootConfig), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
             return cb
         else
             return nil
@@ -174,10 +180,10 @@ function ElementFrame:GetCbs(eleConfig)
         local bar = E:ToBar(eleConfig)
         if bar.elements then
             for _, _eleConfig in ipairs(bar.elements) do
-                table.insert(cCb, ElementFrame:GetCbs(_eleConfig))
+                table.insert(cCb, ElementFrame:GetCbs(_eleConfig, rootConfig or eleConfig))
             end
         end
-        local cb = { f = nil, p = bar, r = {}, btns = {}, e = E:GetEvents(bar), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = cCb }
+        local cb = { f = nil, p = bar, r = {}, btns = {}, e = E:GetEvents(bar, rootConfig), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = cCb }
         return cb
     end
     return nil
@@ -500,7 +506,6 @@ function ElementFrame:UpdateWindow()
     local y = self.Config.posY or 0
 
     self.Window:ClearAllPoints()
-    self.attachFrameName, self.attachFrame = self:GetAttachFrame()
     self.Window:SetParent(self.attachFrame)
     -- 设置锚点位置
     local frameAnchorPos = self.Config.anchorPos or const.ANCHOR_POS.CENTER
@@ -592,4 +597,5 @@ function ElementFrame:Delete()
     self.Window:Hide()
     self.Window:ClearAllPoints()
     self.Window = nil
+    self:ClearCbBtns(self.Cbs)
 end
