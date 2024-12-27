@@ -251,6 +251,7 @@ L["Bindkey"] = "绑定按键"
 L["Bind For Account"] = "为所有角色绑定"
 L["Bind For Current Character"] = "为当前角色绑定"
 L["Bind For Current Class"] = "为当前职业绑定"
+L["The newly created button do not immediately respond to key bindings and require executing the /reload command."] = "新创建的按钮无法立即响应按键绑定，需要执行/reload命令。"
 
 -- 宏错误提示
 L["Macro Error"] = "宏错误"

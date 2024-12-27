@@ -1108,7 +1108,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             if ele.bindKey then
                 bindkeySettingArgs.loadCondCombat = {
                     order = bindkeySettingOrder,
-                    width = 1,
+                    width = ele.bindKey.combat and 1 or "full",
                     type = 'toggle',
                     name = L["Combat Load Condition"],
                     set = function(_, val)
@@ -1143,7 +1143,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 end
                 bindkeySettingArgs.loadAttachFrameShow = {
                     order = bindkeySettingOrder,
-                    width = 1,
+                    width = ele.bindKey.attachFrame and 1 or "full",
                     type = 'toggle',
                     name = L["AttachFrame Load Condition"],
                     desc = L["Not working when in combat"],
@@ -1178,6 +1178,20 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     bindkeySettingOrder = bindkeySettingOrder + 1
                 end
             end
+            bindkeySettingArgs.reloadDesc1 = {
+                order = bindkeySettingOrder,
+                width = "full",
+                type = "description",
+                name = "\n",
+            }
+            bindkeySettingOrder = bindkeySettingOrder + 1
+            bindkeySettingArgs.reloadDesc2 = {
+                order = bindkeySettingOrder,
+                width = "full",
+                type = "description",
+                name = L["The newly created button do not immediately respond to key bindings and require executing the /reload command."],
+            }
+            bindkeySettingOrder = bindkeySettingOrder + 1
         end
         local displaySettingOrder = 1
         local displaySettingArgs = {}
@@ -2669,7 +2683,7 @@ function ConfigOptions.Options()
                         order = 4,
                         width = 2,
                         type = "description",
-                        name = L["Version"] .. ": " .. "Beta-0.2.6"
+                        name = L["Version"] .. ": " .. "Beta-0.2.7"
                     }
                 }
             },

@@ -250,6 +250,7 @@ L["Bindkey"] = true
 L["Bind For Account"] = true
 L["Bind For Current Character"] = true
 L["Bind For Current Class"] = true
+L["The newly created button do not immediately respond to key bindings and require executing the /reload command."] = true
 
 -- 宏错误提示
 L["Macro Error"] = true
