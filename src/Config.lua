@@ -2774,3 +2774,10 @@ function addon:compatibilizeConfig(element)
         end
     end
 end
+
+AceConfigDialog.frame:RegisterEvent("PLAYER_REGEN_DISABLED")
+AceConfigDialog.frame:SetScript("OnEvent", function(_, event, _)
+    if event == "PLAYER_REGEN_DISABLED" then
+        AceConfigDialog:Close(addonName)
+    end
+end)
