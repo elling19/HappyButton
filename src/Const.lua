@@ -218,6 +218,7 @@ const.ATTACH_FRAME = {
 const.AttachFrameOptions = {
     ["UIParent"] = L["UIParent"],
     ["CharacterFrame"] = L["CharacterFrame"],
+    ["ObjectiveTrackerFrame"] = L["ObjectiveTrackerFrame"],
     ["GameMenuFrame"] = L["GameMenuFrame"],
     ["Minimap"] = L["Minimap"],
     ["ProfessionsBookFrame"] = L["ProfessionsBookFrame"],
