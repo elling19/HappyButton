@@ -24,6 +24,11 @@ addon:RegisterMessage(const.EVENT.HB_UNIT_AURA, function(event, ...)
     HbFrame:UpdateAllEframes(const.EVENT.HB_UNIT_AURA, {target, spellId})
 end)
 
+-- 自定义物品冷却改变
+addon:RegisterMessage(const.EVENT.HB_ITEM_COOLDOWN_CHNAGED, function(event, ...)
+    HbFrame:UpdateAllEframes(const.EVENT.HB_ITEM_COOLDOWN_CHNAGED, {})
+end)
+
 -- 自定义GCD更新
 addon:RegisterMessage(const.EVENT.HB_GCD_UPDATE, function()
     HbFrame:UpdateAllEframes(const.EVENT.HB_GCD_UPDATE, {})

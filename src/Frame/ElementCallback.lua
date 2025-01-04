@@ -33,6 +33,9 @@ local Macro = addon:GetModule("Macro")
 ---@class AuraCache: AceModule
 local AuraCache = addon:GetModule("AuraCache")
 
+---@class ItemCache: AceModule
+local ItemCache = addon:GetModule("ItemCache")
+
 ---@class ElementCallback: AceModule
 local ECB = addon:NewModule("ElementCallback")
 
@@ -490,6 +493,10 @@ function ECB:UseTrigger(eleConfig, cbResult)
                     if leftTrigger.type == "self" then
                         local leftValue = cbResult[cond.leftVal]
                         if type(cond.rightValue) == "number" or type(cond.rightValue) == "boolean" then
+                            -- TODO: 目前只处理冷却相关的任务，其他任务交给事件处理
+                            if cond.leftVal == "isCooldown" then
+                                ItemCache:PutTask(cbResult.item, nil, nil, true, nil)
+                            end
                             -- 判断条件返回真/假
                             ---@diagnostic disable-next-line: param-type-mismatch
                             local r = Condition:ExecOperator(leftValue, cond.operator, cond.rightValue)
@@ -551,12 +558,20 @@ function ECB:UseTrigger(eleConfig, cbResult)
                         end
                     end
                     if leftTrigger.type == "item" then
-                        local itemTriggerCond = Trigger:GetItemTriggerCond(leftTrigger)
-                        local leftValue = itemTriggerCond[cond.leftVal]
-                        ---@diagnostic disable-next-line: param-type-mismatch
-                        local r = Condition:ExecOperator(leftValue, cond.operator, cond.rightValue)
-                        if r:is_ok() then
-                            condResult = r:unwrap()
+                        local trigger = Trigger:ToItemTriggerConfig(leftTrigger)
+                        if trigger.confine and trigger.confine.item then
+                            local item = trigger.confine.item
+                            local itemTriggerCond = Trigger:GetItemTriggerCond(item)
+                            local leftValue = itemTriggerCond[cond.leftVal]
+                            -- TODO: 目前只处理冷却相关的任务，其他任务交给事件处理
+                            if cond.leftVal == "isCooldown" then
+                                ItemCache:PutTask(item, nil, nil, true, nil)
+                            end
+                             ---@diagnostic disable-next-line: param-type-mismatch
+                            local r = Condition:ExecOperator(leftValue, cond.operator, cond.rightValue)
+                            if r:is_ok() then
+                                condResult = r:unwrap()
+                            end
                         end
                     end
                 end

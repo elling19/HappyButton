@@ -60,21 +60,34 @@ Api.GetSpellInfo = function (spellIdentifier)
 end
 
 ---@param spellIdentifier string | number
----@return SpellCooldownInfo
+---@return CooldownInfo | nil
 Api.GetSpellCooldown = function (spellIdentifier)
     if C_Spell and C_Spell.GetSpellCooldown then
-        return C_Spell.GetSpellCooldown(spellIdentifier)
+        local spellCooldownInfo = C_Spell.GetSpellCooldown(spellIdentifier)
+        if spellCooldownInfo ~= nil then
+            ---@type CooldownInfo
+            local cooldownInfo = {
+                startTime = spellCooldownInfo.startTime,
+                duration = spellCooldownInfo.duration,
+                enable = spellCooldownInfo.isEnabled
+            }
+            return cooldownInfo
+        else
+            return nil
+        end
     else
         ---@diagnostic disable-next-line: deprecated
         local start, duration, enabled, modRate = GetSpellCooldown(spellIdentifier)
-        ---@type SpellCooldownInfo
-        local spellCooldownInfo = {
+        if start == nil then
+            return nil
+        end
+        ---@type CooldownInfo
+        local cooldownInfo = {
+            startTime = start,
             duration = duration,
-            isEnabled = enabled == 1,
-            modRate = modRate,
-            startTime = start
+            enable = enabled == 1,
         }
-        return spellCooldownInfo
+        return cooldownInfo
     end
 end
 

@@ -22,146 +22,145 @@ local PlayerCache = addon:GetModule("PlayerCache")
 ---@class ItemCacheInfo
 ---@field isLearned boolean | nil
 ---@field isUsable boolean | nil
----@field isCooldown boolean | nil
 ---@field cooldownInfo CooldownInfo | nil
 ---@field borderColor RGBAColor | nil
 ---@field count number | nil
 
----@class ItemCacheItems
----@field item table<number, ItemCacheInfo>
----@field equipment table<number, ItemCacheInfo>
----@field spell table<number, ItemCacheInfo>
----@field toy table<number, ItemCacheInfo>
----@field mount table<number, ItemCacheInfo>
----@field pet table<number, ItemCacheInfo>
-
+---@class ItemCacheTaskInfo
+---@field item ItemCacheInfo
+---@field listenIsLearned true | nil
+---@field listenIsUsable true | nil
+---@field listenIsCooldown true | nil
+---@field listenCooldownRemainingTimes number[]
 
 ---@class ItemCacheGcd
 ---@field cooldownInfo CooldownInfo | nil
 
 
 ---@class ItemCache: AceModule
----@field cache ItemCacheItems
+---@field cache table<number, table<number, ItemCacheTaskInfo>>
 ---@field gcd ItemCacheGcd
 local ItemCache = addon:NewModule("ItemCache")
 
 local GetTime = GetTime
 
+
+
 function ItemCache:Initial()
     ItemCache.cache = {
-        item = {},
-        equipment = {},
-        spell = {},
-        toy = {},
-        mount = {},
-        pet = {}
+        [const.ITEM_TYPE.ITEM] = {},
+        [const.ITEM_TYPE.EQUIPMENT] = {},
+        [const.ITEM_TYPE.SPELL] = {},
+        [const.ITEM_TYPE.TOY] = {},
+        [const.ITEM_TYPE.MOUNT] = {},
+        [const.ITEM_TYPE.PET] = {},
     }
     ItemCache.gcd = {}
 end
 
 
--- 通过itemAttr获取缓存数据，如果缓存没有则获取后返回
+-- TODO: 通过itemAttr获取缓存数据，如果缓存没有则获取后返回
 -- 获取的方式是渐进式的，只有缺少对应的属性才获取对应的属性，减少API的调用
 ---@param item ItemAttr
 ---@return ItemCacheInfo
 function ItemCache:Get(item)
     if item.type == const.ITEM_TYPE.ITEM then
-        if ItemCache.cache.item[item.id] == nil then
-            ItemCache.cache.item[item.id] = {}
+        if ItemCache.cache[const.ITEM_TYPE.ITEM][item.id] == nil then
+            ItemCache.cache[const.ITEM_TYPE.ITEM][item.id] = {}
         end
-        if ItemCache.cache.item[item.id].count == nil then
-            ItemCache.cache.item[item.id].count = Api.GetItemCount(item.id, false)
-            ItemCache.cache.item[item.id].isLearned = ItemCache.cache.item[item.id].count > 0
+        if ItemCache.cache[const.ITEM_TYPE.ITEM][item.id].count == nil then
+            ItemCache.cache[const.ITEM_TYPE.ITEM][item.id].count = Api.GetItemCount(item.id, false)
+            ItemCache.cache[const.ITEM_TYPE.ITEM][item.id].isLearned = ItemCache.cache[const.ITEM_TYPE.ITEM][item.id].count > 0
         end
-        if ItemCache.cache.item[item.id].isUsable == nil then
+        if ItemCache.cache[const.ITEM_TYPE.ITEM][item.id].isUsable == nil then
             local usable, _ = Api.IsUsableItem(item.id)
-            ItemCache.cache.item[item.id].isUsable = usable
+            ItemCache.cache[const.ITEM_TYPE.ITEM][item.id].isUsable = usable
         end
-        if ItemCache.cache.item[item.id].cooldownInfo == nil then
-            ItemCache.cache.item[item.id].cooldownInfo = Api.GetItemCooldown(item.id)
-            ItemCache.cache.item[item.id].isCooldown = Item:IsCooldown(ItemCache.cache.item[item.id].cooldownInfo)
+        if ItemCache.cache[const.ITEM_TYPE.ITEM][item.id].cooldownInfo == nil then
+            ItemCache.cache[const.ITEM_TYPE.ITEM][item.id].cooldownInfo = Api.GetItemCooldown(item.id)
+            ItemCache.cache[const.ITEM_TYPE.ITEM][item.id].isCooldown = Item:IsCooldown(ItemCache.cache[const.ITEM_TYPE.ITEM][item.id].cooldownInfo)
         end
-        if ItemCache.cache.item[item.id].borderColor == nil then
+        if ItemCache.cache[const.ITEM_TYPE.ITEM][item.id].borderColor == nil then
             local borderColor = const.DefaultItemColor
             local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType, expansionID, setID, isCraftingReagent = Api.GetItemInfo(item.id)
             if itemQuality then
                 borderColor = const.ItemQualityColor[itemQuality]
             end
-            ItemCache.cache.item[item.id].borderColor = borderColor
+            ItemCache.cache[const.ITEM_TYPE.ITEM][item.id].borderColor = borderColor
         end
-        return ItemCache.cache.item[item.id]
+        return ItemCache.cache[const.ITEM_TYPE.ITEM][item.id]
     elseif item.type == const.ITEM_TYPE.EQUIPMENT then
-        if ItemCache.cache.equipment[item.id] == nil then
-            ItemCache.cache.equipment[item.id] = {}
+        if ItemCache.cache[const.ITEM_TYPE.EQUIPMENT][item.id] == nil then
+            ItemCache.cache[const.ITEM_TYPE.EQUIPMENT][item.id] = {}
         end
-        if ItemCache.cache.equipment[item.id].count == nil then
-            ItemCache.cache.equipment[item.id].count = Api.GetItemCount(item.id, false)
+        if ItemCache.cache[const.ITEM_TYPE.EQUIPMENT][item.id].count == nil then
+            ItemCache.cache[const.ITEM_TYPE.EQUIPMENT][item.id].count = Api.GetItemCount(item.id, false)
         end
-        if ItemCache.cache.equipment[item.id].isLearned == nil then
-            ItemCache.cache.equipment[item.id].isLearned = ItemCache.cache.equipment[item.id].count > 0 or Item:IsEquipped(item.id)
+        if ItemCache.cache[const.ITEM_TYPE.EQUIPMENT][item.id].isLearned == nil then
+            ItemCache.cache[const.ITEM_TYPE.EQUIPMENT][item.id].isLearned = ItemCache.cache[const.ITEM_TYPE.EQUIPMENT][item.id].count > 0 or Item:IsEquipped(item.id)
         end
-        if ItemCache.cache.equipment[item.id].isUsable == nil then
+        if ItemCache.cache[const.ITEM_TYPE.EQUIPMENT][item.id].isUsable == nil then
             local usable, _ = Api.IsUsableItem(item.id)
-            ItemCache.cache.equipment[item.id].isUsable = usable
+            ItemCache.cache[const.ITEM_TYPE.EQUIPMENT][item.id].isUsable = usable
         end
-        if ItemCache.cache.equipment[item.id].cooldownInfo == nil then
-            ItemCache.cache.equipment[item.id].cooldownInfo = Api.GetItemCooldown(item.id)
-            ItemCache.cache.equipment[item.id].isCooldown = Item:IsCooldown(ItemCache.cache.equipment[item.id].cooldownInfo)
+        if ItemCache.cache[const.ITEM_TYPE.EQUIPMENT][item.id].cooldownInfo == nil then
+            ItemCache.cache[const.ITEM_TYPE.EQUIPMENT][item.id].cooldownInfo = Api.GetItemCooldown(item.id)
+            ItemCache.cache[const.ITEM_TYPE.EQUIPMENT][item.id].isCooldown = Item:IsCooldown(ItemCache.cache[const.ITEM_TYPE.EQUIPMENT][item.id].cooldownInfo)
         end
-        if ItemCache.cache.equipment[item.id].borderColor == nil then
+        if ItemCache.cache[const.ITEM_TYPE.EQUIPMENT][item.id].borderColor == nil then
             local borderColor = const.DefaultItemColor
             local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType, expansionID, setID, isCraftingReagent = Api.GetItemInfo(item.id)
             if itemQuality then
                 borderColor = const.ItemQualityColor[itemQuality]
             end
-            ItemCache.cache.equipment[item.id].borderColor = borderColor
+            ItemCache.cache[const.ITEM_TYPE.EQUIPMENT][item.id].borderColor = borderColor
         end
-        return ItemCache.cache.equipment[item.id]
+        return ItemCache.cache[const.ITEM_TYPE.EQUIPMENT][item.id]
     elseif item.type == const.ITEM_TYPE.TOY then
-        if ItemCache.cache.toy[item.id] == nil then
-            ItemCache.cache.toy[item.id] = {}
+        if ItemCache.cache[const.ITEM_TYPE.TOY][item.id] == nil then
+            ItemCache.cache[const.ITEM_TYPE.TOY][item.id] = {}
         end
-        if ItemCache.cache.toy[item.id].isLearned == nil then
-            ItemCache.cache.toy[item.id].isLearned = PlayerHasToy(item.id)
+        if ItemCache.cache[const.ITEM_TYPE.TOY][item.id].isLearned == nil then
+            ItemCache.cache[const.ITEM_TYPE.TOY][item.id].isLearned = PlayerHasToy(item.id)
         end
-        if ItemCache.cache.toy[item.id].isUsable == nil then
-            ItemCache.cache.toy[item.id].isUsable = C_ToyBox.IsToyUsable(item.id)
+        if ItemCache.cache[const.ITEM_TYPE.TOY][item.id].isUsable == nil then
+            ItemCache.cache[const.ITEM_TYPE.TOY][item.id].isUsable = C_ToyBox.IsToyUsable(item.id)
         end
-        if ItemCache.cache.toy[item.id].cooldownInfo == nil then
-            ItemCache.cache.toy[item.id].cooldownInfo = Api.GetItemCooldown(item.id)
-            ItemCache.cache.toy[item.id].isCooldown = Item:IsCooldown(ItemCache.cache.toy[item.id].cooldownInfo)
+        if ItemCache.cache[const.ITEM_TYPE.TOY][item.id].cooldownInfo == nil then
+            ItemCache.cache[const.ITEM_TYPE.TOY][item.id].cooldownInfo = Api.GetItemCooldown(item.id)
+            ItemCache.cache[const.ITEM_TYPE.TOY][item.id].isCooldown = Item:IsCooldown(ItemCache.cache[const.ITEM_TYPE.TOY][item.id].cooldownInfo)
         end
-        if ItemCache.cache.toy[item.id].borderColor == nil then
+        if ItemCache.cache[const.ITEM_TYPE.TOY][item.id].borderColor == nil then
             local borderColor = const.DefaultItemColor
             local itemName, itemLink, itemQuality, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemTexture, sellPrice, classID, subclassID, bindType, expansionID, setID, isCraftingReagent =
                     Api.GetItemInfo(item.id)
                 if itemQuality then
                     borderColor = const.ItemQualityColor[itemQuality]
                 end
-            ItemCache.cache.toy[item.id].borderColor = borderColor
+            ItemCache.cache[const.ITEM_TYPE.TOY][item.id].borderColor = borderColor
         end
-        return ItemCache.cache.toy[item.id]
+        return ItemCache.cache[const.ITEM_TYPE.TOY][item.id]
     elseif item.type == const.ITEM_TYPE.MOUNT then
-        if ItemCache.cache.mount[item.id] == nil then
-            ItemCache.cache.mount[item.id] = {}
+        if ItemCache.cache[const.ITEM_TYPE.MOUNT][item.id] == nil then
+            ItemCache.cache[const.ITEM_TYPE.MOUNT][item.id] = {}
         end
-        if ItemCache.cache.mount[item.id].isLearned == nil then
+        if ItemCache.cache[const.ITEM_TYPE.MOUNT][item.id].isLearned == nil then
             local name, spellID, icon, isActive, isUsable, sourceType, isFavorite, isFactionSpecific, faction, shouldHideOnChar, isCollected, mountID, isSteadyFlight =
             C_MountJournal.GetMountInfoByID(item.id)
-            ItemCache.cache.mount[item.id].isLearned = isCollected
+            ItemCache.cache[const.ITEM_TYPE.MOUNT][item.id].isLearned = isCollected
         end
-        if ItemCache.cache.mount[item.id].isUsable == nil then
-            ItemCache.cache.mount[item.id].isUsable = true
+        if ItemCache.cache[const.ITEM_TYPE.MOUNT][item.id].isUsable == nil then
+            ItemCache.cache[const.ITEM_TYPE.MOUNT][item.id].isUsable = true
         end
-        if ItemCache.cache.mount[item.id].borderColor == nil then
-            ItemCache.cache.mount[item.id].borderColor = const.DefaultItemColor
+        if ItemCache.cache[const.ITEM_TYPE.MOUNT][item.id].borderColor == nil then
+            ItemCache.cache[const.ITEM_TYPE.MOUNT][item.id].borderColor = const.DefaultItemColor
         end
-        return ItemCache.cache.mount[item.id]
+        return ItemCache.cache[const.ITEM_TYPE.MOUNT][item.id]
     elseif item.type == const.ITEM_TYPE.PET then
-        if ItemCache.cache.pet[item.id] == nil then
-            ItemCache.cache.pet[item.id] = {}
+        if ItemCache.cache[const.ITEM_TYPE.PET][item.id] == nil then
+            ItemCache.cache[const.ITEM_TYPE.PET][item.id] = {}
         end
-        if ItemCache.cache.pet[item.id].isLearned == nil then
+        if ItemCache.cache[const.ITEM_TYPE.PET][item.id].isLearned == nil then
             local isLearned = false
             for petIndex = 1, C_PetJournal.GetNumPets() do
                 local _, speciesID, owned, customName, level, favorite, isRevoked, speciesName, icon, petType, companionID, tooltip, description, isWild, canBattle, isTradeable, isUnique, obtainable =
@@ -171,12 +170,12 @@ function ItemCache:Get(item)
                     break
                 end
             end
-            ItemCache.cache.pet[item.id].isLearned = isLearned
+            ItemCache.cache[const.ITEM_TYPE.PET][item.id].isLearned = isLearned
         end
-        if ItemCache.cache.pet[item.id].isUsable == nil then
-            ItemCache.cache.pet[item.id].isUsable = true
+        if ItemCache.cache[const.ITEM_TYPE.PET][item.id].isUsable == nil then
+            ItemCache.cache[const.ITEM_TYPE.PET][item.id].isUsable = true
         end
-        if ItemCache.cache.pet[item.id].cooldownInfo == nil then
+        if ItemCache.cache[const.ITEM_TYPE.PET][item.id].cooldownInfo == nil then
             local cooldownInfo = nil
             local _, petGUID = C_PetJournal.FindPetIDByName(item.name)
                 if petGUID then
@@ -187,121 +186,219 @@ function ItemCache:Get(item)
                         enable = isEnabled == 1
                     }
                 end
-            ItemCache.cache.pet[item.id].cooldownInfo = cooldownInfo
-            ItemCache.cache.pet[item.id].isCooldown = cooldownInfo and Item:IsCooldown(cooldownInfo) or nil
+            ItemCache.cache[const.ITEM_TYPE.PET][item.id].cooldownInfo = cooldownInfo
+            ItemCache.cache[const.ITEM_TYPE.PET][item.id].isCooldown = cooldownInfo and Item:IsCooldown(cooldownInfo) or nil
         end
-        if ItemCache.cache.pet[item.id].borderColor == nil then
-            ItemCache.cache.pet[item.id].borderColor = const.DefaultItemColor
+        if ItemCache.cache[const.ITEM_TYPE.PET][item.id].borderColor == nil then
+            ItemCache.cache[const.ITEM_TYPE.PET][item.id].borderColor = const.DefaultItemColor
         end
-        return ItemCache.cache.pet[item.id]
+        return ItemCache.cache[const.ITEM_TYPE.PET][item.id]
     else
-        if ItemCache.cache.spell[item.id] == nil then
-            ItemCache.cache.spell[item.id] = {}
+        if ItemCache.cache[const.ITEM_TYPE.SPELL][item.id] == nil then
+            ItemCache.cache[const.ITEM_TYPE.SPELL][item.id] = {}
         end
-        if ItemCache.cache.spell[item.id].isLearned == nil then
-            ItemCache.cache.spell[item.id].isLearned = IsSpellKnownOrOverridesKnown(item.id)
+        if ItemCache.cache[const.ITEM_TYPE.SPELL][item.id].isLearned == nil then
+            ItemCache.cache[const.ITEM_TYPE.SPELL][item.id].isLearned = IsSpellKnownOrOverridesKnown(item.id)
         end
-        if ItemCache.cache.spell[item.id].isUsable == nil then
+        if ItemCache.cache[const.ITEM_TYPE.SPELL][item.id].isUsable == nil then
             local isUsable, _ = Api.IsSpellUsable(item.id)
-            ItemCache.cache.spell[item.id].isUsable = isUsable
+            ItemCache.cache[const.ITEM_TYPE.SPELL][item.id].isUsable = isUsable
         end
-        if ItemCache.cache.spell[item.id].cooldownInfo == nil then
-            local spellCooldownInfo = Api.GetSpellCooldown(item.id)
-            local cooldownInfo = nil
-            if spellCooldownInfo then
-                cooldownInfo = {
-                    startTime = spellCooldownInfo.startTime,
-                    duration = spellCooldownInfo.duration,
-                    enable = spellCooldownInfo.isEnabled
-                }
-            end
-            ItemCache.cache.spell[item.id].cooldownInfo = cooldownInfo
-            ItemCache.cache.spell[item.id].isCooldown = cooldownInfo and Item:IsCooldown(cooldownInfo) or nil
+        if ItemCache.cache[const.ITEM_TYPE.SPELL][item.id].cooldownInfo == nil then
+            local cooldownInfo = Api.GetSpellCooldown(item.id)
+            ItemCache.cache[const.ITEM_TYPE.SPELL][item.id].cooldownInfo = cooldownInfo
+            ItemCache.cache[const.ITEM_TYPE.SPELL][item.id].isCooldown = cooldownInfo and Item:IsCooldown(cooldownInfo) or nil
         end
-        if ItemCache.cache.spell[item.id].count == nil then
+        if ItemCache.cache[const.ITEM_TYPE.SPELL][item.id].count == nil then
             local chargeInfo = Api.GetSpellCharges(item.id)
             local count = 1
             if chargeInfo then
                 count = chargeInfo.currentCharges
             end
-            ItemCache.cache.spell[item.id].count = count
+            ItemCache.cache[const.ITEM_TYPE.SPELL][item.id].count = count
         end
-        if ItemCache.cache.spell[item.id].borderColor == nil then
-            ItemCache.cache.spell[item.id].borderColor = const.DefaultItemColor
+        if ItemCache.cache[const.ITEM_TYPE.SPELL][item.id].borderColor == nil then
+            ItemCache.cache[const.ITEM_TYPE.SPELL][item.id].borderColor = const.DefaultItemColor
         end
-        return ItemCache.cache.spell[item.id]
+        return ItemCache.cache[const.ITEM_TYPE.SPELL][item.id]
     end
 end
 
 
+-- TODO: 目前物品更新由各个itemBtn负责处理，后续考虑是否需要统一处理
 ---@param event EventString
 ---@param eventArgs any
 ---@return EventString, any
-function ItemCache:Update(event, eventArgs)
+function ItemCache:Update1(event, eventArgs)
     if event == "NEW_TOY_ADDED" then
         local itemId = tonumber(eventArgs[1])
         if itemId then
-            ItemCache.cache.toy[itemId] = nil
+            ItemCache.cache[const.ITEM_TYPE.TOY][itemId] = nil
         end
     end
     if event == "NEW_PET_ADDED" then
         local battlePetGUID = eventArgs[1]
         local speciesID, customName, level, xp, maxXp, displayID, isFavorite, name, icon, petType, creatureID, sourceText, description, isWild, canBattle, isTradeable, isUnique, obtainable = C_PetJournal.GetPetInfoByPetID(battlePetGUID)
         if speciesID then
-            ItemCache.cache.pet[speciesID] = nil
+            ItemCache.cache[const.ITEM_TYPE.PET][speciesID] = nil
         end
     end
     if event == "NEW_MOUNT_ADDED" then
         local mountID = eventArgs[1]
         if mountID then
-            ItemCache.cache.mount[mountID] = nil
+            ItemCache.cache[const.ITEM_TYPE.MOUNT][mountID] = nil
         end
     end
     if event == "BAG_UPDATE" then
-        for id, _ in pairs(ItemCache.cache.item) do
-            ItemCache.cache.item[id].isLearned = nil
-            ItemCache.cache.item[id].count = nil
+        for id, _ in pairs(ItemCache.cache[const.ITEM_TYPE.ITEM]) do
+            ItemCache.cache[const.ITEM_TYPE.ITEM][id].item.isLearned = nil
+            ItemCache.cache[const.ITEM_TYPE.ITEM][id].item.count = nil
         end
-        for id, _ in pairs(ItemCache.cache.equipment) do
-            ItemCache.cache.equipment[id].isLearned = nil
-            ItemCache.cache.equipment[id].count = nil
+        for id, _ in pairs(ItemCache.cache[const.ITEM_TYPE.EQUIPMENT]) do
+            ItemCache.cache[const.ITEM_TYPE.EQUIPMENT][id].item.isLearned = nil
+            ItemCache.cache[const.ITEM_TYPE.EQUIPMENT][id].item.count = nil
         end
     end
     if event == "SPELLS_CHANGED" or event == "PLAYER_TALENT_UPDATE" then
-        for id, _ in pairs(ItemCache.cache.spell) do
-            ItemCache.cache.spell[id] = nil
+        for id, _ in pairs(ItemCache.cache[const.ITEM_TYPE.SPELL]) do
+            ItemCache.cache[const.ITEM_TYPE.SPELL][id] = nil
         end
     end
     if event == "UNIT_SPELLCAST_SUCCEEDED" then
-        for id, _ in pairs(ItemCache.cache.spell) do
-            ItemCache.cache.spell[id].cooldownInfo = nil
-            ItemCache.cache.spell[id].isCooldown = nil
-            ItemCache.cache.spell[id].count = nil
+        for id, _ in pairs(ItemCache.cache[const.ITEM_TYPE.SPELL]) do
+            ItemCache.cache[const.ITEM_TYPE.SPELL][id].item.cooldownInfo = nil
+            ItemCache.cache[const.ITEM_TYPE.SPELL][id].item.count = nil
         end
-        for id, _ in pairs(ItemCache.cache.equipment) do
-            ItemCache.cache.equipment[id].cooldownInfo = nil
-            ItemCache.cache.equipment[id].isCooldown = nil
+        for id, _ in pairs(ItemCache.cache[const.ITEM_TYPE.EQUIPMENT]) do
+            ItemCache.cache[const.ITEM_TYPE.EQUIPMENT][id].item.cooldownInfo = nil
         end
-        for id, _ in pairs(ItemCache.cache.item) do
-            ItemCache.cache.item[id].cooldownInfo = nil
-            ItemCache.cache.item[id].isCooldown = nil
+        for id, _ in pairs(ItemCache.cache[const.ITEM_TYPE.ITEM]) do
+            ItemCache.cache[const.ITEM_TYPE.ITEM][id].item.cooldownInfo = nil
         end
-        for id, _ in pairs(ItemCache.cache.pet) do
-            ItemCache.cache.pet[id].cooldownInfo = nil
-            ItemCache.cache.pet[id].isCooldown = nil
+        for id, _ in pairs(ItemCache.cache[const.ITEM_TYPE.PET]) do
+            ItemCache.cache[const.ITEM_TYPE.PET][id].item.cooldownInfo = nil
         end
     end
     if event == "SPELL_UPDATE_CHARGES" then
-        for id, _ in pairs(ItemCache.cache.spell) do
-            ItemCache.cache.spell[id].count = nil
+        for id, _ in pairs(ItemCache.cache[const.ITEM_TYPE.SPELL]) do
+            ItemCache.cache[const.ITEM_TYPE.SPELL][id].item.count = nil
         end
     end
     return event, eventArgs
 end
 
 
+function ItemCache:Update(event, eventArgs)
+    local now = GetTime()
+    if event == "UNIT_SPELLCAST_SUCCEEDED" then
+        for _, item_type in ipairs({const.ITEM_TYPE.ITEM, const.ITEM_TYPE.EQUIPMENT, const.ITEM_TYPE.TOY}) do
+            for id, taskInfo in pairs(ItemCache.cache[item_type]) do
+                if taskInfo.listenIsCooldown == true or #taskInfo.listenCooldownRemainingTimes ~= 0 then
+                    local cooldownInfo = Api.GetItemCooldown(id)
+                    if cooldownInfo ~= nil then
+                        local lastCooldownInfo = taskInfo.item.cooldownInfo
+                        if lastCooldownInfo == nil then
+                            ItemCache:CreateTickerTask(item_type, id)
+                        else
+                            if lastCooldownInfo.startTime ~= cooldownInfo.startTime then
+                                -- 如果上一个冷却事件还没有结束，那么重新触发
+                                if lastCooldownInfo.startTime + lastCooldownInfo.duration > now then
+                                    ItemCache:CreateTickerTask(item_type, id)
+                                end
+                            end
+                        end
+                        taskInfo.item.cooldownInfo = cooldownInfo
+                    end
+                end
+            end
+        end
+        for id, taskInfo in pairs(ItemCache.cache[const.ITEM_TYPE.SPELL]) do
+            if taskInfo.listenIsCooldown == true or #taskInfo.listenCooldownRemainingTimes ~= 0 then
+                local cooldownInfo = Api.GetSpellCooldown(id)
+                if cooldownInfo ~= nil then
+                    local needSendMessageNow = false
+                    local lastCooldownInfo = taskInfo.item.cooldownInfo
+                    if lastCooldownInfo == nil then
+                        needSendMessageNow = true
+                    else
+                        if lastCooldownInfo.startTime ~= cooldownInfo.startTime then
+                            needSendMessageNow = true
+                        end
+                    end
+                    taskInfo.item.cooldownInfo = cooldownInfo
+                    if needSendMessageNow == true then
+                        ItemCache:CreateTickerTask(const.ITEM_TYPE.SPELL, id)
+                    end
+                end
+            end
+        end
+    end
+end
+
+--- 按aura来更新目标任务
+---@param type number
+---@param itemId number
+function ItemCache:CreateTickerTask(type, itemId)
+    if ItemCache.cache[type][itemId] == nil then
+        return
+    end
+    local taskInfo = ItemCache.cache[type][itemId]
+    local cooldownInfo = taskInfo.item.cooldownInfo
+    if cooldownInfo == nil then
+        return
+    end
+    local now = GetTime()
+    local cooldownTime = cooldownInfo.startTime + cooldownInfo.duration
+    if taskInfo.listenIsCooldown == true then
+        if cooldownTime > now then
+            C_Timer.NewTimer(cooldownTime - now + 0.05, function ()
+                addon:SendMessage(const.EVENT.HB_ITEM_COOLDOWN_CHNAGED)
+            end)
+        end
+    end
+    if taskInfo.listenCooldownRemainingTimes then
+        for _, remainingTime in ipairs(taskInfo.listenCooldownRemainingTimes) do
+            if cooldownTime - remainingTime > now then
+                C_Timer.NewTimer(cooldownTime - remainingTime - now + 0.05, function ()
+                    addon:SendMessage(const.EVENT.HB_ITEM_COOLDOWN_CHNAGED)
+                end)
+            end
+        end
+    end
+end
+
+-- 在缓存中添加新的追踪信息
+---@param item ItemAttr
+function ItemCache:PutTask(item, isLearned, isUsable, isCooldown, remainingTime)
+    if ItemCache.cache[item.type][item.id] == nil then
+        ---@type ItemCacheTaskInfo
+        ItemCache.cache[item.type][item.id] = {
+            item = {},
+            listenCooldownRemainingTimes = {},
+        }
+    end
+    if isLearned ~= nil then
+        ItemCache.cache[item.type][item.id].listenIsLearned = true
+    end
+    if isUsable ~= nil then
+        ItemCache.cache[item.type][item.id].listenIsUsable = true
+    end
+    if isCooldown ~= nil then
+        ItemCache.cache[item.type][item.id].listenIsCooldown = true
+    end
+    if remainingTime ~= nil then
+        if U.Table.IsInArray(ItemCache.cache[item.type][item.id].listenCooldownRemainingTimes, remainingTime) == false then
+            table.insert(ItemCache.cache[item.type][item.id].listenCooldownRemainingTimes, remainingTime)
+        end
+    end
+end
+
+
 function ItemCache:UpdateGcd()
     local cooldownInfo = Api.GetSpellCooldown(PlayerCache.gcdSpellId)
+    if cooldownInfo == nil then
+        return
+    end
     local needSendMessage = false
     if ItemCache.gcd == nil or ItemCache.gcd.cooldownInfo == nil or ItemCache.gcd.cooldownInfo.startTime == nil then
         -- 如果上一次的GCD信息无效，则更新
@@ -318,11 +415,7 @@ function ItemCache:UpdateGcd()
             end
         end
     end
-    ItemCache.gcd.cooldownInfo = {
-        startTime = cooldownInfo.startTime,
-        duration = cooldownInfo.duration,
-        enable = cooldownInfo.isEnabled
-    }
+    ItemCache.gcd.cooldownInfo = cooldownInfo
     if needSendMessage == true then
         addon:SendMessage(const.EVENT.HB_GCD_UPDATE)
     end

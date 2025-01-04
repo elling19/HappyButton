@@ -137,19 +137,11 @@ function Trigger:ToAuraConfine(confine)
     return confine
 end
 
----@param triggerConfig TriggerConfig
+---@param item ItemAttr
 ---@return table<ItemTriggerCond, any>
-function Trigger:GetItemTriggerCond(triggerConfig)
+function Trigger:GetItemTriggerCond(item)
     ---@type table<ItemTriggerCond, any>
     local result = {}
-    local trigger = Trigger:ToItemTriggerConfig(triggerConfig)
-    if not trigger.confine then
-        return result
-    end
-    local item = trigger.confine.item
-    if item == nil then
-        return result
-    end
     result.isLearned = Item:IsLearned(item.id, item.type)
     result.isUsable = Item:IsUsable(item.id, item.type)
     result.isCooldown = Item:IsCooldown(Item:GetCooldown(item))

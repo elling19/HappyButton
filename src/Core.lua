@@ -24,6 +24,8 @@ local BarCore = addon:NewModule("BarCore")
 
 BarCore.Frame = CreateFrame("Frame")
 
+BarCore.DelayFrame = CreateFrame("Frame")
+
 -- 初始化配置
 function BarCore:Initial()
     PlayerCache:Initial()
@@ -111,15 +113,17 @@ function BarCore:Start()
                     end)
                 end
             elseif delayEvents[event] ~= nil then
-                C_Timer.After(0.1, function()
+                BarCore.DelayFrame:SetScript("OnUpdate", function(_this)
                     -- 施法完成事件只监控玩家
                     if event == "UNIT_SPELLCAST_SUCCEEDED" then
                         if args[1] == "player" then
+                            ItemCache:Update(event, args)
                             HbFrame:UpdateAllEframes(event, args)
                         end
                     else
                         HbFrame:UpdateAllEframes(event, args)
                     end
+                    _this:SetScript("OnUpdate", nil)
                 end)
             else
                 HbFrame:UpdateAllEframes(event, args)

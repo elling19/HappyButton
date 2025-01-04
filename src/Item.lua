@@ -336,14 +336,7 @@ function Item:GetCooldown(itemAttr)
     if itemAttr.type == const.ITEM_TYPE.ITEM or itemAttr.type == const.ITEM_TYPE.EQUIPMENT or itemAttr.type == const.ITEM_TYPE.TOY then
         return Api.GetItemCooldown(itemAttr.id)
     elseif itemAttr.type == const.ITEM_TYPE.SPELL then
-        local spellCooldownInfo = Api.GetSpellCooldown(itemAttr.id)
-        if spellCooldownInfo then
-            return {
-                startTime = spellCooldownInfo.startTime,
-                duration = spellCooldownInfo.duration,
-                enable = spellCooldownInfo.isEnabled
-            }
-        end
+        return Api.GetSpellCooldown(itemAttr.id)
     elseif itemAttr.type == const.ITEM_TYPE.PET then
         local _, petGUID = C_PetJournal.FindPetIDByName(itemAttr.name)
         if petGUID then
