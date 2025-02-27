@@ -1,8 +1,8 @@
-## Interface: 110007
+## Interface: 110100
 ## Title: HappyButton
 ## Notes: Manage items, equip items, skills, mounts, toys, and pets.
 ## Author: CN Cryy
-## Version: Beta-0.2.7
+## Version: Beta-0.2.8
 ## IconTexture: 1418621
 ## IconTexture: Interface\AddOns\HappyButton\Media\Logo64.blp
 ## SavedVariables: HappyButtonDB
