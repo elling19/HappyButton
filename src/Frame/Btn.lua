@@ -307,7 +307,7 @@ function Btn:UpdateTexts()
             else
                 tString:SetPoint("LEFT", self.Button, "RIGHT", 5, 0)
             end
-            local t = self.CbResult.text or (self.CbResult.item and self.CbResult.item.name)
+            local t = self.CbResult.text or (self.CbResult.item and self.CbResult.item.name) or self.CbInfo.p.title
             if t then
                 if self.EFrame:IsHorizontal() then
                     tString:SetText(U.String.ToVertical(t))
