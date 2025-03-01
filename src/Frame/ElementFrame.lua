@@ -401,7 +401,7 @@ function ElementFrame:OutCombatUpdate(event, eventArgs)
     end
     local btnIndex = { index = 0 }
     self:ExcuteCb(self.Cbs, btnIndex, event, eventArgs)
-    -- self:SetWindowSize()
+    self:SetWindowSize()
     if self.Config.loadCond and self.Config.loadCond.CombatCond == true then
         self:HideWindow()
     else
