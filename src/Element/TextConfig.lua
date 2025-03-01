@@ -1,2 +1,3 @@
 ---@class TextConfig
 ---@field text TextExpr -- 文字内容
+---@field growth TextGrowth | nil -- 文本生长方向

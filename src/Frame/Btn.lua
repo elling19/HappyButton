@@ -34,7 +34,7 @@ local LCG = LibStub("LibCustomGlow-1.0")
 ---@field Button table|Button|SecureActionButtonTemplate
 ---@field EFrame ElementFrame
 ---@field Icon Texture  -- 图标纹理
----@field Texts FontString[] -- 文字提示
+---@field Texts table[] -- 文字提示(存储文本frame和对应的FontString)
 ---@diagnostic disable-next-line: undefined-doc-name
 ---@field Cooldown table|Cooldown|CooldownFrameTemplate  -- 冷却倒计时
 ---@field Border table | Frame -- 边框
@@ -282,6 +282,7 @@ end
 
 -- 创建文本Text
 function Btn:UpdateTexts()
+    local margin = 5 -- 距离btn偏移量
     if self.Texts == nil then
         self.Texts = {}
     end
@@ -291,50 +292,73 @@ function Btn:UpdateTexts()
     end
     for tIndex, text in ipairs(texts) do
         if tIndex > #self.Texts then
-            local fString = self.Button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            local textFrame = CreateFrame("Frame", nil, self.Button)
+            local fString = textFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            fString:SetPoint("CENTER", textFrame, "CENTER")
             fString:SetTextColor(1, 1, 1) -- 默认使用白色
-            table.insert(self.Texts, fString)
+            table.insert(self.Texts, {textFrame, fString})
         end
-        local tString = self.Texts[tIndex]
+        local textFrame, fString = unpack(self.Texts[tIndex])
         if text.text == "%n" then
-            if self.EFrame:IsHorizontal() then
-                tString:SetWidth(self.EFrame.IconWidth)
+            local t = self.CbResult.text or (self.CbResult.item and self.CbResult.item.name) or self.CbInfo.p.title or ""
+            if text.growth == const.TEXT_GROWTH.TOP then
+                fString:SetText(U.String.ToVertical(t))
+                textFrame:ClearAllPoints()
+                textFrame:SetSize(self.EFrame.IconWidth, fString:GetStringHeight())
+                textFrame:SetPoint("BOTTOM", self.Button, "TOP", 0, margin)
+            elseif text.growth == const.TEXT_GROWTH.BOTTOM then
+                fString:SetText(U.String.ToVertical(t))
+                textFrame:ClearAllPoints()
+                textFrame:SetSize(self.EFrame.IconWidth, fString:GetStringHeight())
+                textFrame:SetPoint("TOP", self.Button, "BOTTOM", 0, -margin)
+            elseif text.growth == const.TEXT_GROWTH.LEFT then
+                fString:SetText(t)
+                textFrame:ClearAllPoints()
+                textFrame:SetSize(fString:GetStringWidth(), self.EFrame.IconHeight)
+                textFrame:SetPoint("RIGHT", self.Button, "LEFT", -margin, 0)
+            elseif text.growth == const.TEXT_GROWTH.RIGHT then
+                fString:SetText(t)
+                textFrame:ClearAllPoints()
+                textFrame:SetSize(fString:GetStringWidth(), self.EFrame.IconHeight)
+                textFrame:SetPoint("LEFT", self.Button, "RIGHT", margin, 0)
             else
-                tString:SetHeight(self.EFrame.IconHeight)
-            end
-            if self.EFrame:IsHorizontal() then
-                tString:SetPoint("TOP", self.Button, "BOTTOM", 0, -5)
-            else
-                tString:SetPoint("LEFT", self.Button, "RIGHT", 5, 0)
-            end
-            local t = self.CbResult.text or (self.CbResult.item and self.CbResult.item.name) or self.CbInfo.p.title
-            if t then
+                -- 如果没有配置生长方向，使用下面的默认方向
                 if self.EFrame:IsHorizontal() then
-                    tString:SetText(U.String.ToVertical(t))
+                    fString:SetText(U.String.ToVertical(t))
+                    textFrame:ClearAllPoints()
+                    textFrame:SetSize(fString:GetStringWidth(), fString:GetStringHeight())
+                    textFrame:SetPoint("TOP", self.Button, "BOTTOM", 0, -margin)
                 else
-                    tString:SetText(t)
+                    fString:SetText(t)
+                    textFrame:ClearAllPoints()
+                    textFrame:SetSize(fString:GetStringWidth(), fString:GetStringHeight())
+                    textFrame:SetPoint("LEFT", self.Button, "RIGHT", margin, 0)
                 end
             end
             -- 如果没有学习这个技能，则将文字改成灰色半透明
             if self.CbResult.isLearned == false then
-                tString:SetTextColor(0.8, 0.8, 0.8)
+                fString:SetTextColor(0.8, 0.8, 0.8)
             else
-                tString:SetTextColor(1, 1, 1)
+                fString:SetTextColor(1, 1, 1)
             end
         end
         if text.text == "%s" then
-            tString:SetPoint("BOTTOMRIGHT", self.Button, "BOTTOMRIGHT", -2, 2)
             if self.CbResult.count ~= nil then
-                tString:SetText(tostring(self.CbResult.count))
+                fString:SetText(tostring(self.CbResult.count))
             else
-                tString:SetText("")
+                fString:SetText("")
             end
+            textFrame:ClearAllPoints()
+            textFrame:SetSize(fString:GetStringWidth(), fString:GetStringHeight())
+            textFrame:SetPoint("BOTTOMRIGHT", self.Button, "BOTTOMRIGHT", -2, 2)
         end
     end
     if #texts < #self.Texts then
         for i = #self.Texts, #texts + 1, -1 do
-            local tString = self.Texts[i]
-            tString:SetParent(nil)
+            local textFrame, fString = unpack(self.Texts[i])
+            textFrame:Hide()
+            textFrame:SetParent(nil)
+            textFrame = nil
             self.Texts[i] = nil
         end
     end
@@ -561,6 +585,16 @@ function Btn:SetMouseEvent()
 end
 
 function Btn:Delete()
+    -- 删除文本
+    if self.Texts then
+        for _, text in ipairs(self.Texts) do
+            local textFrame, fString = unpack(text)
+            textFrame:Hide()
+            textFrame:ClearAllPoints()
+            textFrame = nil
+        end
+    end
+    self.Texts = nil
     self:ClearOverrideBinding()
     self.Button:Hide()
     self.Button:ClearAllPoints()
@@ -568,7 +602,6 @@ function Btn:Delete()
     self.Border:ClearAllPoints()
     self.Border = nil
     self.Icon = nil
-    self.Texts = nil
     self.BindkeyString = nil
     self.Cooldown = nil
     self.Button = nil

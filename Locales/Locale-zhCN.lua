@@ -150,6 +150,7 @@ L["Item Name"] = "物品名称"
 L["Item Count"] = "物品数量"
 L["Add Text"] = "添加文本"
 L["Select Text"] = "选择文本"
+L["Text Growth"] = "文本生长方向"
 
 L["Trigger"] = "触发器"
 L["Trigger Settings"] = "触发器设置"

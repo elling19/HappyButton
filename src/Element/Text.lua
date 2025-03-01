@@ -16,7 +16,8 @@ local Text = addon:NewModule("Text")
 function Text:New(text)
     ---@type TextConfig
     local textConfig = {
-        text = text
+        text = text,
+        growth = nil,
     }
     return textConfig
 end

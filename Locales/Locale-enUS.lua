@@ -149,6 +149,7 @@ L["Item Name"] = true
 L["Item Count"] = true
 L["Add Text"] = true
 L["Select Text"] = true
+L["Text Growth"] = true
 
 L["Trigger"] = true
 L["Trigger Settings"] = true

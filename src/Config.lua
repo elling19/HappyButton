@@ -1397,6 +1397,36 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     end
                 }
                 textSettingOrder = textSettingOrder + 1
+                -- 文本名称生长方向
+                textSettingArgs.TextOfNameGrowth = {
+                    order = textSettingOrder,
+                    width = 1,
+                    type = 'select',
+                    values = const.TextGrowthOptions,
+                    name = L["Text Growth"],
+                    set = function(_, val)
+                        for _, text in ipairs(ele.texts) do
+                            if text.text == "%n" then
+                                text.growth = val
+                                HbFrame:UpdateEframe(updateFrameConfig)
+                                return
+                            end
+                        end
+                        HbFrame:UpdateEframe(updateFrameConfig)
+                    end,
+                    get = function(_)
+                        if ele.texts == nil then
+                            ele.texts = {}
+                        end
+                        for _, text in ipairs(ele.texts) do
+                            if text.text == "%n" then
+                                return text.growth
+                            end
+                        end
+                        return nil
+                    end
+                }
+                textSettingOrder = textSettingOrder + 1
                 textSettingArgs.TextOfCountToogle = {
                     order = textSettingOrder,
                     width = 1,

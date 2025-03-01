@@ -136,7 +136,7 @@ const.ArrangeOptions = {
 }
 
 --[[
-生长方向
+图标生长方向
 ]]
 ---@enum Growth
 const.GROWTH = {
@@ -162,6 +162,28 @@ const.GrowthOptions = {
     [const.GROWTH.LEFTBOTTOM] = L["LEFTBOTTOM"],
     [const.GROWTH.RIGHTTOP] = L["RIGHTTOP"],
     [const.GROWTH.RIGHTBOTTOM] = L["RIGHTBOTTOM"],
+}
+
+
+--[[
+文本生长方向
+]]
+---@enum TextGrowth
+const.TEXT_GROWTH = {
+    TOP = "TOP",
+    BOTTOM = "BOTTOM",
+    LEFT = "LEFT",
+    RIGHT = "RIGHT",
+}
+
+-- 生长方向类型选项
+---@class ArrangeOptions
+---@type table<TextGrowth, string>
+const.TextGrowthOptions = {
+    [const.TEXT_GROWTH.TOP] = L["TOP"],
+    [const.TEXT_GROWTH.BOTTOM] = L["BOTTOM"],
+    [const.TEXT_GROWTH.LEFT] = L["LEFT"],
+    [const.TEXT_GROWTH.RIGHT] = L["RIGHT"],
 }
 
 -- 依附锚点位置
