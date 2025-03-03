@@ -282,7 +282,9 @@ function AuraCache:CreateTargetTickerTask(target, spellId)
             if realRemainingTime > remainingTime then
                 -- 当前剩余时间 - 触发器预设剩余时间 + 0.05秒延迟
                 C_Timer.NewTimer(realRemainingTime - remainingTime + 0.05, function ()
-                    addon:SendMessage(const.EVENT.HB_UNIT_AURA, target, task.aura.spellId)
+                    if task and task.aura then
+                        addon:SendMessage(const.EVENT.HB_UNIT_AURA, target, task.aura.spellId)
+                    end
                 end)
             else
                 -- 如果时间已经过了，那么立即执行
