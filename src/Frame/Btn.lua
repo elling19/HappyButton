@@ -451,7 +451,7 @@ function Btn:CreateCoolDown()
         self.Cooldown = CreateFrame("Cooldown", nil, self.Button, "CooldownFrameTemplate")
         self.Cooldown:SetAllPoints()                -- 设置冷却效果覆盖整个按钮
         self.Cooldown:SetDrawEdge(true)             -- 显示边缘
-        self.Cooldown:SetHideCountdownNumbers(true) -- 隐藏倒计时数字
+        self.Cooldown:SetHideCountdownNumbers(false) -- 显示倒计时数字
     end
 end
 
