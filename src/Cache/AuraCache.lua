@@ -13,6 +13,9 @@ local U = addon:GetModule('Utils')
 ---@class Api: AceModule
 local Api = addon:GetModule("Api")
 
+---@class Client: AceModule
+local Client = addon:GetModule("Client")
+
 ---@class AuraCacheInfo
 ---@field name string
 ---@field instanceID number
@@ -193,6 +196,9 @@ end
 ---@param event EventString
 ---@param eventArgs any
 function AuraCache:Update(event, eventArgs)
+    if Client:IsSecret() then
+        return
+    end
     if event == "PLAYER_TARGET_CHANGED" then
         if UnitExists("target") then
             AuraCache:FetchAllAuras("target")

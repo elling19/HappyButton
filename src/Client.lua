@@ -7,7 +7,11 @@ local Client = addon:NewModule("Client")
 Client.Version = select(4, GetBuildInfo())
 
 function Client:IsRetail()
-    return Client.Version > 110000
+    return Client.Version >= 120000
+end
+
+function Client:IsSecret()
+    return Client.Version >= 120000
 end
 
 function Client:IsWlk()

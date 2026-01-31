@@ -1460,7 +1460,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
         end
 
         -- 触发器设置：叶子元素可以使用
-        if E:IsLeaf(ele) then
+        if E:IsLeaf(ele) and not Client:IsSecret() then
             local triggerSettingOrder = 1
             local triggerSettingArgs = {}
             local triggerSettingOptions = {
@@ -1674,7 +1674,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
         end
 
         -- 触发器条件设置：叶子元素可以使用
-        if E:IsLeaf(ele) then
+        if E:IsLeaf(ele) and not Client:IsSecret() then
             local condGroupSettingOrder = 1
             local condGroupSettingArgs = {}
             local condGroupSettingOptions = {
@@ -2713,7 +2713,7 @@ function ConfigOptions.Options()
                         order = 4,
                         width = 2,
                         type = "description",
-                        name = L["Version"] .. ": " .. "Beta-0.2.13"
+                        name = L["Version"] .. ": " .. "Beta-0.2.14"
                     }
                 }
             },

@@ -117,6 +117,9 @@ end
 ---@param cooldownInfo CooldownInfo | nil
 ---@return boolean
 function Item:IsCooldown(cooldownInfo)
+    if Client:IsSecret() then
+        return false
+    end
     if cooldownInfo == nil then
         return true
     end
