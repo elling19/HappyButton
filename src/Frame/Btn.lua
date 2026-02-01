@@ -521,7 +521,7 @@ function Btn:SetCooldown()
     end
     -- 更新冷却倒计时
     if r.itemCooldown then
-        CooldownFrame_Set(self.Cooldown, r.itemCooldown.startTime, r.itemCooldown.duration, r.itemCooldown.enable)
+        self.Cooldown:SetCooldown(r.itemCooldown.startTime, r.itemCooldown.duration)
     end
 end
 
