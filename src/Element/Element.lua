@@ -19,9 +19,6 @@ local Item = addon:GetModule("Item")
 ---@class Trigger: AceModule
 local Trigger = addon:GetModule("Trigger")
 
----@class AuraCache: AceModule
-local AuraCache = addon:GetModule("AuraCache")
-
 ---@return ElementConfig
 ---@param title string
 ---@param type ElementType
@@ -300,13 +297,6 @@ function E:GetEvents(config, rootConfig)
     end
     if config.triggers and #config.triggers > 0 then
         for _, trigger in ipairs(config.triggers) do
-            if trigger.type == "aura" then
-                local confine = Trigger:ToAuraConfine(trigger.confine)
-                ---@type table<EventString, any[][]>
-                local e = {}
-                e[const.EVENT.HB_UNIT_AURA] = {{confine.target, confine.spellId}, }
-                E:MergeEvents(events, e)
-            end
             if trigger.type == "item" then
                 local confine = Trigger:ToItemConfine(trigger.confine)
                 local item = confine.item

@@ -1,15 +1,10 @@
 ---@alias TriggerType  -- 触发器类型
 --- | "self"
---- | "aura"
 --- | "item"
 
 ---@alias TriggerTarget  -- 触发器目标
 --- | "player"
 --- | "target"
-
----@alias AuraType -- 光环类型
---- | "buff"
---- | "defbuff"
 
 ---@alias CondOperator -- 触发器条件运算符
 --- | "="
@@ -55,12 +50,3 @@
 --- | "isLearned"
 --- | "isUsable"
 --- | "isCooldown"
-
-----------------------------------------------
---- 光环触发器条件
-----------------------------------------------
----@alias AuraTriggerCond
---- | "remainingTime"
---- | "targetIsEnemy"
---- | "targetCanAttack"
---- | "exist"

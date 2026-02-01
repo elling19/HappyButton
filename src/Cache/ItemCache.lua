@@ -335,7 +335,6 @@ function ItemCache:Update(event, eventArgs)
     end
 end
 
---- 按aura来更新目标任务
 ---@param type number
 ---@param itemId number
 function ItemCache:CreateTickerTask(type, itemId)

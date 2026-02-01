@@ -19,9 +19,6 @@ local Item = addon:GetModule("Item")
 ---@class Trigger: AceModule
 local Trigger = addon:NewModule("Trigger")
 
----@class AuraCache: AceModule
-local AuraCache = addon:GetModule("AuraCache")
-
 local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 
 -- 创建自身触发器
@@ -57,12 +54,6 @@ end
 
 
 ---@param config TriggerConfig
----@return AuraTriggerConfig
-function Trigger:ToAuraTriggerConfig(config)
-    return config --- @type AuraTriggerConfig
-end
-
----@param config TriggerConfig
 ---@return ItemTriggerConfig
 function Trigger:ToItemTriggerConfig(config)
     return config --- @type ItemTriggerConfig
@@ -74,9 +65,6 @@ end
 function Trigger:GetTriggerName(triggerType)
     if triggerType == "self" then
         return L["Self Trigger"]
-    end
-    if triggerType == "aura" then
-        return L["Aura Trigger"]
     end
     if triggerType == "item" then
         return L["Item Trigger"]
@@ -97,14 +85,6 @@ function Trigger:GetConditions(triggerType)
             isUsable = "boolean",
             isCooldown = "boolean"
         } ---@type table<SelfTriggerCond, type>
-    end
-    if triggerType == "aura" then
-        return {
-            remainingTime = "number",
-            targetIsEnemy = "boolean",
-            targetCanAttack = "boolean",
-            exist = "boolean"
-        } ---@type table<AuraTriggerCond, type>
     end
     if triggerType == "item" then
         return {
@@ -129,13 +109,6 @@ function Trigger:GetConditionsOptions(triggerType)
     return options
 end
 
-
----@param confine TriggerConfine
----@return AuraTriggerConfine
-function Trigger:ToAuraConfine(confine)
-    ---@type AuraTriggerConfine
-    return confine
-end
 
 ---@param item ItemAttr
 ---@return table<ItemTriggerCond, any>

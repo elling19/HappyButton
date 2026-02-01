@@ -1460,7 +1460,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
         end
 
         -- 触发器设置：叶子元素可以使用
-        if E:IsLeaf(ele) and not Client:IsSecret() then
+        if E:IsLeaf(ele) then
             local triggerSettingOrder = 1
             local triggerSettingArgs = {}
             local triggerSettingOptions = {
@@ -1552,72 +1552,6 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             if editTrigger and editTrigger.type == "self" then
                 local trigger = Trigger:ToSelfTriggerConfig(editTrigger)
             end
-            if editTrigger and editTrigger.type == "aura" then
-                local trigger = Trigger:ToAuraTriggerConfig(editTrigger)
-                triggerSettingArgs.selectAuraType = {
-                    order = triggerSettingOrder,
-                    width = 1,
-                    type = "select",
-                    name = L["Select Aura Type"],
-                    values = const.AuraTypeOptions,
-                    set = function(_, val)
-                        trigger.confine.type = val
-                    end,
-                    get = function() return trigger.confine.type end
-                }
-                triggerSettingOrder = triggerSettingOrder + 1
-                triggerSettingArgs.selectAuraTarget = {
-                    order = triggerSettingOrder,
-                    width = 1,
-                    type = "select",
-                    name = L["Select Target"],
-                    values = const.TriggerTargetOptions,
-                    set = function(_, val)
-                        trigger.confine.target = val
-                    end,
-                    get = function() return trigger.confine.target end
-                }
-                triggerSettingOrder = triggerSettingOrder + 1
-                triggerSettingArgs.auraID = {
-                    order = triggerSettingOrder,
-                    width = 1,
-                    type = "input",
-                    name = L["Aura ID"] ,
-                    validate = function(_, val)
-                        if val == nil or val == "" or val == " " then
-                            return false
-                        end
-                        if tonumber(val) == nil then
-                            return false
-                        end
-                        return true
-                    end,
-                    set = function(_, val)
-                        trigger.confine.spellId = tonumber(val)
-                        HbFrame:UpdateEframe(updateFrameConfig)
-                        addon:UpdateOptions()
-                    end,
-                    get = function()
-                        if trigger.confine.spellId == nil then
-                            return ""
-                        else
-                            return tostring(trigger.confine.spellId)
-                        end
-                    end
-                }
-                triggerSettingOrder = triggerSettingOrder + 1
-                local iconPath = 134400
-                if trigger.confine.spellId then
-                    iconPath = Api.GetSpellTexture(trigger.confine.spellId)
-                end
-                triggerSettingArgs.auraIconId = {
-                    order = triggerSettingOrder,
-                    width = 1,
-                    type = "description",
-                    name = "|T" .. iconPath .. ":16|t"
-                }
-                triggerSettingOrder = triggerSettingOrder + 1
-            end
             if editTrigger and editTrigger.type == "item" then
                 local trigger = Trigger:ToItemTriggerConfig(editTrigger)
                 triggerSettingArgs.itemTriggeritemType = {
@@ -1674,7 +1608,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
         end
 
         -- 触发器条件设置：叶子元素可以使用
-        if E:IsLeaf(ele) and not Client:IsSecret() then
+        if E:IsLeaf(ele) then
             local condGroupSettingOrder = 1
             local condGroupSettingArgs = {}
             local condGroupSettingOptions = {

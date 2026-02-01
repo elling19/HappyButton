@@ -13,9 +13,6 @@ local PlayerCache = addon:GetModule("PlayerCache")
 ---@class AttachFrameCache: AceModule
 local AttachFrameCache = addon:GetModule("AttachFrameCache")
 
----@class AuraCache: AceModule
-local AuraCache = addon:GetModule("AuraCache")
-
 ---@class ItemCache: AceModule
 local ItemCache = addon:GetModule("ItemCache")
 
@@ -30,7 +27,6 @@ BarCore.DelayFrame = CreateFrame("Frame")
 function BarCore:Initial()
     PlayerCache:Initial()
     AttachFrameCache:Initial()
-    AuraCache:Initial()
     ItemCache:Initial()
     HbFrame:Initial()
 end
@@ -56,7 +52,6 @@ local registerEvents = {
     ["NEW_PET_ADDED"] = true,                   -- 学会新的宠物
     ["NEW_TOY_ADDED"] = true,                   -- 学会新的玩具
     ["SPELL_UPDATE_COOLDOWN"] = false,          -- 触发冷却
-    ["UNIT_AURA"] = false,                      -- 光环改变
     ["ADDON_LOADED"] = false,                   -- 加载插件
     ["CVAR_UPDATE"] = false,                    -- 改变cvar
     ["PLAYER_REGEN_DISABLED"] = false,          -- 进入战斗事件
@@ -92,9 +87,6 @@ function BarCore:Start()
             if cvar_name == "ActionButtonUseKeyDown" then
                 HbFrame:UpdateRegisterForClicks()
             end
-        end
-        if event == "UNIT_AURA" or event == "PLAYER_TARGET_CHANGED" then
-            AuraCache:Update(event, args)
         end
         if event == "SPELL_UPDATE_COOLDOWN" then
             ItemCache:UpdateGcd()

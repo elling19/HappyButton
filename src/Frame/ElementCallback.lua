@@ -30,9 +30,6 @@ local Api = addon:GetModule("Api")
 ---@class Macro: AceModule
 local Macro = addon:GetModule("Macro")
 
----@class AuraCache: AceModule
-local AuraCache = addon:GetModule("AuraCache")
-
 ---@class ItemCache: AceModule
 local ItemCache = addon:GetModule("ItemCache")
 
@@ -502,58 +499,6 @@ function ECB:UseTrigger(eleConfig, cbResult)
                             local r = Condition:ExecOperator(leftValue, cond.operator, cond.rightValue)
                             if r:is_ok() then
                                 condResult = r:unwrap()
-                            end
-                        end
-                    end
-                    if leftTrigger.type == "aura" then
-                        ---@type table<AuraTriggerCond, any>
-                        local auraTriggerCond = {}
-                        local trigger = Trigger:ToAuraTriggerConfig(leftTrigger)
-                        if trigger.confine then
-                            auraTriggerCond.targetIsEnemy = false
-                            auraTriggerCond.targetCanAttack = false
-                            local target = trigger.confine.target
-                            if target ~= nil or target ~= "player" then
-                                if UnitIsEnemy("player", target) then
-                                    auraTriggerCond.targetIsEnemy = true
-                                end
-                                if UnitCanAttack("player", "target") then
-                                    auraTriggerCond.targetCanAttack = true
-                                end
-                            end
-                            if UnitExists(target) and UnitIsEnemy("player", target) then
-                                auraTriggerCond.targetIsEnemy = true
-                            else
-                                auraTriggerCond.targetIsEnemy = false
-                            end
-                            local spellId = trigger.confine.spellId
-                            if spellId then
-                                -- 追加需要处理的缓存
-                                if cond.leftVal == "exist" then
-                                    AuraCache:PutTask(target, spellId, nil, true)
-                                end
-                                if cond.leftVal == "remainingTime" then
-                                    AuraCache:PutTask(target, spellId, tonumber(cond.rightValue), true)
-                                end
-                                auraTriggerCond.exist = false
-                                auraTriggerCond.remainingTime = 0
-                                local aura = AuraCache:Get(target, spellId)
-                                if aura then
-                                    if aura.isHelpful and trigger.confine.type == "buff" then
-                                        auraTriggerCond.exist = true
-                                        auraTriggerCond.remainingTime = aura.expirationTime - GetTime()
-                                    end
-                                    if aura.isHarmful and trigger.confine.type == "defbuff" then
-                                        auraTriggerCond.exist = true
-                                        auraTriggerCond.remainingTime = aura.expirationTime - GetTime()
-                                    end
-                                end
-                                local leftValue = auraTriggerCond[cond.leftVal]
-                                ---@diagnostic disable-next-line: param-type-mismatch
-                                local r = Condition:ExecOperator(leftValue, cond.operator, cond.rightValue)
-                                if r:is_ok() then
-                                    condResult = r:unwrap()
-                                end
                             end
                         end
                     end

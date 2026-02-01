@@ -16,14 +16,6 @@ addon:RegisterMessage(const.EVENT.EXIT_EDIT_MODE, function()
 end)
 
 
--- 自定义光环改变事件
-addon:RegisterMessage(const.EVENT.HB_UNIT_AURA, function(event, ...)
-    local args = {...}
-    local target = args[1]
-    local spellId = args[2]
-    HbFrame:UpdateAllEframes(const.EVENT.HB_UNIT_AURA, {target, spellId})
-end)
-
 -- 自定义物品冷却改变
 addon:RegisterMessage(const.EVENT.HB_ITEM_COOLDOWN_CHNAGED, function(event, ...)
     HbFrame:UpdateAllEframes(const.EVENT.HB_ITEM_COOLDOWN_CHNAGED, {})

@@ -9,7 +9,6 @@
 --- | "PLAYER_TALENT_UPDATE"  -- 天赋改变（技能）
 --- | "SPELLS_CHANGED" -- 技能改变（技能）
 --- | "UNIT_SPELLCAST_SUCCEEDED" -- 单位施法成功
---- | "UNIT_AURA"  -- 单位光环改变
 --- | "MODIFIER_STATE_CHANGED"  -- 修饰按键按下CTRL、SHIFT、ALT
 --- | "UPDATE_MOUSEOVER_UNIT"  -- 鼠标执行目标改变
 --- | "ZONE_CHANGED" -- 区域改变
@@ -18,7 +17,6 @@
 --- | "NEW_PET_ADDED"
 --- | "PET_BAR_UPDATE_COOLDOWN"
 --- | "NEW_TOY_ADDED"
---- | "HB_UNIT_AURA"  -- 自定义事件（光环改变）
 --- | "HB_ITEM_COOLDOWN_CHNAGED"  -- 自定义事件（物品冷却改变）
 --- | "HB_GCD_UPDATE"  -- 自定义事件（GCD更新）
 --- | "HB_FRAME_CHANGE" -- 自定义事件（框体状态变化：监听框体是否显示）

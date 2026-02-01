@@ -296,7 +296,6 @@ const.DefaultItemColor = { 0.2, 0.2, 0.2, 1 }
 ---@type table<TriggerType, string>
 const.TriggerTypeOptions = {
     ["self"] = L["Self Trigger"],
-    ["aura"] = L["Aura Trigger"],
     ["item"] = L["Item Trigger"]
 }
 
@@ -307,13 +306,6 @@ const.TriggerTargetOptions = {
     ["target"] = L["Target"]
 }
 
-
--- 触发器光环类型
----@type table<AuraType, string>
-const.AuraTypeOptions = {
-    ["buff"] = L["Buff"],
-    ["defbuff"] = L["Debuff"]
-}
 
 -- 运算符类型
 ---@type table<CondOperator, string>
@@ -362,7 +354,6 @@ const.BUILDIN_EVENTS = {
     ["PLAYER_TARGET_CHANGED"] = "PLAYER_TARGET_CHANGED",       -- 目标改变（脚本、触发器）
     ["PLAYER_TALENT_UPDATE"] = "PLAYER_TALENT_UPDATE",         -- 天赋改变（技能）
     ["SPELLS_CHANGED"] = "SPELLS_CHANGED",                     -- 技能改变（技能）
-    ["UNIT_AURA"] = "UNIT_AURA"                                -- 单位光环改变
 }
 
 --[[职业]]
@@ -412,7 +403,6 @@ end
 ]]
 const.EVENT = {
     EXIT_EDIT_MODE = "EXIT_EDIT_MODE", -- 退出编辑模式
-    HB_UNIT_AURA = "HB_UNIT_AURA",  -- 自定义光环通知
     HB_ITEM_COOLDOWN_CHNAGED = "HB_ITEM_COOLDOWN_CHNAGED",  -- 物品冷却改变
     HB_GCD_UPDATE = "HB_GCD_UPDATE",  -- GCD更新
     HB_UPDATE_CONFIG = "HB_UPDATE_CONFIG",  -- 自定义更新配置事件
