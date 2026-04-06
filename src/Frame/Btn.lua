@@ -546,16 +546,25 @@ function Btn:SetIcon()
         self:CreateIcon()
     end
     self.Icon:SetTexture(r.icon or (r.item and r.item.icon) or 134400)
+    local isDesaturated = false
+    if r.effects then
+        for _, effect in ipairs(r.effects) do
+            if effect.type == "btnDesaturate" and effect.status == true then
+                isDesaturated = true
+                break
+            end
+        end
+    end
     -- 设置物品边框
     if addon.G.Masque then
         self.Border:Hide()
-        if self.EFrame.Config.isShowQualityBorder == true and self.CbResult.borderColor and self.IconBorder then
+        if (not isDesaturated) and self.EFrame.Config.isShowQualityBorder == true and self.CbResult.borderColor and self.IconBorder then
             self.IconBorder:SetVertexColor(unpack(self.CbResult.borderColor))
             self.IconBorder:Show()
         elseif self.IconBorder then
             self.IconBorder:Hide()
         end
-    elseif self.EFrame.Config.isShowQualityBorder == true and self.CbResult.borderColor then
+    elseif (not isDesaturated) and self.EFrame.Config.isShowQualityBorder == true and self.CbResult.borderColor then
         self.Border:Show()
         self.Border:SetBackdropBorderColor(unpack(self.CbResult.borderColor))
     else
