@@ -42,6 +42,19 @@ local AceGUI = LibStub("AceGUI-3.0")
 local Config = {}
 local tooltipSetTextPatched = setmetatable({}, { __mode = "k" })
 
+---@param itemID number | nil
+---@return string
+local function GetCraftingQualityMarkup(itemID)
+    if not Client:IsRetail() or not itemID or not C_TradeSkillUI or not C_TradeSkillUI.GetItemReagentQualityInfo then
+        return ""
+    end
+    local qualityInfo = C_TradeSkillUI.GetItemReagentQualityInfo(itemID)
+    if qualityInfo == nil or qualityInfo.iconChat == nil then
+        return ""
+    end
+    return " " .. CreateAtlasMarkup(qualityInfo.iconChat, 16, 16)
+end
+
 ---@param selectGroups string[]
 ---@param hasChildren boolean
 local function SetBarDefaultTab(selectGroups, hasChildren)
@@ -456,7 +469,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
         if ele.type == const.ELEMENT_TYPE.ITEM then
             local item = E:ToItem(ele)
             if item.extraAttr.name then
-                showTitle = item.extraAttr.name
+                showTitle = item.extraAttr.name .. GetCraftingQualityMarkup(item.extraAttr.id)
             end
             if item.extraAttr.icon then
                 showIcon = item.extraAttr.icon
@@ -733,7 +746,8 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     local item = E:ToItem(_item)
                     local optionTitle = item.extraAttr.name or item.title or ""
                     local optionIcon = item.extraAttr.icon or item.icon or ""
-                    table.insert(itemsOptions, "|T" .. optionIcon .. ":16|t" .. optionTitle)
+                    local qualityMarkup = GetCraftingQualityMarkup(item.extraAttr.id)
+                    table.insert(itemsOptions, "|T" .. optionIcon .. ":16|t" .. optionTitle .. qualityMarkup)
                 end
             end
             elementSettingArgs.selectChildren = {

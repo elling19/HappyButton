@@ -39,6 +39,7 @@ local LCG = LibStub("LibCustomGlow-1.0")
 ---@field Cooldown table|Cooldown|CooldownFrameTemplate  -- 冷却倒计时
 ---@field Border table | Frame -- 边框
 ---@field IconBorder Texture | nil -- Masque边框层（用于品质色）
+---@field ProfessionQualityOverlay Texture | nil -- 制造/采集物品星级品质覆盖层
 ---@field CbResult CbResult
 ---@field CbInfo ElementCbInfo
 ---@field effects table<EffectType, boolean>
@@ -345,6 +346,11 @@ function Btn:CreateIcon()
             self.Icon:SetTexCoord(0, 1, 0, 1)
         end
     end
+    if self.ProfessionQualityOverlay == nil then
+        self.ProfessionQualityOverlay = self.Button:CreateTexture(nil, "OVERLAY")
+        self.ProfessionQualityOverlay:SetPoint("BOTTOM", self.Icon, "BOTTOM", 0, 1)
+        self.ProfessionQualityOverlay:Hide()
+    end
 end
 
 -- 创建文本Text
@@ -537,6 +543,34 @@ function Btn:CreateCoolDown()
     end
 end
 
+function Btn:UpdateCraftingQualityOverlay()
+    if self.ProfessionQualityOverlay then
+        self.ProfessionQualityOverlay:Hide()
+    end
+    local r = self.CbResult
+    if r == nil or r.item == nil then
+        return
+    end
+    if not Client:IsRetail() or type(SetItemCraftingQualityOverlay) ~= "function" then
+        return
+    end
+    local itemType = r.item.type
+    if itemType ~= const.ITEM_TYPE.ITEM and itemType ~= const.ITEM_TYPE.EQUIPMENT and itemType ~= const.ITEM_TYPE.TOY then
+        return
+    end
+    local itemInfo = r.item.id
+    if C_Item and C_Item.GetItemLinkByID and r.item.id then
+        itemInfo = C_Item.GetItemLinkByID(r.item.id) or r.item.id
+    end
+    if itemInfo == nil then
+        return
+    end
+    pcall(SetItemCraftingQualityOverlay, self.Button, itemInfo)
+    if self.ProfessionQualityOverlay and self.ProfessionQualityOverlay:GetAtlas() == nil then
+        self.ProfessionQualityOverlay:Hide()
+    end
+end
+
 function Btn:SetIcon()
     local r = self.CbResult
     if r == nil then
@@ -571,6 +605,7 @@ function Btn:SetIcon()
         self.Border:Show()
         self.Border:SetBackdropBorderColor(unpack(const.DefaultItemColor))
     end
+    self:UpdateCraftingQualityOverlay()
 end
 
 -- 更新按钮的宏文案
@@ -724,6 +759,7 @@ function Btn:Delete()
     self.BindkeyString = nil
     self.Cooldown = nil
     self.IconBorder = nil
+    self.ProfessionQualityOverlay = nil
     self.MasqueGroup = nil
     self.isMasqueSkinned = nil
     self.Button = nil
