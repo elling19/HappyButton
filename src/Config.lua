@@ -2310,18 +2310,25 @@ function addon:OnInitialize()
     -- 检测是否安装了ElvUI
     local ElvUI = nil
     local ElvUISkins = nil
+    local Masque = nil
+    local NDui = nil
     ---@diagnostic disable-next-line: undefined-field
     if _G.ElvUI then
         ---@diagnostic disable-next-line: undefined-field
         ElvUI = unpack(_G.ElvUI) ---@type ElvUI
         ElvUISkins = ElvUI:GetModule("Skins") ---@type ElvUISkins
     end
+    Masque = LibStub("Masque", true)
+    ---@diagnostic disable-next-line: undefined-field
+    NDui = _G.NDui
     local screenWidth, screenHeight = GetPhysicalScreenSize()
     -- 全局变量
     ---@class GlobalValue
     self.G = {
         ElvUI = ElvUI,
         ElvUISkins = ElvUISkins,
+        Masque = Masque,
+        NDui = NDui,
         screenWidth = math.floor(screenWidth),   -- 屏幕宽度
         screenHeight = math.floor(screenHeight), -- 屏幕高度
         iconWidth = 32,

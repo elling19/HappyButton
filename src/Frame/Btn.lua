@@ -38,12 +38,78 @@ local LCG = LibStub("LibCustomGlow-1.0")
 ---@diagnostic disable-next-line: undefined-doc-name
 ---@field Cooldown table|Cooldown|CooldownFrameTemplate  -- 冷却倒计时
 ---@field Border table | Frame -- 边框
+---@field IconBorder Texture | nil -- Masque边框层（用于品质色）
 ---@field CbResult CbResult
 ---@field CbInfo ElementCbInfo
 ---@field effects table<EffectType, boolean>
 ---@field BindkeyString FontString | nil  -- 显示绑定快捷键信息
 ---@field BindKey string | nil
+---@field MasqueGroup table | nil
+---@field isMasqueSkinned boolean | nil
 local Btn = addon:NewModule("Btn")
+
+-- 应用按钮样式，优先级：Masque > ElvUI/NDui > 原生
+function Btn:ApplyButtonSkin()
+    if addon.G.Masque then
+        self:ApplyMasqueSkin()
+        return
+    end
+    if addon.G.ElvUI then
+        local skinned = false
+        local skins = addon.G.ElvUISkins
+        ---@diagnostic disable-next-line: undefined-field
+        if skins and skins.HandleButton then
+            ---@diagnostic disable-next-line: undefined-field
+            skinned = pcall(skins.HandleButton, skins, self.Button)
+        end
+        if not skinned then
+            local white8x8 = addon.G.ElvUI.Media and addon.G.ElvUI.Media.Textures and addon.G.ElvUI.Media.Textures.White8x8 or
+                "Interface\\Buttons\\WHITE8x8"
+            self.Button:SetHighlightTexture(white8x8)
+            self.Button:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.3)
+            self.Button:SetPushedTexture(white8x8)
+            self.Button:GetPushedTexture():SetVertexColor(1, 1, 1, 0.3)
+        end
+        return
+    end
+    if addon.G.NDui then
+        local white8x8 = "Interface\\Buttons\\WHITE8x8"
+        self.Button:SetHighlightTexture(white8x8)
+        self.Button:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.25)
+        self.Button:SetPushedTexture(white8x8)
+        self.Button:GetPushedTexture():SetVertexColor(1, 1, 1, 0.25)
+    end
+end
+
+function Btn:GetMasqueGroup()
+    if self.MasqueGroup then
+        return self.MasqueGroup
+    end
+    if not addon.G.Masque then
+        return nil
+    end
+    -- 直接使用插件分组，不使用额外子分组
+    self.MasqueGroup = addon.G.Masque:Group(addonName)
+    return self.MasqueGroup
+end
+
+function Btn:ApplyMasqueSkin()
+    local masqueGroup = self:GetMasqueGroup()
+    if not masqueGroup or not self.Button or not self.Icon then
+        return
+    end
+    if self.isMasqueSkinned then
+        return
+    end
+    local ok = pcall(masqueGroup.AddButton, masqueGroup, self.Button, {
+        Icon = self.Icon,
+        Cooldown = self.Cooldown,
+        IconBorder = self.IconBorder,
+    })
+    if ok then
+        self.isMasqueSkinned = true
+    end
+end
 
 ---@param eFrame ElementFrame
 --- @param cbInfo ElementCbInfo
@@ -61,25 +127,14 @@ function Btn:New(eFrame, cbInfo, cbIndex)
     obj.effects = {}
     Btn.CreateIcon(obj)
     Btn.CreateBorder(obj)
+    if addon.G.Masque then
+        Btn.CreateCoolDown(obj)
+    end
     Btn.UpdateRegisterForClicks(obj)
     Btn.SetMouseEvent(obj)
     obj.Button:SetAttribute("type", "macro")
     obj.Button:SetAttribute("macrotext", "")
-    if addon.G.ElvUI then
-        obj.Button:SetHighlightTexture(addon.G.ElvUI.Media.Textures.White8x8)
-        obj.Button:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.3)
-        obj.Button:SetPushedTexture(addon.G.ElvUI.Media.Textures.White8x8)
-        obj.Button:GetPushedTexture():SetVertexColor(1, 1, 1, 0.3)
-    else
-        local highlightTexture = obj.Button:CreateTexture()
-        highlightTexture:SetColorTexture(255, 255, 255, 0.5)
-        obj.Button:SetHighlightTexture(highlightTexture)
-        obj.Button:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.5)
-        local pushedTexture = obj.Button:CreateTexture()
-        pushedTexture:SetColorTexture(255, 255, 255, 0.5)
-        obj.Button:SetPushedTexture(pushedTexture)
-        obj.Button:GetPushedTexture():SetVertexColor(1, 1, 1, 0.5)
-    end
+    obj:ApplyButtonSkin()
     return obj ---@type Btn
 end
 
@@ -276,7 +331,19 @@ function Btn:CreateIcon()
         self.Icon:SetTexture(134400)
         self.Icon:SetSize(self.Button:GetWidth(), self.Button:GetHeight())
         self.Icon:SetPoint("CENTER")
-        self.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92) -- 裁剪图标
+        if addon.G.Masque == nil and addon.G.ElvUI then
+            ---@diagnostic disable-next-line: undefined-field
+            local coords = addon.G.ElvUI.TexCoords
+            if type(coords) == "table" and #coords >= 4 then
+                self.Icon:SetTexCoord(unpack(coords))
+            else
+                self.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            end
+        elseif addon.G.Masque == nil and addon.G.NDui then
+            self.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92) -- NDui风格裁剪
+        else
+            self.Icon:SetTexCoord(0, 1, 0, 1)
+        end
     end
 end
 
@@ -432,6 +499,18 @@ function Btn:CreateBorder()
         self.Border:SetSize(self.EFrame.IconWidth, self.EFrame.IconHeight)
         self.Border:SetPoint("CENTER")
         self.Border:SetFrameLevel(self.Button:GetFrameLevel() + 1)
+        if addon.G.Masque then
+            -- Masque 模式下使用IconBorder承载品质色，避免方形Backdrop边框
+            if self.IconBorder == nil then
+                self.IconBorder = self.Button:CreateTexture(nil, "OVERLAY")
+                self.IconBorder:SetAllPoints(self.Icon)
+                self.IconBorder:SetTexture("Interface\\Buttons\\UI-ActionButton-Border")
+                self.IconBorder:SetBlendMode("ADD")
+                self.IconBorder:Hide()
+            end
+            self.Border:Hide()
+            return
+        end
         self.Border:SetBackdrop({
             bgFile = "Interface\\Buttons\\WHITE8x8",   -- 背景色
             edgeFile = "Interface\\Buttons\\WHITE8x8", -- 边框纹理
@@ -452,6 +531,9 @@ function Btn:CreateCoolDown()
         self.Cooldown:SetAllPoints()                -- 设置冷却效果覆盖整个按钮
         self.Cooldown:SetDrawEdge(true)             -- 显示边缘
         self.Cooldown:SetHideCountdownNumbers(false) -- 显示倒计时数字
+        if addon.G.Masque then
+            self:ApplyMasqueSkin()
+        end
     end
 end
 
@@ -465,9 +547,19 @@ function Btn:SetIcon()
     end
     self.Icon:SetTexture(r.icon or (r.item and r.item.icon) or 134400)
     -- 设置物品边框
-    if self.EFrame.Config.isShowQualityBorder == true and self.CbResult.borderColor then
+    if addon.G.Masque then
+        self.Border:Hide()
+        if self.EFrame.Config.isShowQualityBorder == true and self.CbResult.borderColor and self.IconBorder then
+            self.IconBorder:SetVertexColor(unpack(self.CbResult.borderColor))
+            self.IconBorder:Show()
+        elseif self.IconBorder then
+            self.IconBorder:Hide()
+        end
+    elseif self.EFrame.Config.isShowQualityBorder == true and self.CbResult.borderColor then
+        self.Border:Show()
         self.Border:SetBackdropBorderColor(unpack(self.CbResult.borderColor))
     else
+        self.Border:Show()
         self.Border:SetBackdropBorderColor(unpack(const.DefaultItemColor))
     end
 end
@@ -567,7 +659,8 @@ function Btn:SetShowGameTooltip()
     if item == nil then
         return
     end
-    GameTooltip:SetOwner(self.Border, "ANCHOR_RIGHT") -- 设置提示显示的位置
+    ---@diagnostic disable-next-line: param-type-mismatch
+    GameTooltip:SetOwner(self.Button, "ANCHOR_RIGHT") -- 设置提示显示的位置
     if item.type == const.ITEM_TYPE.ITEM then
         GameTooltip:SetItemByID(item.id)
     elseif item.type == const.ITEM_TYPE.EQUIPMENT then
@@ -599,6 +692,9 @@ function Btn:SetMouseEvent()
 end
 
 function Btn:Delete()
+    if self.isMasqueSkinned and self.MasqueGroup and self.MasqueGroup.RemoveButton and self.Button then
+        pcall(self.MasqueGroup.RemoveButton, self.MasqueGroup, self.Button)
+    end
     -- 删除文本
     if self.Texts then
         for _, text in ipairs(self.Texts) do
@@ -618,5 +714,8 @@ function Btn:Delete()
     self.Icon = nil
     self.BindkeyString = nil
     self.Cooldown = nil
+    self.IconBorder = nil
+    self.MasqueGroup = nil
+    self.isMasqueSkinned = nil
     self.Button = nil
 end
