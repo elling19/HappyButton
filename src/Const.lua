@@ -343,6 +343,13 @@ const.OpenEffectOptions = {
     [true] = L["Open"],
 }
 
+---@class DisplayStateRuleOptions
+---@type table<"hide"|"gray", string>
+const.DisplayStateRuleOptions = {
+    ["hide"] = L["Btn Hide"],
+    ["gray"] = L["Btn Desaturate"],
+}
+
 --[[
 事件监听
 ]]

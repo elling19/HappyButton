@@ -69,6 +69,7 @@ L["Toggle Edit Mode"] = true
 L["Main frame"] = true
 L["Left-click to drag and move, right-click to exit edit mode."] = true
 L["Element Settings"] = true
+L["Bar Elements"] = true
 L["Bar"] = true
 L["ItemGroup"] = true
 L["Script"] = true
@@ -89,9 +90,26 @@ L["Icon Width"] = true
 L["Icon Height"] = true
 L["Show Item Quality Color"] = true
 L["Display Rule"] = true
+L["Not Owned"] = true
+L["Not Usable"] = true
 L["Load"] = true
 L["Load Rule"] = true
 L["Add Child Elements"] = true
+L["Create from item name or id, one step."] = true
+L["Create Item"] = true
+L["Create Other Element"] = true
+L["Create"] = true
+L["Item List"] = true
+L["List"] = true
+L["Element"] = true
+L["Position"] = true
+L["Display"] = true
+L["Text"] = true
+L["Actions"] = true
+L["Basic"] = true
+L["Children Elements"] = true
+L["Delete This Bar"] = true
+L["Select an element from the left tree to edit its settings."] = true
 L["Edit Child Elements"] = true
 L["Select Item"] = true
 
@@ -220,6 +238,8 @@ L["Btn Alpha"] = true
 
 L["Open"] = true
 L["Close"] = true
+L["Hide"] = true
+L["Gray"] = true
 
 L["Move Up"] = true
 L["Move Down"] = true
@@ -228,6 +248,7 @@ L["Move Down Level"] = true
 
 -- 事件监听设置
 L["Event Settings"] = true
+L["Event"] = true
 L["Enable Event Listening"] = true
 
 -- 职业

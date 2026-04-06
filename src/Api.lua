@@ -1,4 +1,4 @@
----@diagnostic disable: undefined-field
+---@diagnostic disable: undefined-field, undefined-global
 local addonName, _ = ... ---@type string, table
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
 
@@ -10,9 +10,10 @@ local Api = addon:NewModule("Api")
 
 local C_Spell = C_Spell
 local C_Item = C_Item
-local C_Container = C_Container
 ---@diagnostic disable-next-line: deprecated
 local GetSpellCooldown = GetSpellCooldown
+---@diagnostic disable-next-line: deprecated
+local GetItemCooldown = GetItemCooldown
 
 ---@diagnostic disable-next-line: deprecated
 Api.GetItemInfoInstant = (C_Item and C_Item.GetItemInfoInstant) and C_Item.GetItemInfoInstant or GetItemInfoInstant
@@ -57,73 +58,61 @@ Api.GetSpellInfo = function (spellIdentifier)
 end
 
 ---@param spellIdentifier string | number
----@return CooldownInfo | nil
+---@return any | nil
 Api.GetSpellCooldown = function (spellIdentifier)
     if C_Spell and C_Spell.GetSpellCooldown then
         local spellCooldownInfo = C_Spell.GetSpellCooldown(spellIdentifier)
         if spellCooldownInfo ~= nil then
-            ---@type CooldownInfo
-            local cooldownInfo = {
-                startTime = spellCooldownInfo.startTime,
-                duration = spellCooldownInfo.duration,
-                enable = spellCooldownInfo.isEnabled
-            }
-            return cooldownInfo
-        else
-            return nil
-        end
-    else
-        ---@diagnostic disable-next-line: deprecated
-        local start, duration, enabled, modRate = GetSpellCooldown(spellIdentifier)
-        if start == nil then
-            return nil
-        end
-        ---@type CooldownInfo
-        local cooldownInfo = {
-            startTime = start,
-            duration = duration,
-            enable = enabled == 1,
-        }
-        return cooldownInfo
-    end
-end
-
----@param itemIdentifier string | number
----@return CooldownInfo | nil
-Api.GetItemCooldown = function (itemIdentifier)
-    if C_Item and C_Item.GetItemCooldown then
-        local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(itemIdentifier)
-        if startTimeSeconds then
-            return {
-                startTime = startTimeSeconds,
-                duration = durationSeconds,
-                enable = enableCooldownTimer
-            }
+            -- 优先返回客户端原生对象，供 SetCooldownFromDurationObject 使用
+            return spellCooldownInfo
         end
     end
-    ---@diagnostic disable-next-line: deprecated
-    if GetItemCooldown then
+    if GetSpellCooldown then
         ---@diagnostic disable-next-line: deprecated
-        local startTime, duration, enable = GetItemCooldown(itemIdentifier)
-        if startTime then
+        local startTime, duration, enabled = GetSpellCooldown(spellIdentifier)
+        if startTime ~= nil then
             return {
                 startTime = startTime,
                 duration = duration,
-                enable = enable
+                enable = enabled == 1,
             }
         end
     end
-    ---@diagnostic disable-next-line: deprecated
-    if C_Container and C_Container.GetItemCooldown and tonumber(itemIdentifier) ~= nil then
-    ---@diagnostic disable-next-line: param-type-mismatch
-       local startTime, duration, enable = C_Container.GetItemCooldown(itemIdentifier)
-       if startTime then
-        return {
-            startTime = startTime,
-            duration = duration,
-            enable = enable == 1
-        }
-       end
+    return nil
+end
+
+---@param itemIdentifier string | number
+---@return any | nil
+Api.GetItemCooldown = function (itemIdentifier)
+    if C_Item and C_Item.GetItemCooldown then
+        local cooldownInfo = C_Item.GetItemCooldown(itemIdentifier)
+        if type(cooldownInfo) == "table" then
+            -- 优先返回客户端原生对象，供 SetCooldownFromDurationObject 使用
+            return cooldownInfo
+        end
+
+        local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(itemIdentifier)
+        if startTimeSeconds ~= nil then
+            return {
+                startTime = startTimeSeconds,
+                duration = durationSeconds,
+                enable = enableCooldownTimer == 1 or enableCooldownTimer == true,
+                isEnabled = enableCooldownTimer == 1 or enableCooldownTimer == true,
+            }
+        end
     end
+
+    if GetItemCooldown then
+        ---@diagnostic disable-next-line: deprecated
+        local startTime, duration, enable = GetItemCooldown(itemIdentifier)
+        if startTime ~= nil then
+            return {
+                startTime = startTime,
+                duration = duration,
+                enable = enable == 1,
+            }
+        end
+    end
+
     return nil
 end

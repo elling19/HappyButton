@@ -15,12 +15,6 @@ local L = LibStub("AceLocale-3.0"):GetLocale(addonName, false)
 ---@class CONST: AceModule
 local const = addon:GetModule('CONST')
 
----@class Trigger: AceModule
-local Trigger = addon:GetModule("Trigger")
-
----@class Condition: AceModule
-local Condition = addon:GetModule("Condition")
-
 ---@class Effect: AceModule
 local Effect = addon:GetModule("Effect")
 
@@ -29,9 +23,6 @@ local Api = addon:GetModule("Api")
 
 ---@class Macro: AceModule
 local Macro = addon:GetModule("Macro")
-
----@class ItemCache: AceModule
-local ItemCache = addon:GetModule("ItemCache")
 
 ---@class ElementCallback: AceModule
 local ECB = addon:NewModule("ElementCallback")
@@ -48,6 +39,7 @@ local ECB = addon:NewModule("ElementCallback")
 ---@field itemCooldown CooldownInfo | nil
 ---@field macro string | nil
 ---@field effects EffectConfig[] | nil
+---@field displayRule DisplayRuleConfig | nil 当前命中物品的展示规则（用于覆盖父级规则）
 ---@field isHideBtn boolean | nil  是否隐藏按钮
 ---@field leftClickCallback function | nil
 local CbResult = {}
@@ -332,6 +324,7 @@ function ECB:CallbackByItemConfig(element)
         icon = item.extraAttr.icon,
         text = item.extraAttr.name or item.title,
         item = item.extraAttr,
+        displayRule = item.displayRule,
     }
     return cbResult
 end
@@ -467,83 +460,49 @@ end
 -- 对cbResult进行触发器处理
 ---@param eleConfig ElementConfig
 ---@param cbResult CbResult
-function ECB:UseTrigger(eleConfig, cbResult)
+---@param rootConfig ElementConfig | nil
+function ECB:UseTrigger(eleConfig, cbResult, rootConfig)
     local effects = {} ---@type EffectConfig[]
-    if not eleConfig.triggers or #eleConfig.triggers == 0 then
+    if cbResult == nil then
         return effects
     end
-    if not eleConfig.condGroups or #eleConfig.condGroups == 0 then
-        cbResult.effects = effects
-        return effects
+
+    local rootRule = {}
+    if rootConfig and rootConfig.type == const.ELEMENT_TYPE.BAR then
+        rootRule = rootConfig.displayRule or {}
     end
-    local triggers = {} ---@type table<string, TriggerConfig>
-    for _, trigger in ipairs(eleConfig.triggers) do
-        triggers[trigger.id] = trigger
+    local parentRule = eleConfig.displayRule or {}
+    local itemRule = cbResult.displayRule or {}
+    local unlearnedRule = itemRule.unlearned
+    if unlearnedRule == nil then
+        unlearnedRule = parentRule.unlearned
     end
-    for _, condGroup in ipairs(eleConfig.condGroups) do
-        if condGroup.effects and #condGroup.effects > 0 and condGroup.conditions and #condGroup.conditions and condGroup.expression then
-            local condResults = {} ---@type boolean[]
-            for _, cond in ipairs(condGroup.conditions) do
-                local condResult = false ---@type boolean
-                if cond.leftTriggerId and cond.leftVal and triggers[cond.leftTriggerId] then
-                    local leftTrigger = triggers[cond.leftTriggerId] ---@type TriggerConfig
-                    if leftTrigger.type == "self" then
-                        local leftValue = cbResult[cond.leftVal]
-                        if type(cond.rightValue) == "number" or type(cond.rightValue) == "boolean" then
-                            -- TODO: 目前只处理冷却相关的任务，其他任务交给事件处理
-                            if cond.leftVal == "isCooldown" then
-                                ItemCache:PutTask(cbResult.item, nil, nil, true, nil)
-                            end
-                            -- 判断条件返回真/假
-                            ---@diagnostic disable-next-line: param-type-mismatch
-                            local r = Condition:ExecOperator(leftValue, cond.operator, cond.rightValue)
-                            if r:is_ok() then
-                                condResult = r:unwrap()
-                            end
-                        end
-                    end
-                    if leftTrigger.type == "item" then
-                        local trigger = Trigger:ToItemTriggerConfig(leftTrigger)
-                        if trigger.confine and trigger.confine.item then
-                            local item = trigger.confine.item
-                            local itemTriggerCond = Trigger:GetItemTriggerCond(item)
-                            local leftValue = itemTriggerCond[cond.leftVal]
-                            -- TODO: 目前只处理冷却相关的任务，其他任务交给事件处理
-                            if cond.leftVal == "isCooldown" then
-                                ItemCache:PutTask(item, nil, nil, true, nil)
-                            end
-                             ---@diagnostic disable-next-line: param-type-mismatch
-                            local r = Condition:ExecOperator(leftValue, cond.operator, cond.rightValue)
-                            if r:is_ok() then
-                                condResult = r:unwrap()
-                            end
-                        end
-                    end
-                end
-                table.insert(condResults, condResult)
-            end
-            -- 判断条件组返回真/假
-            local condGroupR = Condition:ExecExpression(condResults, condGroup.expression)
-            if condGroupR then
-                for _, effect in ipairs(condGroup.effects) do
-                    -- 首先判断状态，如果状态为nil则不处理
-                    if effect.status ~= nil then
-                        -- 判断是否有相同的效果，如果有则替换，没有则添加
-                        local hasSame = false
-                        for index, _effect in ipairs(effects) do
-                            if _effect.type == effect.type then
-                                hasSame = true
-                                effects[index] = effect
-                                break
-                            end
-                        end
-                        if hasSame == false then
-                            table.insert(effects, effect)
-                        end
-                    end
-                end
-            end
+    if unlearnedRule == nil then
+        unlearnedRule = rootRule.unlearned
+    end
+    local unusableRule = itemRule.unusable
+    if unusableRule == nil then
+        unusableRule = parentRule.unusable
+    end
+    if unusableRule == nil then
+        unusableRule = rootRule.unusable
+    end
+
+    local function AppendDisplayEffect(rule)
+        if rule == "hide" then
+            table.insert(effects, Effect:NewBtnHideEffect(true))
+        elseif rule == "gray" then
+            table.insert(effects, Effect:NewBtnDesaturateEffect(true))
         end
     end
+
+    -- 规则优先级：未拥有优先于不可用
+    if cbResult.isLearned == false and unlearnedRule ~= nil then
+        AppendDisplayEffect(unlearnedRule)
+    elseif cbResult.isUsable == false and unusableRule ~= nil then
+        AppendDisplayEffect(unusableRule)
+    end
+
     cbResult.effects = effects
+    return effects
 end

@@ -35,6 +35,7 @@ local LoadCondition = addon:GetModule("LoadCondition")
 ---@field e table<EventString, any[][]>  -- 监听物品及触发器事件
 ---@field loadCondEvents table<EventString, any[][]>  -- 监听物品加载条件事件
 ---@field passLoadCond boolean | nil -- 是否通过物品加载条件，nil表示没有判断
+---@field root ElementConfig | nil -- 根元素（通常是BAR），用于继承展示规则
 ---@field c ElementCbInfo[] | nil  -- 子元素的callback
 
 ---@class Bar
@@ -147,29 +148,29 @@ function ElementFrame:GetCbs(eleConfig, rootConfig)
     if eleConfig.type == const.ELEMENT_TYPE.ITEM then
         local item = E:ToItem(eleConfig)
         ---@type ElementCbInfo
-        local cb = { f = ECB.CallbackOfSingleMode, p = item, r = {}, btns = {}, e = E:GetEvents(item, rootConfig), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
+        local cb = { f = ECB.CallbackOfSingleMode, p = item, r = {}, btns = {}, e = E:GetEvents(item, rootConfig), loadCondEvents = E:GetLoadCondEvents(eleConfig), root = rootConfig or eleConfig, c = nil }
         return cb
     elseif eleConfig.type == const.ELEMENT_TYPE.MACRO then
         local macro = E:ToMacro(eleConfig)
         ---@type ElementCbInfo
-        local cb = { f = ECB.CallbackOfMacroMode, p = macro, r = {}, btns = {}, e = E:GetEvents(macro, rootConfig), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
+        local cb = { f = ECB.CallbackOfMacroMode, p = macro, r = {}, btns = {}, e = E:GetEvents(macro, rootConfig), loadCondEvents = E:GetLoadCondEvents(eleConfig), root = rootConfig or eleConfig, c = nil }
         return cb
     elseif eleConfig.type == const.ELEMENT_TYPE.ITEM_GROUP then
         local itemGroup = E:ToItemGroup(eleConfig)
         ---@type ElementCbInfo
         local cb
         if itemGroup.extraAttr.mode == const.ITEMS_GROUP_MODE.RANDOM then
-            cb = { f = ECB.CallbackOfRandomMode, p = itemGroup, r = {}, btns = {}, e = E:GetEvents(itemGroup, rootConfig), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
+            cb = { f = ECB.CallbackOfRandomMode, p = itemGroup, r = {}, btns = {}, e = E:GetEvents(itemGroup, rootConfig), loadCondEvents = E:GetLoadCondEvents(eleConfig), root = rootConfig or eleConfig, c = nil }
         end
         if itemGroup.extraAttr.mode == const.ITEMS_GROUP_MODE.SEQ then
-            cb = { f = ECB.CallbackOfSeqMode, p = itemGroup, r = {}, btns = {}, e = E:GetEvents(itemGroup, rootConfig), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
+            cb = { f = ECB.CallbackOfSeqMode, p = itemGroup, r = {}, btns = {}, e = E:GetEvents(itemGroup, rootConfig), loadCondEvents = E:GetLoadCondEvents(eleConfig), root = rootConfig or eleConfig, c = nil }
         end
         return cb
     elseif eleConfig.type == const.ELEMENT_TYPE.SCRIPT then
         local script = E:ToScript(eleConfig)
         if script.extraAttr.script then
             ---@type ElementCbInfo
-            local cb = { f = ECB.CallbackOfScriptMode, p = script, r = {}, btns = {}, e = E:GetEvents(script, rootConfig), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = nil }
+            local cb = { f = ECB.CallbackOfScriptMode, p = script, r = {}, btns = {}, e = E:GetEvents(script, rootConfig), loadCondEvents = E:GetLoadCondEvents(eleConfig), root = rootConfig or eleConfig, c = nil }
             return cb
         else
             return nil
@@ -183,7 +184,7 @@ function ElementFrame:GetCbs(eleConfig, rootConfig)
                 table.insert(cCb, ElementFrame:GetCbs(_eleConfig, rootConfig or eleConfig))
             end
         end
-        local cb = { f = nil, p = bar, r = {}, btns = {}, e = E:GetEvents(bar, rootConfig), loadCondEvents = E:GetLoadCondEvents(eleConfig), c = cCb }
+        local cb = { f = nil, p = bar, r = {}, btns = {}, e = E:GetEvents(bar, rootConfig), loadCondEvents = E:GetLoadCondEvents(eleConfig), root = rootConfig or eleConfig, c = cCb }
         return cb
     end
     return nil
@@ -344,7 +345,7 @@ function ElementFrame:ExcuteCb(cb, btnIndex, event, eventArgs)
             -- 反向遍历 rs 数组
             for i = #cb.r, 1, -1 do
                 ECB:UpdateSelfTrigger(cb.r[i], event, eventArgs)
-                ECB:UseTrigger(cb.p, cb.r[i])
+                ECB:UseTrigger(cb.p, cb.r[i], cb.root)
                 -- 战斗外更新，如果发现隐藏按钮则是移除按钮，首先需要将状态改成false
                 cb.r[i].isHideBtn = false
                 if cb.r[i].effects then

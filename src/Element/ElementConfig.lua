@@ -11,6 +11,10 @@
 ---@class ScriptAttr
 ---@field script string | nil  -- 原始脚本文件
 
+---@class DisplayRuleConfig
+---@field unlearned "hide" | "gray" | nil  -- 未拥有时的展示规则
+---@field unusable "hide" | "gray" | nil  -- 不可用时的展示规则
+
 ---@class MacroAttr
 ---@field macro string | nil -- 宏脚本
 ---@field ast MacroAst | nil -- 宏语法树
@@ -34,6 +38,7 @@
 ---@field posY number | nil  -- Y轴位置
 ---@field elesGrowth Growth --子元素生长方向
 ---@field loadCond LoadConditionConfig  -- 加载条件
+---@field displayRule DisplayRuleConfig | nil -- 展示规则
 ---@field isUseRootTexts boolean -- 是否使用根元素文本的设置
 ---@field texts TextConfig[]  -- 文本设置
 ---@field configSelectedTextIndex number -- 编辑文本的时候选中的下标

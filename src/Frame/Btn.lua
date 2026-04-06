@@ -121,7 +121,7 @@ function Btn:UpdateBySelf(event, eventArgs)
         self.CbResult.item = ECB.UpdateMacroItemInfo(self.CbInfo.p)
     end
     ECB:UpdateSelfTrigger(self.CbResult, event, eventArgs)
-    ECB:UseTrigger(self.CbInfo.p, self.CbResult)
+    ECB:UseTrigger(self.CbInfo.p, self.CbResult, self.CbInfo.root)
     self:Update(event, eventArgs)
 end
 
@@ -465,7 +465,7 @@ function Btn:SetIcon()
     end
     self.Icon:SetTexture(r.icon or (r.item and r.item.icon) or 134400)
     -- 设置物品边框
-    if self.CbInfo.p.isShowQualityBorder == true and self.CbResult.borderColor then
+    if self.EFrame.Config.isShowQualityBorder == true and self.CbResult.borderColor then
         self.Border:SetBackdropBorderColor(unpack(self.CbResult.borderColor))
     else
         self.Border:SetBackdropBorderColor(unpack(const.DefaultItemColor))
@@ -521,7 +521,21 @@ function Btn:SetCooldown()
     end
     -- 更新冷却倒计时
     if r.itemCooldown then
-        self.Cooldown:SetCooldown(r.itemCooldown.startTime, r.itemCooldown.duration)
+        local updated = false
+        if self.Cooldown.SetCooldownFromDurationObject then
+            ---@diagnostic disable-next-line: param-type-mismatch
+            updated = pcall(self.Cooldown.SetCooldownFromDurationObject, self.Cooldown, r.itemCooldown, true)
+        end
+        if not updated then
+            local startTime = r.itemCooldown.startTime or 0
+            local duration = r.itemCooldown.duration or 0
+            local setOk = pcall(self.Cooldown.SetCooldown, self.Cooldown, startTime, duration)
+            if not setOk then
+                pcall(self.Cooldown.SetCooldown, self.Cooldown, 0, 0)
+            end
+        end
+    else
+        pcall(self.Cooldown.SetCooldown, self.Cooldown, 0, 0)
     end
 end
 

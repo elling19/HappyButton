@@ -38,6 +38,7 @@ function E:New(title, type)
         loadCond = {
             LoadCond = true,
         },
+        displayRule = {},
         isUseRootTexts = true,
         texts = {},
         configSelectedTextIndex = 1,
