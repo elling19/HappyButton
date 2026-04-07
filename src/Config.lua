@@ -34,6 +34,7 @@ local Macro = addon:GetModule("Macro")
 
 local AceConfig = LibStub("AceConfig-3.0")
 local AceConfigDialog = LibStub("AceConfigDialog-3.0")
+local AceConfigRegistry = LibStub("AceConfigRegistry-3.0")
 local AceSerializer = LibStub("AceSerializer-3.0")
 local LibDeflate = LibStub:GetLibrary("LibDeflate")
 local AceGUI = LibStub("AceGUI-3.0")
@@ -62,10 +63,13 @@ local function SetBarDefaultTab(selectGroups, hasChildren)
     if status.groups == nil then
         status.groups = {}
     end
-    if hasChildren then
-        status.groups.selected = "barElementList"
-    else
-        status.groups.selected = "barElementCreate"
+    -- 仅在首次进入时设置默认tab，避免后续刷新把当前tab强制切回列表。
+    if status.groups.selected == nil then
+        if hasChildren then
+            status.groups.selected = "barElementList"
+        else
+            status.groups.selected = "barElementCreate"
+        end
     end
 end
 
@@ -114,18 +118,40 @@ function Config.VerifyItemAttr(itemType, val)
     -- 添加物品逻辑
     -- 说明：print(type(C_ToyBox.GetToyInfo(item.id))) 返回的是number，和文档定义的不一致，无法通过API获取玩具信息，因此只能使用物品的API来获取
     if item.type == const.ITEM_TYPE.ITEM or item.type == const.ITEM_TYPE.EQUIPMENT or item.type == const.ITEM_TYPE.TOY then
-        local itemID, itemType, itemSubType, itemEquipLoc, icon, classID, subClassID = Api.GetItemInfoInstant(val)
+        local input = tonumber(val) or val
+        local itemID, itemType, itemSubType, itemEquipLoc, icon, classID, subClassID = Api.GetItemInfoInstant(input)
         if itemID then
             item.id = itemID
             item.icon = icon
+        elseif tonumber(val) ~= nil then
+            item.id = tonumber(val)
+            if C_Item and C_Item.RequestLoadItemDataByID then
+                C_Item.RequestLoadItemDataByID(item.id)
+            end
+            return R:Err(L["Item data is not ready yet, please try again."])
         else
-            return R:Err(L["Unable to get the id, please check the input."])
+            local _, itemLinkByInfo, _, _, _, _, _, _, _, itemTextureByInfo = Api.GetItemInfo(val)
+            local itemIDByInfo = itemLinkByInfo and tonumber(string.match(itemLinkByInfo, "item:(%d+)")) or nil
+            if itemIDByInfo then
+                item.id = itemIDByInfo
+                item.icon = itemTextureByInfo
+            else
+                return R:Err(L["Unable to get the id, please check the input."])
+            end
         end
-        local itemName = C_Item.GetItemNameByID(item.id)
+
+        if item.icon == nil and C_Item and C_Item.GetItemIconByID then
+            item.icon = C_Item.GetItemIconByID(item.id)
+        end
+
+        local itemName = C_Item and C_Item.GetItemNameByID and C_Item.GetItemNameByID(item.id)
         if itemName then
             item.name = itemName
         else
-            return R:Err(L["Unable to get the name, please check the input."])
+            if C_Item and C_Item.RequestLoadItemDataByID then
+                C_Item.RequestLoadItemDataByID(item.id)
+            end
+            return R:Err(L["Item data is not ready yet, please try again."])
         end
 
         -- local itemID = C_Item.GetItemIDForItemInfo(val)
@@ -322,6 +348,96 @@ function Config.ShowExportDialog(exportData)
     editBox:SetCallback("OnEnterPressed",
         function(widget) widget:ClearFocus() end)
     dialog:AddChild(editBox)
+end
+
+---@param errorText string
+---@param targetSelectGroups string[] | nil
+function Config.ShowErrorDialog(errorText, targetSelectGroups)
+    local message = tostring(errorText or "")
+
+    if addon.G.hbCenterErrorFrame == nil then
+        local frame = CreateFrame("Frame", nil, UIParent)
+        frame:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+        frame:SetSize(640, 40)
+        frame:SetFrameStrata("TOOLTIP")
+        frame:SetFrameLevel(1000)
+
+        local text = frame:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+        text:SetPoint("CENTER", frame, "CENTER", 0, 0)
+        text:SetWidth(620)
+        text:SetJustifyH("CENTER")
+        text:SetJustifyV("MIDDLE")
+
+        frame.msgText = text
+        frame:Hide()
+        addon.G.hbCenterErrorFrame = frame
+    end
+
+    local frame = addon.G.hbCenterErrorFrame
+    if frame and frame.msgText then
+        addon.G.hbCenterErrorToken = (addon.G.hbCenterErrorToken or 0) + 1
+        local token = addon.G.hbCenterErrorToken
+        frame.msgText:SetText("|cffff3030" .. message .. "|r")
+        frame:Show()
+        frame:Raise()
+        C_Timer.After(2.5, function()
+            if addon.G.hbCenterErrorToken == token and frame:IsShown() then
+                frame:Hide()
+            end
+        end)
+    else
+        U.Print.PrintErrorText(message)
+    end
+
+    if targetSelectGroups ~= nil and type(targetSelectGroups) == "table" then
+        local restoreGroups = U.Table.DeepCopyList(targetSelectGroups)
+        C_Timer.After(0, function()
+            AceConfigDialog:SelectGroup(addonName, unpack(restoreGroups))
+        end)
+        -- AceConfig 在部分输入交互后会二次刷新状态，这里再补一次恢复。
+        C_Timer.After(0.05, function()
+            AceConfigDialog:SelectGroup(addonName, unpack(restoreGroups))
+        end)
+    end
+end
+
+-- 通知 AceConfig 配置已改变，刷新 UI 显示
+local function NotifyOptionsChanged()
+    if AceConfigRegistry and AceConfigRegistry.NotifyChange then
+        AceConfigRegistry:NotifyChange(addonName)
+    end
+end
+
+-- 异步校验物品属性
+-- 对于物品/装备/玩具在 0.2 秒间隔内最多重试 8 次（API 延迟加载）
+-- 其他类型只重试 1 次
+---@param itemType ElementType 物品类型
+---@param val string 用户输入的物品ID或名称
+---@param onDone fun(ok:boolean, item:ItemAttr|nil, err:string|nil) 异步完成回调 ok=true表示成功，item为物品信息；ok=false时err为错误信息
+local function AsyncVerifyCreateItemAttr(itemType, val, onDone)
+    local attempts = 0
+    local maxAttempts = 1
+    if itemType == const.ITEM_TYPE.ITEM or itemType == const.ITEM_TYPE.EQUIPMENT or itemType == const.ITEM_TYPE.TOY then
+        maxAttempts = 8
+    end
+
+    local function doVerify()
+        attempts = attempts + 1
+        local r = Config.VerifyItemAttr(itemType, val)
+        if r:is_ok() then
+            onDone(true, r:unwrap(), nil)
+            return
+        end
+
+        if attempts >= maxAttempts then
+            onDone(false, nil, L["Invalid item input, please check and re-enter."])
+            return
+        end
+
+        C_Timer.After(0.2, doVerify)
+    end
+
+    doVerify()
 end
 
 -- 检查标题是否重复的函数
@@ -595,19 +711,18 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     order = elementSettingOrder,
                     type = 'input',
                     name = L["Item name or item id"],
-                    validate = function(_, val)
-                        local r = Config.VerifyItemAttr(addon.G.tmpNewItemType,
-                            val)
-                        if r:is_err() then
-                            return r:unwrap_err()
-                        else
-                            addon.G.tmpNewItem = r:unwrap()
-                        end
+                    validate = function()
                         return true
                     end,
-                    set = function(_, _)
-                        item.extraAttr = U.Table
-                            .DeepCopyDict(addon.G.tmpNewItem)
+                    set = function(_, val)
+                        addon.G.tmpNewItemVal = val
+                        local r = Config.VerifyItemAttr(addon.G.tmpNewItemType, val)
+                        if r:is_err() then
+                            Config.ShowErrorDialog(r:unwrap_err(), selectGroups)
+                            return
+                        end
+                        addon.G.tmpNewItem = r:unwrap()
+                        item.extraAttr = U.Table.DeepCopyDict(addon.G.tmpNewItem)
                         HbFrame:ReloadEframeUI(updateFrameConfig)
                         addon.G.tmpNewItemVal = nil
                         addon.G.tmpNewItem = {}
@@ -715,16 +830,17 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 order = elementSettingOrder,
                 type = 'input',
                 name = L["Item name or item id"],
-                validate = function(_, val)
-                    local r = Config.VerifyItemAttr(addon.G.tmpNewItemType, val)
-                    if r:is_err() then
-                        return r:unwrap_err()
-                    else
-                        addon.G.tmpNewItem = r:unwrap()
-                    end
+                validate = function()
                     return true
                 end,
-                set = function(_, _)
+                set = function(_, val)
+                    addon.G.tmpNewItemVal = val
+                    local r = Config.VerifyItemAttr(addon.G.tmpNewItemType, val)
+                    if r:is_err() then
+                        Config.ShowErrorDialog(r:unwrap_err(), selectGroups)
+                        return
+                    end
+                    addon.G.tmpNewItem = r:unwrap()
                     local newElement = E:New(
                         Config.GetNewElementTitle(L["Item"],
                             ele.elements),
@@ -1802,6 +1918,10 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             menuName = "|cff00ff00" .. iconPath .. showTitle .. "|r"
         end
         if ele.type == const.ELEMENT_TYPE.BAR then
+            local selectGroupsInBarCreate = U.Table.DeepCopyList(copySelectGroups)
+            table.insert(selectGroupsInBarCreate, "barElementCreate")
+            local selectGroupsInBarCreateItem = U.Table.DeepCopyList(selectGroupsInBarCreate)
+            table.insert(selectGroupsInBarCreateItem, "createItem")
             local barChildrenCreateArgs = {}
             barChildrenCreateArgs["createItemGroup"] = {
                 type = "group",
@@ -1869,7 +1989,13 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         name = L["Item Type"],
                         values = const.ItemTypeOptions,
                         set = function(_, val)
+                            -- 切换物品类型时重置所有校验状态
                             addon.G.tmpCreateItemType = val
+                            addon.G.tmpCreateItemVerified = false
+                            addon.G.tmpCreateItemVerifyPending = false
+                            addon.G.tmpCreateItem = nil
+                            addon.G.tmpCreateItemVerifyError = nil
+                            NotifyOptionsChanged()
                         end,
                         get = function()
                             return addon.G.tmpCreateItemType or const.ITEM_TYPE.ITEM
@@ -1880,39 +2006,92 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         width = 1,
                         type = "input",
                         name = L["Item name or item id"],
-                        validate = function(_, val)
-                            if val == nil or val == "" or val == " " then
-                                return true
-                            end
-                            local itemType = addon.G.tmpCreateItemType or const.ITEM_TYPE.ITEM
-                            local r = Config.VerifyItemAttr(itemType, val)
-                            if r:is_err() then
-                                return r:unwrap_err()
-                            end
+                        validate = function()
                             return true
                         end,
                         set = function(_, val)
+                            -- 重置校验状态
                             addon.G.tmpCreateItemVal = val
+                            addon.G.tmpCreateItemVerified = false
+                            addon.G.tmpCreateItemVerifyPending = false
+                            addon.G.tmpCreateItem = nil
+                            addon.G.tmpCreateItemVerifyError = nil
+
+                            if val == nil or val == "" or val == " " then
+                                NotifyOptionsChanged()
+                                return
+                            end
+
+                            -- 触发异步校验：生成 token、设置 pending、调用异步验证函数
+                            addon.G.tmpCreateItemVerifyPending = true
+                            addon.G.tmpCreateItemVerifyToken = (addon.G.tmpCreateItemVerifyToken or 0) + 1
+                            local verifyToken = addon.G.tmpCreateItemVerifyToken
+                            local itemType = addon.G.tmpCreateItemType or const.ITEM_TYPE.ITEM
+                            NotifyOptionsChanged()
+
+                            -- token 机制防止过期请求回调干扰当前状态
+                            AsyncVerifyCreateItemAttr(itemType, val, function(ok, item, err)
+                                if addon.G.tmpCreateItemVerifyToken ~= verifyToken then
+                                    return
+                                end
+
+                                addon.G.tmpCreateItemVerifyPending = false
+                                if ok then
+                                    addon.G.tmpCreateItemVerified = true
+                                    addon.G.tmpCreateItem = item
+                                    addon.G.tmpCreateItemVerifyError = nil
+                                else
+                                    addon.G.tmpCreateItemVerified = false
+                                    addon.G.tmpCreateItem = nil
+                                    addon.G.tmpCreateItemVerifyError = err
+                                    Config.ShowErrorDialog(err or L["Unable to get the id, please check the input."], selectGroupsInBarCreateItem)
+                                end
+                                NotifyOptionsChanged()
+                            end)
                         end,
                         get = function()
                             return addon.G.tmpCreateItemVal
                         end,
                     },
-                    create = {
+                    -- 物品预览：显示图标、名称、制造业品质标记（验证通过时显示）
+                    itemPreview = {
                         order = 3,
+                        width = "full",
+                        type = "description",
+                        fontSize = "medium",
+                        name = function()
+                            local item = addon.G.tmpCreateItem
+                            if not item then return "" end
+                            local iconStr = item.icon and ("|T" .. tostring(item.icon) .. ":16|t") or ""
+                            local nameStr = item.name or tostring(item.id) or ""
+                            local qualityMarkup = GetCraftingQualityMarkup(item.id) -- 制造业品质图标
+                            return iconStr .. nameStr .. qualityMarkup
+                        end,
+                        hidden = function()
+                            return addon.G.tmpCreateItemVerified ~= true -- 校验未通过时隐藏
+                        end,
+                    },
+                    create = {
+                        order = 4,
                         width = 2,
                         type = "execute",
                         name = L["Create"],
                         confirm = true,
+                        -- 按钮禁用条件：正在验证中 或 验证未通过
+                        disabled = function()
+                            if addon.G.tmpCreateItemVerifyPending then
+                                return true
+                            end
+                            return addon.G.tmpCreateItemVerified ~= true
+                        end,
                         func = function()
-                            local val = addon.G.tmpCreateItemVal
-                            local itemType = addon.G.tmpCreateItemType or const.ITEM_TYPE.ITEM
-                            local r = Config.VerifyItemAttr(itemType, val)
-                            if r:is_err() then
-                                U.Print.PrintErrorText(r:unwrap_err())
+                            -- 直接使用预先验证过的物品信息，不再重复校验
+                            local newItem = addon.G.tmpCreateItem
+                            if newItem == nil then
+                                local err = addon.G.tmpCreateItemVerifyError or L["Please confirm item input first."]
+                                Config.ShowErrorDialog(err, selectGroupsInBarCreateItem)
                                 return
                             end
-                            local newItem = r:unwrap()
                             local itemTitle = newItem.name or tostring(newItem.id) or L["Item"]
                             local item = E:New(
                                 Config.GetNewElementTitle(itemTitle, ele.elements),
@@ -1921,8 +2100,13 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                             item.icon = newItem.icon
                             table.insert(ele.elements, item)
 
+                            -- 重置所有临时校验状态
                             addon.G.tmpCreateItemVal = nil
                             addon.G.tmpCreateItemType = const.ITEM_TYPE.ITEM
+                            addon.G.tmpCreateItemVerified = false
+                            addon.G.tmpCreateItemVerifyPending = false
+                            addon.G.tmpCreateItem = nil
+                            addon.G.tmpCreateItemVerifyError = nil
 
                             HbFrame:ReloadEframeUI(updateFrameConfig)
                             AceConfigDialog:SelectGroup(addonName, unpack(
@@ -2359,6 +2543,11 @@ function addon:OnInitialize()
         tmpCreateItemGroupMode = const.ITEMS_GROUP_MODE.RANDOM,
         tmpCreateItemType = const.ITEM_TYPE.ITEM,
         tmpCreateItemVal = nil,
+        tmpCreateItemVerified = false,
+        tmpCreateItemVerifyPending = false,
+        tmpCreateItemVerifyToken = 0,
+        tmpCreateItemVerifyError = nil,
+        tmpCreateItem = nil, ---@type ItemAttr | nil
         tmpCreateMacroTitle = nil,
         tmpCreateMacroVal = nil,
         tmpCreateMacroAst = nil,

@@ -198,15 +198,21 @@ function Item:CompleteItemAttr(itemAttr)
             itemAttr.icon = icon
             itemAttr.name = C_Item.GetItemNameByID(itemAttr.id)
         else
-            -- 第一个执行可能没有被缓存，等待0.5秒从服务器获取缓存后再次读取
-            C_Timer.After(0.5, function()
-                local itemID1, _, _, _, icon1, _, _ = Api.GetItemInfoInstant(itemAttr.name or itemAttr.id or 0)
-                if itemID then
-                    itemAttr.id = itemID1
-                    itemAttr.icon = icon1
-                    itemAttr.name = C_Item.GetItemNameByID(itemAttr.id)
+            local pendingItemID = tonumber(itemAttr.id) or tonumber(itemAttr.name or "")
+            if pendingItemID and C_Item and C_Item.RequestLoadItemDataByID then
+                C_Item.RequestLoadItemDataByID(pendingItemID)
+                if _G.Item and _G.Item.CreateFromItemID then
+                    local syncItem = _G.Item:CreateFromItemID(pendingItemID)
+                    syncItem:ContinueOnItemLoad(function()
+                        local itemID1, _, _, _, icon1, _, _ = Api.GetItemInfoInstant(pendingItemID)
+                        if itemID1 then
+                            itemAttr.id = itemID1
+                            itemAttr.icon = icon1
+                            itemAttr.name = C_Item.GetItemNameByID(itemAttr.id)
+                        end
+                    end)
                 end
-            end)
+            end
         end
     elseif itemAttr.type == const.ITEM_TYPE.MOUNT then
         if itemAttr.id == nil then
@@ -310,24 +316,30 @@ function Item:CompleteItemAttr(itemAttr)
                 end
             end
         else
-            -- 第一个执行可能没有被缓存，等待0.5秒从服务器获取缓存后再次读取
-            C_Timer.After(0.5, function()
-                local itemID1, _, _, _, icon1, _, _ = Api.GetItemInfoInstant(itemAttr.name or itemAttr.id or 0)
-                if itemID1 then
-                    itemAttr.id = itemID1
-                    itemAttr.icon = icon1
-                    itemAttr.name = C_Item.GetItemNameByID(itemAttr.id)
-                    itemAttr.type = const.ITEM_TYPE.ITEM
-                    if classID == 2 or classID == 4 then
-                        itemAttr.type = const.ITEM_TYPE.EQUIPMENT
-                    else
-                        local toyItemID, _, _, _, _, _ = C_ToyBox.GetToyInfo(itemAttr.id)
-                        if toyItemID then
-                            itemAttr.type = const.ITEM_TYPE.TOY
+            local pendingItemID = tonumber(itemAttr.id) or tonumber(itemAttr.name or "")
+            if pendingItemID and C_Item and C_Item.RequestLoadItemDataByID then
+                C_Item.RequestLoadItemDataByID(pendingItemID)
+                if _G.Item and _G.Item.CreateFromItemID then
+                    local syncItem = _G.Item:CreateFromItemID(pendingItemID)
+                    syncItem:ContinueOnItemLoad(function()
+                        local itemID1, _, _, _, icon1, classID1, _ = Api.GetItemInfoInstant(pendingItemID)
+                        if itemID1 then
+                            itemAttr.id = itemID1
+                            itemAttr.icon = icon1
+                            itemAttr.name = C_Item.GetItemNameByID(itemAttr.id)
+                            itemAttr.type = const.ITEM_TYPE.ITEM
+                            if classID1 == 2 or classID1 == 4 then
+                                itemAttr.type = const.ITEM_TYPE.EQUIPMENT
+                            else
+                                local toyItemID, _, _, _, _, _ = C_ToyBox.GetToyInfo(itemAttr.id)
+                                if toyItemID then
+                                    itemAttr.type = const.ITEM_TYPE.TOY
+                                end
+                            end
                         end
-                    end
+                    end)
                 end
-            end)
+            end
         end
     end
 end
