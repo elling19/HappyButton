@@ -42,6 +42,8 @@ local AceGUI = LibStub("AceGUI-3.0")
 ---@class Config
 local Config = {}
 local tooltipSetTextPatched = setmetatable({}, { __mode = "k" })
+local DEFAULT_CONFIG_UI_WIDTH = 900
+local DEFAULT_CONFIG_UI_HEIGHT = 600
 
 ---@param itemID number | nil
 ---@return string
@@ -54,6 +56,25 @@ local function GetCraftingQualityMarkup(itemID)
         return ""
     end
     return " " .. CreateAtlasMarkup(qualityInfo.iconChat, 16, 16)
+end
+
+---@param item ItemAttr | nil
+---@return { icon:string, name:string, qualityMarkup:string, text:string }
+local function BuildItemDisplayView(item)
+    local icon = ""
+    local name = ""
+    local qualityMarkup = ""
+    if item then
+        icon = item.icon and ("|T" .. tostring(item.icon) .. ":16|t") or ""
+        name = item.name or (item.id and tostring(item.id)) or ""
+        qualityMarkup = GetCraftingQualityMarkup(item.id)
+    end
+    return {
+        icon = icon,
+        name = name,
+        qualityMarkup = qualityMarkup,
+        text = icon .. name .. qualityMarkup,
+    }
 end
 
 ---@param selectGroups string[]
@@ -440,6 +461,37 @@ local function AsyncVerifyCreateItemAttr(itemType, val, onDone)
     doVerify()
 end
 
+---@param item ItemConfig
+---@return table
+local function GetEditItemState(item)
+    if addon.G.tmpEditItemStates == nil then
+        addon.G.tmpEditItemStates = setmetatable({}, { __mode = "k" })
+    end
+    local state = addon.G.tmpEditItemStates[item]
+    if state == nil then
+        local view = BuildItemDisplayView(item.extraAttr)
+        state = {
+            itemType = item.extraAttr and item.extraAttr.type or const.ITEM_TYPE.ITEM,
+            itemVal = view.text,
+            displayText = view.text,
+            verified = true,
+            verifyPending = false,
+            verifyToken = 0,
+            verifyError = nil,
+            item = item.extraAttr and U.Table.DeepCopyDict(item.extraAttr) or nil,
+        }
+        addon.G.tmpEditItemStates[item] = state
+    end
+    return state
+end
+
+---@param item ItemConfig
+local function ResetEditItemState(item)
+    if addon.G.tmpEditItemStates ~= nil then
+        addon.G.tmpEditItemStates[item] = nil
+    end
+end
+
 -- 检查标题是否重复的函数
 ---@param title string
 ---@param eleList ElementConfig[]
@@ -554,6 +606,19 @@ local ConfigOptions = {}
 ---@param topEleConfig ElementConfig | nil 顶层的菜单，当为nil的时候，表示当前elements参数本身是顶层菜单
 ---@param selectGroups table  配置界面选项卡位置
 local function GetElementOptions(elements, topEleConfig, selectGroups)
+    local function GetMaxArgOrder(groupArgs)
+        local maxOrder = 0
+        if groupArgs == nil then
+            return maxOrder
+        end
+        for _, groupArg in pairs(groupArgs) do
+            if type(groupArg) == "table" and type(groupArg.order) == "number" and groupArg.order > maxOrder then
+                maxOrder = groupArg.order
+            end
+        end
+        return maxOrder
+    end
+
     local settingOrder = 1
     local isRoot = topEleConfig == nil
     local eleArgs = {}
@@ -655,6 +720,13 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             end
         end
         if isRoot then
+            elementSettingArgs.space1 = {
+                type = "description",
+                order = elementSettingOrder,
+                width = "full",
+                name = "",
+            }
+            elementSettingOrder = elementSettingOrder + 1
             elementSettingArgs.iconWidth = {
                 step = 1,
                 order = elementSettingOrder,
@@ -732,37 +804,6 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     end
                 }
                 elementSettingOrder = elementSettingOrder + 1
-            else
-                elementSettingArgs.id = {
-                    order = elementSettingOrder,
-                    width = 1,
-                    type = 'input',
-                    name = L["ID"],
-                    disabled = true,
-                    get = function()
-                        return tostring(extraAttr.id)
-                    end
-                }
-                elementSettingOrder = elementSettingOrder + 1
-                elementSettingArgs.name = {
-                    order = elementSettingOrder,
-                    width = 1,
-                    type = 'input',
-                    name = L["Name"],
-                    disabled = true,
-                    get = function() return extraAttr.name end
-                }
-                elementSettingOrder = elementSettingOrder + 1
-                elementSettingArgs.type = {
-                    order = elementSettingOrder,
-                    width = 2,
-                    type = 'select',
-                    name = L["Type"],
-                    values = const.ItemTypeOptions,
-                    disabled = true,
-                    get = function() return extraAttr.type end
-                }
-                elementSettingOrder = elementSettingOrder + 1
             end
         end
         if ele.type == const.ELEMENT_TYPE.SCRIPT then
@@ -771,7 +812,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 order = elementSettingOrder,
                 type = 'input',
                 name = L["Script"],
-                multiline = 20,
+                multiline = 10,
                 width = "full",
                 validate = function(_, val)
                     local func, loadstringErr = loadstring(val)
@@ -860,10 +901,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             if ele.elements then
                 for _, _item in ipairs(ele.elements) do
                     local item = E:ToItem(_item)
-                    local optionTitle = item.extraAttr.name or item.title or ""
-                    local optionIcon = item.extraAttr.icon or item.icon or ""
-                    local qualityMarkup = GetCraftingQualityMarkup(item.extraAttr.id)
-                    table.insert(itemsOptions, "|T" .. optionIcon .. ":16|t" .. optionTitle .. qualityMarkup)
+                    table.insert(itemsOptions, BuildItemDisplayView(item.extraAttr).text)
                 end
             end
             elementSettingArgs.selectChildren = {
@@ -924,25 +962,6 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             }
             elementSettingOrder = elementSettingOrder + 1
         end
-        if not isRoot and ele.type ~= const.ELEMENT_TYPE.ITEM then
-            elementSettingArgs.delete = {
-                order = elementSettingOrder,
-                width = 1,
-                type = 'execute',
-                name = L["Delete"],
-                confirm = true,
-                func = function()
-                    table.remove(elements, i)
-                    if topEleConfig == nil then
-                        HbFrame:DeleteEframe(ele)
-                    else
-                        HbFrame:ReloadEframeUI(topEleConfig)
-                    end
-                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroups))
-                end
-            }
-            elementSettingOrder = elementSettingOrder + 1
-        end
         -----------------------------------------
         --- 宏条件设置
         -----------------------------------------
@@ -952,7 +971,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 order = elementSettingOrder,
                 type = 'input',
                 name = L["Macro"],
-                multiline = 20,
+                multiline = 10,
                 width = "full",
                 validate = function(_, val)
                     local macroAstR = Macro:Ast(val)
@@ -976,18 +995,23 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             elementSettingOrder = elementSettingOrder + 1
         end
         if isRoot then
-            local positionSettingOrder = 1
-            local positionSettingArgs = {}
-            local positionSettingOptions = {
-                type = "group",
-                name = L["Position Settings"],
-                order = settingOrder,
-                args = positionSettingArgs
+            -- 位置设置，以分隔符形式展示
+            elementSettingArgs.positionSeparator = {
+                order = elementSettingOrder,
+                type = "header",
+                width = 2,
+                name = L["Position"],
             }
-            settingOrder = settingOrder + 1
-            args.positionSetting = positionSettingOptions
-            positionSettingArgs.attachFrame = {
-                order = positionSettingOrder,
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.positionSpaceBefore = {
+                order = elementSettingOrder,
+                type = "description",
+                width = "full",
+                name = "",
+            }
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.attachFrame = {
+                order = elementSettingOrder,
                 type = 'input',
                 name = L["AttachFrame"],
                 set = function(_, val)
@@ -998,9 +1022,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     return ele.attachFrame
                 end
             }
-            positionSettingOrder = positionSettingOrder + 1
-            positionSettingArgs.attachFrameOptions = {
-                order = positionSettingOrder,
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.attachFrameOptions = {
+                order = elementSettingOrder,
                 type = 'select',
                 name = "",
                 width = 1,
@@ -1013,9 +1037,16 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     return ele.attachFrame
                 end
             }
-            positionSettingOrder = positionSettingOrder + 1
-            positionSettingArgs.AnchorPos = {
-                order = positionSettingOrder,
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.space1 = {
+                order = elementSettingOrder,
+                type = "description",
+                width = "full",
+                name = ""
+            }
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.AnchorPos = {
+                order = elementSettingOrder,
                 type = 'select',
                 name = L["Element Anchor Position"],
                 width = 1,
@@ -1028,9 +1059,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     return ele.anchorPos
                 end
             }
-            positionSettingOrder = positionSettingOrder + 1
-            positionSettingArgs.attachFrameAnchorPos = {
-                order = positionSettingOrder,
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.attachFrameAnchorPos = {
+                order = elementSettingOrder,
                 type = 'select',
                 name = L["AttachFrame Anchor Position"],
                 width = 1,
@@ -1043,8 +1074,16 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     return ele.attachFrameAnchorPos
                 end
             }
-            positionSettingOrder = positionSettingOrder + 1
-            positionSettingArgs.posX = {
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.space2 = {
+                order = elementSettingOrder,
+                type = "description",
+                width = "full",
+                name = ""
+            }
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.posX = {
+                order = elementSettingOrder,
                 type = "range",
                 name = L["Relative X-Offset"],
                 width = 1,
@@ -1059,8 +1098,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     HbFrame:UpdateEframeWindow(updateFrameConfig)
                 end,
             }
-            positionSettingOrder = positionSettingOrder + 1
-            positionSettingArgs.posY = {
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.posY = {
+                order = elementSettingOrder,
                 type = "range",
                 name = L["Relative Y-Offset"],
                 width = 1,
@@ -1075,6 +1115,67 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     HbFrame:UpdateEframeWindow(updateFrameConfig)
                 end,
             }
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.positionSpaceAfter = {
+                order = elementSettingOrder,
+                type = "description",
+                width = "full",
+                name = "",
+            }
+            elementSettingOrder = elementSettingOrder + 1
+
+            -- 操作分隔符和操作按钮
+            elementSettingArgs.actionSpaceBefore = {
+                order = elementSettingOrder,
+                type = "description",
+                width = "full",
+                name = "",
+            }
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.actionsSeparator = {
+                order = elementSettingOrder,
+                type = "header",
+                width = 2,
+                name = L["Actions"],
+            }
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.delete = {
+                order = elementSettingOrder,
+                width = 1,
+                type = 'execute',
+                name = L["Delete"],
+                confirm = true,
+                func = function()
+                    table.remove(elements, i)
+                    if topEleConfig == nil then
+                        HbFrame:DeleteEframe(ele)
+                    else
+                        HbFrame:ReloadEframeUI(topEleConfig)
+                    end
+                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroups))
+                end
+            }
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.export = {
+                order = elementSettingOrder,
+                width = 1,
+                type = 'execute',
+                name = L['Export'],
+                func = function()
+                    local serializedData = AceSerializer:Serialize(ele)
+                    local compressedData =
+                        LibDeflate:CompressDeflate(serializedData)
+                    local base64Encoded = LibDeflate:EncodeForPrint(compressedData)
+                    Config.ShowExportDialog(base64Encoded)
+                end
+            }
+            elementSettingOrder = elementSettingOrder + 1
+            elementSettingArgs.actionSpaceAfter = {
+                order = elementSettingOrder,
+                type = "description",
+                width = "full",
+                name = "",
+            }
         end
         -------------------
         -- 基本设置
@@ -1083,16 +1184,140 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
         local baseSettingArgs = {}
         local baseSettingOptions = {
             type = "group",
-            name = L["General Settings"],
+            name = L["Settings"],
             order = settingOrder,
             args = baseSettingArgs
         }
         settingOrder = settingOrder + 1
         args.baseSetting = baseSettingOptions
-        if ele.type ~= const.ELEMENT_TYPE.BAR or isRoot then
-            baseSettingArgs.moveUp = {
-                order = 1,
+        if ele.type == const.ELEMENT_TYPE.ITEM and not isRoot then
+            local item = E:ToItem(ele)
+            local extraAttr = item.extraAttr
+            baseSettingArgs.itemType = {
+                order = baseSettingOrder,
                 width = 1,
+                type = 'select',
+                name = L["Item Type"],
+                values = const.ItemTypeOptions,
+                set = function(_, val)
+                    local state = GetEditItemState(item)
+                    state.itemType = val
+                    state.itemVal = nil
+                    state.displayText = nil
+                    state.verified = false
+                    state.verifyPending = false
+                    state.verifyError = nil
+                    state.item = nil
+                    state.verifyToken = state.verifyToken + 1
+                    NotifyOptionsChanged()
+                end,
+                get = function()
+                    return GetEditItemState(item).itemType or extraAttr.type or const.ITEM_TYPE.ITEM
+                end
+            }
+            baseSettingOrder = baseSettingOrder + 1
+            baseSettingArgs.itemVal = {
+                order = baseSettingOrder,
+                width = 1,
+                type = 'input',
+                name = L["Item name or item id"],
+                validate = function()
+                    return true
+                end,
+                set = function(_, val)
+                    local state = GetEditItemState(item)
+                    if state.displayText ~= nil and val == state.displayText then
+                        return
+                    end
+                    state.itemVal = val
+                    state.verified = false
+                    state.verifyPending = false
+                    state.verifyError = nil
+                    state.item = nil
+                    state.verifyToken = state.verifyToken + 1
+
+                    if val == nil or val == "" or val == " " then
+                        NotifyOptionsChanged()
+                        return
+                    end
+
+                    state.verifyPending = true
+                    state.verifyToken = state.verifyToken + 1
+                    local verifyToken = state.verifyToken
+                    local itemType = state.itemType or extraAttr.type or const.ITEM_TYPE.ITEM
+                    NotifyOptionsChanged()
+
+                    AsyncVerifyCreateItemAttr(itemType, val, function(ok, verifiedItem, err)
+                        local latestState = GetEditItemState(item)
+                        if latestState.verifyToken ~= verifyToken then
+                            return
+                        end
+
+                        latestState.verifyPending = false
+                        if ok then
+                            if verifiedItem == nil then
+                                latestState.verified = false
+                                latestState.item = nil
+                                latestState.verifyError = L["Invalid item input, please check and re-enter."]
+                                Config.ShowErrorDialog(latestState.verifyError, copySelectGroups)
+                                NotifyOptionsChanged()
+                                return
+                            end
+                            item.extraAttr = U.Table.DeepCopyDict(verifiedItem)
+                            item.icon = verifiedItem.icon
+                            latestState.verified = true
+                            latestState.item = verifiedItem
+                            latestState.verifyError = nil
+                            local view = BuildItemDisplayView(verifiedItem)
+                            latestState.displayText = view.text
+                            latestState.itemVal = view.text
+                            HbFrame:ReloadEframeUI(updateFrameConfig)
+                        else
+                            latestState.verified = false
+                            latestState.item = nil
+                            latestState.verifyError = err
+                            Config.ShowErrorDialog(err or L["Unable to get the id, please check the input."], copySelectGroups)
+                        end
+                        NotifyOptionsChanged()
+                    end)
+                end,
+                get = function()
+                    return GetEditItemState(item).itemVal
+                end
+            }
+            baseSettingOrder = baseSettingOrder + 1
+        end
+        if ele.type ~= const.ELEMENT_TYPE.BAR or isRoot then
+            local needActionVisualSeparator = (not isRoot)
+                and (ele.type == const.ELEMENT_TYPE.ITEM
+                    or ele.type == const.ELEMENT_TYPE.ITEM_GROUP
+                    or ele.type == const.ELEMENT_TYPE.SCRIPT
+                    or ele.type == const.ELEMENT_TYPE.MACRO)
+            if needActionVisualSeparator then
+                baseSettingArgs.actionsSeparator = {
+                    order = baseSettingOrder,
+                    type = "header",
+                    width = 2,
+                    name = L["Actions"],
+                }
+                baseSettingOrder = baseSettingOrder + 1
+            end
+
+            local actionGroupOrder = baseSettingOrder
+            local actionGroupArgs = {}
+            baseSettingArgs.actions = {
+                order = actionGroupOrder,
+                type = "group",
+                name = needActionVisualSeparator and "" or L["Actions"],
+                inline = true,
+                args = actionGroupArgs,
+            }
+            baseSettingOrder = baseSettingOrder + 1
+
+            local actionOrder = 1
+            actionGroupArgs.moveUp = {
+                order = actionOrder,
+                width = 2/3,
                 type = 'execute',
                 name = L["Move Up"],
                 disabled = function ()
@@ -1108,10 +1333,10 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     HbFrame:ReloadEframeUI(updateFrameConfig)
                 end
             }
-            baseSettingOrder = baseSettingOrder + 1
-            baseSettingArgs.moveDown = {
-                order = 2,
-                width = 1,
+            actionOrder = actionOrder + 1
+            actionGroupArgs.moveDown = {
+                order = actionOrder,
+                width = 2/3,
                 type = 'execute',
                 name = L["Move Down"],
                 disabled = function ()
@@ -1127,15 +1352,18 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     HbFrame:ReloadEframeUI(updateFrameConfig)
                 end
             }
-            baseSettingOrder = baseSettingOrder + 1
-            if not isRoot and ele.type == const.ELEMENT_TYPE.ITEM then
-                baseSettingArgs.delete = {
-                    order = 3,
-                    width = 1,
+            actionOrder = actionOrder + 1
+            if not isRoot then
+                actionGroupArgs.delete = {
+                    order = actionOrder,
+                    width = 2/3,
                     type = 'execute',
                     name = L["Delete"],
                     confirm = true,
                     func = function()
+                        if ele.type == const.ELEMENT_TYPE.ITEM then
+                            ResetEditItemState(E:ToItem(ele))
+                        end
                         table.remove(elements, i)
                         if topEleConfig == nil then
                             HbFrame:DeleteEframe(ele)
@@ -1145,41 +1373,10 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         AceConfigDialog:SelectGroup(addonName, unpack(selectGroups))
                     end
                 }
-                baseSettingOrder = baseSettingOrder + 1
             end
         end
         if isRoot then
-            baseSettingArgs.delete = {
-                order = 3,
-                width = 1,
-                type = 'execute',
-                name = L["Delete"],
-                confirm = true,
-                func = function()
-                    table.remove(elements, i)
-                    if topEleConfig == nil then
-                        HbFrame:DeleteEframe(ele)
-                    else
-                        HbFrame:ReloadEframeUI(topEleConfig)
-                    end
-                    AceConfigDialog:SelectGroup(addonName, unpack(selectGroups))
-                end
-            }
-            baseSettingOrder = baseSettingOrder + 1
-            baseSettingArgs.export = {
-                order = 4,
-                width = 1,
-                type = 'execute',
-                name = L['Export'],
-                func = function()
-                    local serializedData = AceSerializer:Serialize(ele)
-                    local compressedData =
-                        LibDeflate:CompressDeflate(serializedData)
-                    local base64Encoded = LibDeflate:EncodeForPrint(compressedData)
-                    Config.ShowExportDialog(base64Encoded)
-                end
-            }
-            baseSettingOrder = baseSettingOrder + 1
+            -- 操作按钮已移至位置设置分组最下方
         end
 
         ---------------------------------------------------------
@@ -1315,7 +1512,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             if ele.bindKey then
                 bindkeySettingArgs.loadCondCombat = {
                     order = bindkeySettingOrder,
-                    width = ele.bindKey.combat and 1 or "full",
+                    width = 1,
                     type = 'toggle',
                     name = L["Combat Load Condition"],
                     set = function(_, val)
@@ -1331,26 +1528,25 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     end
                 }
                 bindkeySettingOrder = bindkeySettingOrder + 1
-                if ele.bindKey.combat ~= nil then
-                    bindkeySettingArgs.loadCondCombatOptions = {
-                        order = bindkeySettingOrder,
-                        width = 1,
-                        type = 'select',
-                        values = const.LoadCondCombatOptions,
-                        name = "",
-                        set = function(_, val)
-                            ele.bindKey.combat = val
-                            HbFrame:UpdateEframe(updateFrameConfig)
-                        end,
-                        get = function(_)
-                            return ele.bindKey.combat
-                        end
-                    }
-                    bindkeySettingOrder = bindkeySettingOrder + 1
-                end
+                bindkeySettingArgs.loadCondCombatOptions = {
+                    order = bindkeySettingOrder,
+                    width = 1,
+                    type = 'select',
+                    values = const.LoadCondCombatOptions,
+                    name = "",
+                    disabled = function() return ele.bindKey.combat == nil end,
+                    set = function(_, val)
+                        ele.bindKey.combat = val
+                        HbFrame:UpdateEframe(updateFrameConfig)
+                    end,
+                    get = function(_)
+                        return ele.bindKey.combat
+                    end
+                }
+                bindkeySettingOrder = bindkeySettingOrder + 1
                 bindkeySettingArgs.loadAttachFrameShow = {
                     order = bindkeySettingOrder,
-                    width = ele.bindKey.attachFrame and 1 or "full",
+                    width = 1,
                     type = 'toggle',
                     name = L["AttachFrame Load Condition"],
                     desc = L["Not working when in combat"],
@@ -1367,23 +1563,22 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                     end
                 }
                 bindkeySettingOrder = bindkeySettingOrder + 1
-                if ele.bindKey.attachFrame ~= nil then
-                    bindkeySettingArgs.loadCondAttachFrameOptions = {
-                        order = bindkeySettingOrder,
-                        width = 1,
-                        type = 'select',
-                        values = const.LoadCondAttachFrameOptions,
-                        name = "",
-                        set = function(_, val)
-                            ele.bindKey.attachFrame = val
-                            HbFrame:UpdateEframe(updateFrameConfig)
-                        end,
-                        get = function(_)
-                            return ele.bindKey.attachFrame
-                        end
-                    }
-                    bindkeySettingOrder = bindkeySettingOrder + 1
-                end
+                bindkeySettingArgs.loadCondAttachFrameOptions = {
+                    order = bindkeySettingOrder,
+                    width = 1,
+                    type = 'select',
+                    values = const.LoadCondAttachFrameOptions,
+                    name = "",
+                    disabled = function() return ele.bindKey.attachFrame == nil end,
+                    set = function(_, val)
+                        ele.bindKey.attachFrame = val
+                        HbFrame:UpdateEframe(updateFrameConfig)
+                    end,
+                    get = function(_)
+                        return ele.bindKey.attachFrame
+                    end
+                }
+                bindkeySettingOrder = bindkeySettingOrder + 1
             end
             bindkeySettingArgs.reloadDesc1 = {
                 order = bindkeySettingOrder,
@@ -1442,7 +1637,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
         if isRoot then
             displaySettingArgs.isDisplayMouseEnter = {
                 order = displaySettingOrder,
-                width = 2,
+                width = "full",
                 type = 'toggle',
                 name = L["Whether to show the bar menu when the mouse enter."],
                 set = function(_, val)
@@ -1473,28 +1668,27 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 end
             }
             displaySettingOrder = displaySettingOrder + 1
-            if ele.loadCond.CombatCond ~= nil then
-                displaySettingArgs.loadCondCombatOptions = {
-                    order = displaySettingOrder,
-                    width = 1,
-                    type = 'select',
-                    values = const.LoadCondCombatOptions,
-                    name = "",
-                    set = function(_, val)
-                        ele.loadCond.CombatCond = val
-                        HbFrame:UpdateEframe(updateFrameConfig)
-                    end,
-                    get = function(_)
-                        return ele.loadCond.CombatCond
-                    end
-                }
-                displaySettingOrder = displaySettingOrder + 1
-            end
+            displaySettingArgs.loadCondCombatOptions = {
+                order = displaySettingOrder,
+                width = 2,
+                type = 'select',
+                values = const.LoadCondCombatOptions,
+                disabled = function() return ele.loadCond.CombatCond == nil end,
+                name = "",
+                set = function(_, val)
+                    ele.loadCond.CombatCond = val
+                    HbFrame:UpdateEframe(updateFrameConfig)
+                end,
+                get = function(_)
+                    return ele.loadCond.CombatCond
+                end
+            }
+            displaySettingOrder = displaySettingOrder + 1
         end
         -- 加载选项：职业
         displaySettingArgs.borderGlowStatus = {
             order = displaySettingOrder,
-            width = 2,
+            width = "full",
             type = 'toggle',
             name = L["Enable Class Settings"] ,
             set = function(_, val)
@@ -1550,7 +1744,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
         if isRoot and ele.type == const.ELEMENT_TYPE.BAR then
             displaySettingArgs.unlearnedDisplayRuleEnable = {
                 order = displaySettingOrder,
-                width = 2,
+                width = 1,
                 type = "toggle",
                 name = L["Not Owned"],
                 set = function(_, val)
@@ -1569,27 +1763,25 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 end,
             }
             displaySettingOrder = displaySettingOrder + 1
-            if ele.displayRule and ele.displayRule.unlearned ~= nil then
-                displaySettingArgs.unlearnedDisplayRule = {
-                    order = displaySettingOrder,
-                    width = 2,
-                    type = "select",
-                    name = "",
-                    values = const.DisplayStateRuleOptions,
-                    set = function(_, val)
-                        ele.displayRule.unlearned = val
-                        HbFrame:ReloadEframeUI(updateFrameConfig)
-                    end,
-                    get = function(_)
-                        return ele.displayRule.unlearned or "hide"
-                    end,
-                }
-                displaySettingOrder = displaySettingOrder + 1
-            end
-
-            displaySettingArgs.unusableDisplayRuleEnable = {
+            displaySettingArgs.unlearnedDisplayRule = {
                 order = displaySettingOrder,
                 width = 2,
+                type = "select",
+                name = "",
+                disabled = function() return ele.displayRule == nil or ele.displayRule.unlearned == nil end,
+                values = const.DisplayStateRuleOptions,
+                set = function(_, val)
+                    ele.displayRule.unlearned = val
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end,
+                get = function(_)
+                    return ele.displayRule.unlearned or "hide"
+                end,
+            }
+            displaySettingOrder = displaySettingOrder + 1
+                displaySettingArgs.unusableDisplayRuleEnable = {
+                order = displaySettingOrder,
+                width = 1,
                 type = "toggle",
                 name = L["Not Usable"],
                 set = function(_, val)
@@ -1608,28 +1800,27 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 end,
             }
             displaySettingOrder = displaySettingOrder + 1
-            if ele.displayRule and ele.displayRule.unusable ~= nil then
-                displaySettingArgs.unusableDisplayRule = {
-                    order = displaySettingOrder,
-                    width = 2,
-                    type = "select",
-                    name = "",
-                    values = const.DisplayStateRuleOptions,
-                    set = function(_, val)
-                        ele.displayRule.unusable = val
-                        HbFrame:ReloadEframeUI(updateFrameConfig)
-                    end,
-                    get = function(_)
-                        return ele.displayRule.unusable or "gray"
-                    end,
-                }
-                displaySettingOrder = displaySettingOrder + 1
-            end
+            displaySettingArgs.unusableDisplayRule = {
+                order = displaySettingOrder,
+                width = 2,
+                type = "select",
+                name = "",
+                disabled = function() return ele.displayRule == nil or ele.displayRule.unusable == nil end,
+                values = const.DisplayStateRuleOptions,
+                set = function(_, val)
+                    ele.displayRule.unusable = val
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end,
+                get = function(_)
+                    return ele.displayRule.unusable or "gray"
+                end,
+            }
+            displaySettingOrder = displaySettingOrder + 1
         end
         if E:IsLeaf(ele) then
             displaySettingArgs.unlearnedDisplayRuleEnable = {
                 order = displaySettingOrder,
-                width = 2,
+                width = 1,
                 type = "toggle",
                 name = L["Not Owned"],
                 set = function(_, val)
@@ -1648,27 +1839,25 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 end,
             }
             displaySettingOrder = displaySettingOrder + 1
-            if ele.displayRule and ele.displayRule.unlearned ~= nil then
-                displaySettingArgs.unlearnedDisplayRule = {
-                    order = displaySettingOrder,
-                    width = 2,
-                    type = "select",
-                    name = "",
-                    values = const.DisplayStateRuleOptions,
-                    set = function(_, val)
-                        ele.displayRule.unlearned = val
-                        HbFrame:ReloadEframeUI(updateFrameConfig)
-                    end,
-                    get = function(_)
-                        return ele.displayRule.unlearned or "hide"
-                    end,
-                }
-                displaySettingOrder = displaySettingOrder + 1
-            end
-
+            displaySettingArgs.unlearnedDisplayRule = {
+                order = displaySettingOrder,
+                width = 1.5,
+                type = "select",
+                name = "",
+                values = const.DisplayStateRuleOptions,
+                disabled = function() return ele.displayRule == nil or ele.displayRule.unlearned == nil end,
+                set = function(_, val)
+                    ele.displayRule.unlearned = val
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end,
+                get = function(_)
+                    return ele.displayRule.unlearned or "hide"
+                end,
+            }
+            displaySettingOrder = displaySettingOrder + 1
             displaySettingArgs.unusableDisplayRuleEnable = {
                 order = displaySettingOrder,
-                width = 2,
+                width = 1,
                 type = "toggle",
                 name = L["Not Usable"],
                 set = function(_, val)
@@ -1687,29 +1876,27 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 end,
             }
             displaySettingOrder = displaySettingOrder + 1
-            if ele.displayRule and ele.displayRule.unusable ~= nil then
                 displaySettingArgs.unusableDisplayRule = {
-                    order = displaySettingOrder,
-                    width = 2,
-                    type = "select",
-                    name = "",
-                    values = const.DisplayStateRuleOptions,
-                    set = function(_, val)
-                        ele.displayRule.unusable = val
-                        HbFrame:ReloadEframeUI(updateFrameConfig)
-                    end,
-                    get = function(_)
-                        return ele.displayRule.unusable or "gray"
-                    end,
-                }
-                displaySettingOrder = displaySettingOrder + 1
-            end
+                order = displaySettingOrder,
+                width = 1.5,
+                type = "select",
+                name = "",
+                disabled = function() return ele.displayRule == nil or ele.displayRule.unusable == nil end,
+                values = const.DisplayStateRuleOptions,
+                set = function(_, val)
+                    ele.displayRule.unusable = val
+                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                end,
+                get = function(_)
+                    return ele.displayRule.unusable or "gray"
+                end,
+            }
+            displaySettingOrder = displaySettingOrder + 1
         end
-
         if isRoot then
             displaySettingArgs.isShowQualityBorder = {
                 order = displaySettingOrder,
-                width = 2,
+                width = "full",
                 type = 'toggle',
                 name = L["Show Item Quality Color"],
                 get = function(_)
@@ -1724,11 +1911,18 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
         end
 
         if isRoot and (not E:IsSingleIconConfig(ele)) then
+            displaySettingArgs.elementsGrowthText = {
+                order = displaySettingOrder,
+                width = 1,
+                type = "description",
+                name = L["Direction of elements growth"]
+            }
+            displaySettingOrder = displaySettingOrder + 1
             displaySettingArgs.elementsGrowth = {
                 order = displaySettingOrder,
                 width = 2,
                 type = 'select',
-                name = L["Direction of elements growth"],
+                name = "",
                 values = const.GrowthOptions,
                 set = function(_, val)
                     ele.elesGrowth = val
@@ -1825,6 +2019,13 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         end
                         return nil
                     end
+                }
+                textSettingOrder = textSettingOrder + 1
+                textSettingArgs.space1 = {
+                    order = textSettingOrder,
+                    type = "description",
+                    width = "full",
+                    name = ""
                 }
                 textSettingOrder = textSettingOrder + 1
                 textSettingArgs.TextOfCountToogle = {
@@ -1927,21 +2128,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 type = "group",
                 name = L["ItemGroup"],
                 args = {
-                    title = {
-                        order = 1,
-                        width = "full",
-                        type = "input",
-                        name = L["Title"],
-                        set = function(_, val)
-                            addon.G.tmpCreateItemGroupTitle = val
-                        end,
-                        get = function()
-                            return addon.G.tmpCreateItemGroupTitle
-                        end,
-                    },
                     mode = {
-                        order = 2,
-                        width = "full",
+                        order = 1,
+                        width = 1.5,
                         type = "select",
                         name = L["Mode"],
                         values = const.ItemsGroupModeOptions,
@@ -1952,12 +2141,13 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                             return addon.G.tmpCreateItemGroupMode or const.ITEMS_GROUP_MODE.RANDOM
                         end,
                     },
-                    create = {
-                        order = 3,
-                        type = "execute",
-                        name = L["Create"],
-                        confirm = true,
-                        func = function()
+                    title = {
+                        order = 2,
+                        width = 1.5,
+                        type = "input",
+                        name = L["Title"],
+                        set = function(_, val)
+                            addon.G.tmpCreateItemGroupTitle = val
                             local title = addon.G.tmpCreateItemGroupTitle
                             if title == nil or title == "" or title == " " then
                                 title = L["ItemGroup"]
@@ -1973,6 +2163,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                             HbFrame:ReloadEframeUI(updateFrameConfig)
                             AceConfigDialog:SelectGroup(addonName, unpack(
                                 selectGroupsAfterAddItemInBar))
+                        end,
+                        get = function()
+                            return addon.G.tmpCreateItemGroupTitle
                         end,
                     },
                 },
@@ -1995,6 +2188,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                             addon.G.tmpCreateItemVerifyPending = false
                             addon.G.tmpCreateItem = nil
                             addon.G.tmpCreateItemVerifyError = nil
+                            addon.G.tmpCreateItemDisplayText = nil
                             NotifyOptionsChanged()
                         end,
                         get = function()
@@ -2010,6 +2204,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                             return true
                         end,
                         set = function(_, val)
+                            if addon.G.tmpCreateItemDisplayText ~= nil and val == addon.G.tmpCreateItemDisplayText then
+                                return
+                            end
                             -- 重置校验状态
                             addon.G.tmpCreateItemVal = val
                             addon.G.tmpCreateItemVerified = false
@@ -2037,9 +2234,38 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
 
                                 addon.G.tmpCreateItemVerifyPending = false
                                 if ok then
+                                    if item == nil then
+                                        addon.G.tmpCreateItemVerified = false
+                                        addon.G.tmpCreateItem = nil
+                                        addon.G.tmpCreateItemVerifyError = L["Invalid item input, please check and re-enter."]
+                                        Config.ShowErrorDialog(addon.G.tmpCreateItemVerifyError, selectGroupsInBarCreateItem)
+                                        NotifyOptionsChanged()
+                                        return
+                                    end
                                     addon.G.tmpCreateItemVerified = true
                                     addon.G.tmpCreateItem = item
                                     addon.G.tmpCreateItemVerifyError = nil
+
+                                    local itemTitle = item.name or tostring(item.id) or L["Item"]
+                                    local newElement = E:New(
+                                        Config.GetNewElementTitle(itemTitle, ele.elements),
+                                        const.ELEMENT_TYPE.ITEM)
+                                    local createdItem = E:ToItem(newElement)
+                                    createdItem.extraAttr = U.Table.DeepCopyDict(item)
+                                    createdItem.icon = item.icon
+                                    table.insert(ele.elements, createdItem)
+
+                                    addon.G.tmpCreateItemVal = nil
+                                    addon.G.tmpCreateItemType = const.ITEM_TYPE.ITEM
+                                    addon.G.tmpCreateItemVerified = false
+                                    addon.G.tmpCreateItemVerifyPending = false
+                                    addon.G.tmpCreateItem = nil
+                                    addon.G.tmpCreateItemVerifyError = nil
+                                    addon.G.tmpCreateItemDisplayText = nil
+
+                                    HbFrame:ReloadEframeUI(updateFrameConfig)
+                                    AceConfigDialog:SelectGroup(addonName, unpack(
+                                        selectGroupsAfterAddItemInBar))
                                 else
                                     addon.G.tmpCreateItemVerified = false
                                     addon.G.tmpCreateItem = nil
@@ -2051,66 +2277,6 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         end,
                         get = function()
                             return addon.G.tmpCreateItemVal
-                        end,
-                    },
-                    -- 物品预览：显示图标、名称、制造业品质标记（验证通过时显示）
-                    itemPreview = {
-                        order = 3,
-                        width = "full",
-                        type = "description",
-                        fontSize = "medium",
-                        name = function()
-                            local item = addon.G.tmpCreateItem
-                            if not item then return "" end
-                            local iconStr = item.icon and ("|T" .. tostring(item.icon) .. ":16|t") or ""
-                            local nameStr = item.name or tostring(item.id) or ""
-                            local qualityMarkup = GetCraftingQualityMarkup(item.id) -- 制造业品质图标
-                            return iconStr .. nameStr .. qualityMarkup
-                        end,
-                        hidden = function()
-                            return addon.G.tmpCreateItemVerified ~= true -- 校验未通过时隐藏
-                        end,
-                    },
-                    create = {
-                        order = 4,
-                        width = 2,
-                        type = "execute",
-                        name = L["Create"],
-                        confirm = true,
-                        -- 按钮禁用条件：正在验证中 或 验证未通过
-                        disabled = function()
-                            if addon.G.tmpCreateItemVerifyPending then
-                                return true
-                            end
-                            return addon.G.tmpCreateItemVerified ~= true
-                        end,
-                        func = function()
-                            -- 直接使用预先验证过的物品信息，不再重复校验
-                            local newItem = addon.G.tmpCreateItem
-                            if newItem == nil then
-                                local err = addon.G.tmpCreateItemVerifyError or L["Please confirm item input first."]
-                                Config.ShowErrorDialog(err, selectGroupsInBarCreateItem)
-                                return
-                            end
-                            local itemTitle = newItem.name or tostring(newItem.id) or L["Item"]
-                            local item = E:New(
-                                Config.GetNewElementTitle(itemTitle, ele.elements),
-                                const.ELEMENT_TYPE.ITEM)
-                            item.extraAttr = U.Table.DeepCopyDict(newItem)
-                            item.icon = newItem.icon
-                            table.insert(ele.elements, item)
-
-                            -- 重置所有临时校验状态
-                            addon.G.tmpCreateItemVal = nil
-                            addon.G.tmpCreateItemType = const.ITEM_TYPE.ITEM
-                            addon.G.tmpCreateItemVerified = false
-                            addon.G.tmpCreateItemVerifyPending = false
-                            addon.G.tmpCreateItem = nil
-                            addon.G.tmpCreateItemVerifyError = nil
-
-                            HbFrame:ReloadEframeUI(updateFrameConfig)
-                            AceConfigDialog:SelectGroup(addonName, unpack(
-                                selectGroupsAfterAddItemInBar))
                         end,
                     },
                 },
@@ -2136,7 +2302,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         order = 2,
                         type = 'input',
                         name = L["Macro"],
-                        multiline = 12,
+                        multiline = 10,
                         width = "full",
                         validate = function(_, val)
                             local macroAstR = Macro:Ast(val)
@@ -2148,18 +2314,6 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         end,
                         set = function(_, val)
                             addon.G.tmpCreateMacroVal = val
-                        end,
-                        get = function()
-                            return addon.G.tmpCreateMacroVal
-                        end,
-                    },
-                    create = {
-                        order = 3,
-                        width = 2,
-                        type = "execute",
-                        name = L["Create"],
-                        confirm = true,
-                        func = function()
                             local title = addon.G.tmpCreateMacroTitle
                             if title == nil or title == "" or title == " " then
                                 title = L["Macro"]
@@ -2181,6 +2335,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                             HbFrame:ReloadEframeUI(updateFrameConfig)
                             AceConfigDialog:SelectGroup(addonName, unpack(
                                 selectGroupsAfterAddItemInBar))
+                        end,
+                        get = function()
+                            return addon.G.tmpCreateMacroVal
                         end,
                     },
                 },
@@ -2206,7 +2363,7 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         order = 2,
                         type = 'input',
                         name = L["Script"],
-                        multiline = 12,
+                        multiline = 10,
                         width = "full",
                         validate = function(_, val)
                             local func, loadstringErr = loadstring(val)
@@ -2217,18 +2374,6 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                         end,
                         set = function(_, val)
                             addon.G.tmpCreateScriptVal = val
-                        end,
-                        get = function()
-                            return addon.G.tmpCreateScriptVal
-                        end,
-                    },
-                    create = {
-                        order = 3,
-                        width = 2,
-                        type = "execute",
-                        name = L["Create"],
-                        confirm = true,
-                        func = function()
                             local title = addon.G.tmpCreateScriptTitle
                             if title == nil or title == "" or title == " " then
                                 title = L["Script"]
@@ -2245,6 +2390,9 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                             HbFrame:ReloadEframeUI(updateFrameConfig)
                             AceConfigDialog:SelectGroup(addonName, unpack(
                                 selectGroupsAfterAddItemInBar))
+                        end,
+                        get = function()
+                            return addon.G.tmpCreateScriptVal
                         end,
                     },
                 },
@@ -2264,7 +2412,6 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
 
             local barSettingTabArgs = {
                 elementSetting = U.Table.DeepCopy(args.elementSetting),
-                baseSetting = U.Table.DeepCopy(args.baseSetting),
                 displaySetting = U.Table.DeepCopy(args.displaySetting),
                 textSetting = U.Table.DeepCopy(args.textSetting),
             }
@@ -2272,24 +2419,13 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 barSettingTabArgs.elementSetting.name = L["Basic"]
                 barSettingTabArgs.elementSetting.order = 1
             end
-            if barSettingTabArgs.elementSetting and args.positionSetting then
-                local positionSettingGroup = U.Table.DeepCopy(args.positionSetting)
-                positionSettingGroup.name = L["Position"]
-                positionSettingGroup.order = 100
-                positionSettingGroup.inline = true
-                barSettingTabArgs.elementSetting.args.positionSetting = positionSettingGroup
-            end
-            if barSettingTabArgs.baseSetting then
-                barSettingTabArgs.baseSetting.name = L["Actions"]
-                barSettingTabArgs.baseSetting.order = 2
-            end
             if barSettingTabArgs.displaySetting then
                 barSettingTabArgs.displaySetting.name = L["Display"]
-                barSettingTabArgs.displaySetting.order = 3
+                barSettingTabArgs.displaySetting.order = 2
             end
             if barSettingTabArgs.textSetting then
                 barSettingTabArgs.textSetting.name = L["Text"]
-                barSettingTabArgs.textSetting.order = 4
+                barSettingTabArgs.textSetting.order = 3
             end
             local barArgs = {}
             barArgs["barSetting"] = {
@@ -2323,12 +2459,72 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
             }
         else
             -- 简化子元素 Tab 标题
-            if args.elementSetting then args.elementSetting.name = L["Basic"] end
-            if args.baseSetting then args.baseSetting.name = L["Actions"] end
+            if ele.type ~= const.ELEMENT_TYPE.ITEM and args.elementSetting then args.elementSetting.name = L["Basic"] end
+            if args.baseSetting then args.baseSetting.name = L["Settings"] end
             if args.bindkeySetting then args.bindkeySetting.name = L["Bindkey"] end
             if args.displaySetting then args.displaySetting.name = L["Display"] end
             if args.textSetting then args.textSetting.name = L["Text"] end
             if args.eventSetting then args.eventSetting.name = L["Event"] end
+            if (ele.type == const.ELEMENT_TYPE.ITEM_GROUP or ele.type == const.ELEMENT_TYPE.SCRIPT or ele.type == const.ELEMENT_TYPE.MACRO)
+                and args.elementSetting and args.baseSetting then
+                local movedArgs = args.baseSetting.args
+                if movedArgs then
+                    local nextOrder = GetMaxArgOrder(args.elementSetting.args) + 1
+                    for movedKey, movedArg in pairs(movedArgs) do
+                        args.elementSetting.args[movedKey] = movedArg
+                        if type(movedArg) == "table" and type(movedArg.order) == "number" then
+                            movedArg.order = nextOrder
+                            nextOrder = nextOrder + 1
+                        end
+                    end
+                end
+                args.baseSetting = nil
+                args.elementSetting.name = L["Settings"]
+
+                local tabOrder = 1
+                if args.elementSetting then
+                    args.elementSetting.order = tabOrder
+                    tabOrder = tabOrder + 1
+                end
+                if args.bindkeySetting then
+                    args.bindkeySetting.order = tabOrder
+                    tabOrder = tabOrder + 1
+                end
+                if args.displaySetting then
+                    args.displaySetting.order = tabOrder
+                    tabOrder = tabOrder + 1
+                end
+                if args.textSetting then
+                    args.textSetting.order = tabOrder
+                    tabOrder = tabOrder + 1
+                end
+                if args.eventSetting then
+                    args.eventSetting.order = tabOrder
+                end
+            end
+            if ele.type == const.ELEMENT_TYPE.ITEM then
+                args.elementSetting = nil
+                local tabOrder = 1
+                if args.baseSetting then
+                    args.baseSetting.order = tabOrder
+                    tabOrder = tabOrder + 1
+                end
+                if args.bindkeySetting then
+                    args.bindkeySetting.order = tabOrder
+                    tabOrder = tabOrder + 1
+                end
+                if args.displaySetting then
+                    args.displaySetting.order = tabOrder
+                    tabOrder = tabOrder + 1
+                end
+                if args.textSetting then
+                    args.textSetting.order = tabOrder
+                    tabOrder = tabOrder + 1
+                end
+                if args.eventSetting then
+                    args.eventSetting.order = tabOrder
+                end
+            end
             eleArgs["elementMenu" .. i] = {
                 type = 'group',
                 childGroups = "tab",
@@ -2394,7 +2590,7 @@ function ConfigOptions.ElementsOptions()
                 order = 7,
                 type = 'input',
                 name = L["Configuration string"],
-                multiline = 20,
+                multiline = 10,
                 width = "full",
                 set = function(_, val)
                     addon.G.tmpImportElementConfigString = val
@@ -2548,6 +2744,7 @@ function addon:OnInitialize()
         tmpCreateItemVerifyToken = 0,
         tmpCreateItemVerifyError = nil,
         tmpCreateItem = nil, ---@type ItemAttr | nil
+        tmpCreateItemDisplayText = nil,
         tmpCreateMacroTitle = nil,
         tmpCreateMacroVal = nil,
         tmpCreateMacroAst = nil,
@@ -2569,7 +2766,7 @@ function addon:OnInitialize()
     -- 注册选项表
     AceConfig:RegisterOptionsTable(addonName, ConfigOptions.Options)
     Config.PatchAceConfigTooltipSetText()
-    AceConfigDialog:SetDefaultSize(addonName, 900, 600)
+    AceConfigDialog:SetDefaultSize(addonName, DEFAULT_CONFIG_UI_WIDTH, DEFAULT_CONFIG_UI_HEIGHT)
     -- 在Blizzard界面选项中添加一个子选项
     -- self.optionsFrame = AceConfigDialog:AddToBlizOptions(addonName, addonName)
     -- 输入 /HappyButton 或者 /hb 打开配置
@@ -2589,10 +2786,10 @@ function addon:OpenConfig()
         if frame then
             local status = AceConfigDialog:GetStatusTable(addonName)
             if status.width == nil then
-                status.width = 900
+                status.width = DEFAULT_CONFIG_UI_WIDTH
             end
             if status.height == nil then
-                status.height = 600
+                status.height = DEFAULT_CONFIG_UI_HEIGHT
             end
             frame:SetWidth(status.width)
             frame:SetHeight(status.height)

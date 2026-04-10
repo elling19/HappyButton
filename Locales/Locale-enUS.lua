@@ -43,6 +43,7 @@ L["Unable to get the icon, please check the input."] = true
 L["Item data is not ready yet, please try again."] = true
 L["Please confirm item input first."] = true
 L["Invalid item input, please check and re-enter."] = true
+L["Modify"] = true
 L["ID"] = true
 L["Name"] = true
 L["Type"] = true

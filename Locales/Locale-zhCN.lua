@@ -45,6 +45,7 @@ L["Unable to get the icon, please check the input."] = "无法获取物品图标
 L["Item data is not ready yet, please try again."] = "物品数据尚未就绪，请稍后重试。"
 L["Please confirm item input first."] = "请先确认物品输入内容。"
 L["Invalid item input, please check and re-enter."] = "物品输入有误，请检查后重新输入。"
+L["Modify"] = "修改"
 L["ID"] = "ID"
 L["Name"] = "名称"
 L["Type"] = "类型"
