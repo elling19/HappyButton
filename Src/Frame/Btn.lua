@@ -28,6 +28,9 @@ local Api = addon:GetModule("Api")
 ---@diagnostic disable-next-line: assign-type-mismatch
 local LCG = LibStub("LibCustomGlow-1.0")
 
+local FONT_PATH = DAMAGE_TEXT_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
+local TEXT_COLOR_WHITE = { 1, 1, 1, 1 }
+
 
 ---@class Btn: AceModule
 ---@diagnostic disable-next-line: undefined-doc-name
@@ -48,6 +51,63 @@ local LCG = LibStub("LibCustomGlow-1.0")
 ---@field MasqueGroup table | nil
 ---@field isMasqueSkinned boolean | nil
 local Btn = addon:NewModule("Btn")
+
+---@return number
+function Btn:GetIconBaseSize()
+    local w = self.Button and self.Button:GetWidth() or self.EFrame.IconWidth or 0
+    local h = self.Button and self.Button:GetHeight() or self.EFrame.IconHeight or 0
+    local base = math.min(w, h)
+    if base <= 0 then
+        base = math.min(self.EFrame.IconWidth or 36, self.EFrame.IconHeight or 36)
+    end
+    return base
+end
+
+---@param ratio number
+---@param minSize number
+---@param maxSize number
+---@return number
+function Btn:GetDynamicFontSize(ratio, minSize, maxSize)
+    local size = math.floor(self:GetIconBaseSize() * ratio + 0.5)
+    if size < minSize then
+        return minSize
+    end
+    if size > maxSize then
+        return maxSize
+    end
+    return size
+end
+
+---@param ratio number
+---@param minMargin number
+---@param maxMargin number
+---@return number
+function Btn:GetDynamicMargin(ratio, minMargin, maxMargin)
+    local margin = math.floor(self:GetIconBaseSize() * ratio + 0.5)
+    if margin < minMargin then
+        return minMargin
+    end
+    if margin > maxMargin then
+        return maxMargin
+    end
+    return margin
+end
+
+---@param fString FontString
+---@param ratio number
+---@param minSize number
+---@param maxSize number
+---@param isDim boolean|nil
+function Btn:ApplyFontStyle(fString, ratio, minSize, maxSize, isDim)
+    if fString == nil then
+        return
+    end
+    local fontSize = self:GetDynamicFontSize(ratio, minSize, maxSize)
+    fString:SetFont(FONT_PATH, fontSize, "")
+    fString:SetTextColor(unpack(TEXT_COLOR_WHITE))
+    fString:SetShadowColor(0, 0, 0, 0)
+    fString:SetShadowOffset(0, 0)
+end
 
 -- 应用按钮样式，优先级：Masque > ElvUI/NDui > 原生
 function Btn:ApplyButtonSkin()
@@ -228,11 +288,16 @@ function Btn:UpdateBindkey(event)
     if self:PassBindKeyCond(event) then
         if self.BindkeyString == nil then
             self.BindkeyString = self.Button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-            self.BindkeyString:SetTextColor(1, 1, 1)
-            local fontSize = self.EFrame.IconWidth / 3
-            self.BindkeyString:SetFont("Fonts\\FRIZQT__.TTF", fontSize, "OUTLINE")
-            self.BindkeyString:SetPoint("TOPRIGHT", self.Button, "TOPRIGHT", -2, -2)
         end
+        -- 角落边距建议比例：图标最短边 * 0.06
+        local bindKeyMargin = self:GetDynamicMargin(0.06, 2, 8)
+        self.BindkeyString:ClearAllPoints()
+        self.BindkeyString:SetPoint("TOPRIGHT", self.Button, "TOPRIGHT", -bindKeyMargin, -bindKeyMargin)
+        -- 绑定键建议字号比例：图标最短边 * 0.38（整体再放大）
+        self:ApplyFontStyle(self.BindkeyString, 0.38, 11, 24)
+        -- 仅按键文字保留轻微阴影，提升纯白字体可读性
+        self.BindkeyString:SetShadowColor(0, 0, 0, 0.95)
+        self.BindkeyString:SetShadowOffset(1, -1)
         if self.BindKey ~= bindKey.key then
             self:SetOverrideBinding(bindKey.key)
             self.BindkeyString:SetText(self:GetBindKeyShort(bindKey.key))
@@ -321,8 +386,8 @@ function Btn:GetBindKeyShort(bindkey)
         end
     end
 
-    -- 合并修饰键和数字/字母，使用"-"连接
-    return table.concat(parts, "-")
+    -- 合并修饰键和数字/字母，不使用连接符（例如 A1、CS2）
+    return table.concat(parts, "")
 end
 
 -- 创建图标Icon
@@ -368,11 +433,12 @@ function Btn:UpdateTexts()
             local textFrame = CreateFrame("Frame", nil, self.Button)
             local fString = textFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
             fString:SetPoint("CENTER", textFrame, "CENTER")
-            fString:SetTextColor(1, 1, 1) -- 默认使用白色
             table.insert(self.Texts, {textFrame, fString})
         end
         local textFrame, fString = unpack(self.Texts[tIndex])
         if text.text == "%n" then
+            -- 名称文本建议字号比例：图标最短边 * 0.30（整体放大）
+            self:ApplyFontStyle(fString, 0.30, 11, 24)
             local t = self.CbResult.text or (self.CbResult.item and self.CbResult.item.name) or self.CbInfo.p.title or ""
             if text.growth == const.TEXT_GROWTH.TOP then
                 fString:SetText(U.String.ToVertical(t))
@@ -408,14 +474,16 @@ function Btn:UpdateTexts()
                     textFrame:SetPoint("LEFT", self.Button, "RIGHT", margin, 0)
                 end
             end
-            -- 如果没有学习这个技能，则将文字改成灰色半透明
+            -- 未学会时使用更深灰色，提高状态辨识度
             if self.CbResult.isLearned == false then
-                fString:SetTextColor(0.8, 0.8, 0.8)
+                self:ApplyFontStyle(fString, 0.30, 11, 24, true)
             else
-                fString:SetTextColor(1, 1, 1)
+                self:ApplyFontStyle(fString, 0.30, 11, 24)
             end
         end
         if text.text == "%s" then
+            -- 数量文本建议字号比例：图标最短边 * 0.36（同步放大）
+            self:ApplyFontStyle(fString, 0.36, 12, 28)
             if self.CbResult.count ~= nil then
                 fString:SetText(tostring(self.CbResult.count))
             else
@@ -535,7 +603,9 @@ function Btn:CreateCoolDown()
     if self.Cooldown == nil then
         self.Cooldown = CreateFrame("Cooldown", nil, self.Button, "CooldownFrameTemplate")
         self.Cooldown:SetAllPoints()                -- 设置冷却效果覆盖整个按钮
-        self.Cooldown:SetDrawEdge(true)             -- 显示边缘
+        pcall(self.Cooldown.SetDrawSwipe, self.Cooldown, false) -- 关闭圆形遮罩
+        pcall(self.Cooldown.SetDrawEdge, self.Cooldown, false)  -- 关闭边缘圈
+        pcall(self.Cooldown.SetDrawBling, self.Cooldown, false) -- 关闭结束闪光
         self.Cooldown:SetHideCountdownNumbers(false) -- 显示倒计时数字
         if addon.G.Masque then
             self:ApplyMasqueSkin()
