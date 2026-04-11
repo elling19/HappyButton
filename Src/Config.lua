@@ -42,7 +42,19 @@ local AceGUI = LibStub("AceGUI-3.0")
 ---@class Config
 local Config = {}
 local tooltipSetTextPatched = setmetatable({}, { __mode = "k" })
-local DEFAULT_CONFIG_UI_WIDTH = 900
+-- Ace3 width notes:
+-- 1. AceConfigDialog uses width_multiplier = 170, so width = 1 means 170px.
+-- 2. In the main Tree + Scroll layout, effective full width is:
+--    full = DEFAULT_CONFIG_UI_WIDTH - 34 (Frame content) - 175 (Tree) - 20 (Tree gap) - 20 (ScrollBar)
+--         = DEFAULT_CONFIG_UI_WIDTH - 249
+-- 3. To keep full and numeric widths on the same ratio base, use:
+--    DEFAULT_CONFIG_UI_WIDTH = 249 + 170 * N
+--    where N is how many width = 1 units should fit into a full row.
+-- 4. Strict proportional width candidates:
+--    N = 3 -> 759/760, N = 4 -> 929/930, N = 5 -> 1099/1100,
+--    N = 6 -> 1269/1270, N = 7 -> 1439/1440
+-- 5. Current value 960 is a readability-oriented width, not a strict N-integer proportional width.
+local DEFAULT_CONFIG_UI_WIDTH = 930
 local DEFAULT_CONFIG_UI_HEIGHT = 600
 
 ---@param itemID number | nil
@@ -1353,6 +1365,28 @@ local function GetElementOptions(elements, topEleConfig, selectGroups)
                 end
             }
             actionOrder = actionOrder + 1
+            if (not isRoot) and ele.type == const.ELEMENT_TYPE.ITEM then
+                actionGroupArgs.copy = {
+                    order = actionOrder,
+                    width = 2/3,
+                    type = 'execute',
+                    name = L["Copy"],
+                    func = function()
+                        local copiedItem = U.Table.DeepCopy(ele)
+                        copiedItem.title = Config.GetNewElementTitle(ele.title or L["Item"], elements)
+                        table.insert(elements, i + 1, copiedItem)
+                        local copySelectGroups = U.Table.DeepCopyList(selectGroups)
+                        table.insert(copySelectGroups, "elementMenu" .. i + 1)
+                        AceConfigDialog:SelectGroup(addonName, unpack(copySelectGroups))
+                        if topEleConfig == nil then
+                            HbFrame:ReloadEframeUI(updateFrameConfig)
+                        else
+                            HbFrame:ReloadEframeUI(topEleConfig)
+                        end
+                    end
+                }
+                actionOrder = actionOrder + 1
+            end
             if not isRoot then
                 actionGroupArgs.delete = {
                     order = actionOrder,
