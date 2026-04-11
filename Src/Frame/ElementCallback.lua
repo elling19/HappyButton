@@ -392,13 +392,13 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
         end
         -- 玩具
         if const.ITEM_TYPE.TOY == cbResult.item.type then
-            if cbResult.isLearned == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "NEW_TOY_ADDED" }, event) then
+            if cbResult.isLearned == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "NEW_TOY_ADDED", "TOYS_UPDATED" }, event) then
                 cbResult.isLearned = Item:IsLearned(cbResult.item.id, cbResult.item.type)
                 if cbResult.isLearned == false then
                     return
                 end
             end
-            if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", }, event) then
+            if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "TOYS_UPDATED" }, event) then
                 cbResult.isUsable = Item:IsUsable(cbResult.item.id, cbResult.item.type)
             end
             if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED", "MODIFIER_STATE_CHANGED"}, event) then

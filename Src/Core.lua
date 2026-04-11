@@ -23,12 +23,22 @@ BarCore.Frame = CreateFrame("Frame")
 
 BarCore.DelayFrame = CreateFrame("Frame")
 
+BarCore.IsInitialized = false
+
 -- 初始化配置
 function BarCore:Initial()
     PlayerCache:Initial()
     AttachFrameCache:Initial()
     ItemCache:Initial()
     HbFrame:Initial()
+end
+
+function BarCore:EnsureInitial()
+    if self.IsInitialized then
+        return
+    end
+    self:Initial()
+    self.IsInitialized = true
 end
 
 ---@type table<EventString, boolean> key表示事件名称，value表示是否循环监听
@@ -51,6 +61,7 @@ local registerEvents = {
     ["PET_BAR_UPDATE_COOLDOWN"] = true,         -- 宠物相关
     ["NEW_PET_ADDED"] = true,                   -- 学会新的宠物
     ["NEW_TOY_ADDED"] = true,                   -- 学会新的玩具
+    ["TOYS_UPDATED"] = true,                    -- 玩具盒数据更新
     ["SPELL_UPDATE_COOLDOWN"] = false,          -- 触发冷却
     ["ADDON_LOADED"] = false,                   -- 加载插件
     ["CVAR_UPDATE"] = false,                    -- 改变cvar
@@ -75,8 +86,16 @@ function BarCore:Start()
     end
     BarCore.Frame:SetScript("OnEvent", function(_, event, ...)
         local args = { ... }
-        if event == "PLAYER_LOGIN" then
-            BarCore:Initial()
+        if event == "ADDON_LOADED" and args[1] == addonName then
+            BarCore:EnsureInitial()
+        end
+        if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then
+            BarCore:EnsureInitial()
+        end
+        if event == "PLAYER_ENTERING_WORLD" and (args[1] == true or args[2] == true) then
+            C_Timer.After(0.3, function()
+                HbFrame:UpdateAllEframes("PLAYER_ENTERING_WORLD", {})
+            end)
         end
         if event == "PLAYER_REGEN_DISABLED" then
             HbFrame:OnCombatEvent()
@@ -92,7 +111,7 @@ function BarCore:Start()
             ItemCache:UpdateGcd()
         end
         -- 当玩家技能发生改变的时候，如果配置文件中有需要更新的ItemAttr，则更新ItemAttr（这是由于API无法获取非当前玩家拥有技能的信息）
-        if event == "PLAYER_TALENT_UPDATE" or "SPELLS_CHANGED" then
+        if event == "PLAYER_TALENT_UPDATE" or event == "SPELLS_CHANGED" then
             HbFrame:CompleteItemAttr()
         end
         if registerEvents[event] == true then
