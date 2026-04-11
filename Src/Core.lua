@@ -53,6 +53,7 @@ local registerEvents = {
     ["PLAYER_TALENT_UPDATE"] = true,            -- 天赋改变（技能）
     ["PLAYER_TARGET_CHANGED"] = true,           -- 目标改变（脚本、触发器）
     ["BAG_UPDATE"] = true,                      -- 背包物品改变(物品、装备)
+    ["BAG_UPDATE_DELAYED"] = true,              -- 背包延迟更新（含邮箱取件后）
     ["MODIFIER_STATE_CHANGED"] = true,          -- 修饰按键按下
     ["UPDATE_MOUSEOVER_UNIT"] = true,           -- 鼠标指向改变
     ["ZONE_CHANGED"] = true,                    -- 区域改变

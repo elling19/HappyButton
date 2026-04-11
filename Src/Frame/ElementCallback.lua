@@ -352,17 +352,17 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
     if cbResult.item then
         -- 物品、装备
         if const.ITEM_TYPE.ITEM == cbResult.item.type or const.ITEM_TYPE.EQUIPMENT == cbResult.item.type then
-            if cbResult.isLearned == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE", "PLAYER_EQUIPMENT_CHANGED" }, event) then
+            if cbResult.isLearned == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE", "BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED" }, event) then
                 cbResult.isLearned = Item:IsLearned(cbResult.item.id, cbResult.item.type)
                 -- 如果物品没有学会，则默认不会对可用性和冷却进行判断以减少API调用
                 if cbResult.isLearned == false then
                     return
                 end
             end
-            if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE_COOLDOWN", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_EQUIPMENT_CHANGED" }, event) then
+            if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE", "BAG_UPDATE_DELAYED", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_EQUIPMENT_CHANGED" }, event) then
                 cbResult.isUsable = Item:IsUsable(cbResult.item.id, cbResult.item.type)
             end
-            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE_COOLDOWN", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_EQUIPMENT_CHANGED", "MODIFIER_STATE_CHANGED"}, event) then
+            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE", "BAG_UPDATE_DELAYED", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_EQUIPMENT_CHANGED", "MODIFIER_STATE_CHANGED"}, event) then
                 cbResult.itemCooldown = Item:GetCooldown(cbResult.item)
                 cbResult.isCooldown = Item:IsCooldown(cbResult.itemCooldown)
             end

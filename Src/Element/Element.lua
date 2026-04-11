@@ -143,12 +143,14 @@ function E:GetItemAttrEvents(itemAttr)
     end
     if itemAttr.type == const.ITEM_TYPE.ITEM then
         events["BAG_UPDATE"] = {}
+        events["BAG_UPDATE_DELAYED"] = {}
         events["UNIT_SPELLCAST_SUCCEEDED"] = {{"player"}, }
         events["HB_ITEM_COOLDOWN_CHNAGED"] = {}
         return events
     end
     if itemAttr.type == const.ITEM_TYPE.EQUIPMENT then
         events["BAG_UPDATE"] = {}
+        events["BAG_UPDATE_DELAYED"] = {}
         events["PLAYER_EQUIPMENT_CHANGED"] = {}
         events["UNIT_SPELLCAST_SUCCEEDED"] = {{"player"}, }
         events["HB_ITEM_COOLDOWN_CHNAGED"] = {}
