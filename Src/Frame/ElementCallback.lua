@@ -7,6 +7,9 @@ local E = addon:GetModule("Element")
 ---@class Item: AceModule
 local Item = addon:GetModule("Item")
 
+---@class ItemCache: AceModule
+local ItemCache = addon:GetModule("ItemCache")
+
 ---@class Utils: AceModule
 local U = addon:GetModule('Utils')
 
@@ -36,7 +39,7 @@ local ECB = addon:NewModule("ElementCallback")
 ---@field isCooldown boolean | nil 是否冷却中
 ---@field count number | nil 物品堆叠数量|技能充能次数
 ---@field item ItemAttr | nil
----@field itemCooldown CooldownInfo | nil
+---@field itemCooldown CooldownInfo | DurationObject | nil
 ---@field macro string | nil
 ---@field effects EffectConfig[] | nil
 ---@field displayRule DisplayRuleConfig | nil 当前命中物品的展示规则（用于覆盖父级规则）
@@ -362,7 +365,7 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
             if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE", "BAG_UPDATE_DELAYED", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_EQUIPMENT_CHANGED" }, event) then
                 cbResult.isUsable = Item:IsUsable(cbResult.item.id, cbResult.item.type)
             end
-            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE", "BAG_UPDATE_DELAYED", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_EQUIPMENT_CHANGED", "MODIFIER_STATE_CHANGED"}, event) then
+            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE", "BAG_UPDATE_DELAYED", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_EQUIPMENT_CHANGED", "MODIFIER_STATE_CHANGED", "SPELL_UPDATE_COOLDOWN"}, event) then
                 cbResult.itemCooldown = Item:GetCooldown(cbResult.item)
                 cbResult.isCooldown = Item:IsCooldown(cbResult.itemCooldown)
             end
@@ -379,8 +382,9 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
             if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED" }, event) then
                 cbResult.isUsable = Item:IsUsable(cbResult.item.id, cbResult.item.type)
             end
-            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED", "MODIFIER_STATE_CHANGED", "HB_GCD_UPDATE" }, event) then
-                cbResult.itemCooldown = Item:GetCooldown(cbResult.item)
+            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED", "MODIFIER_STATE_CHANGED", "HB_GCD_UPDATE", "SPELL_UPDATE_COOLDOWN" }, event) then
+                local newCooldown = Item:GetCooldown(cbResult.item)
+                cbResult.itemCooldown = newCooldown
                 cbResult.isCooldown = Item:IsCooldown(cbResult.itemCooldown)
             end
             if cbResult.count == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "SPELL_UPDATE_CHARGES" }, event) then
@@ -401,8 +405,9 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
             if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "TOYS_UPDATED" }, event) then
                 cbResult.isUsable = Item:IsUsable(cbResult.item.id, cbResult.item.type)
             end
-            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED", "MODIFIER_STATE_CHANGED"}, event) then
-                cbResult.itemCooldown = Item:GetCooldown(cbResult.item)
+            if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "TOYS_UPDATED", "UNIT_SPELLCAST_SUCCEEDED", "MODIFIER_STATE_CHANGED", "SPELL_UPDATE_COOLDOWN"}, event) then
+                local newCooldown = Item:GetCooldown(cbResult.item)
+                cbResult.itemCooldown = newCooldown
                 cbResult.isCooldown = Item:IsCooldown(cbResult.itemCooldown)
             end
             cbResult.count = nil
@@ -502,7 +507,6 @@ function ECB:UseTrigger(eleConfig, cbResult, rootConfig)
     elseif cbResult.isUsable == false and unusableRule ~= nil then
         AppendDisplayEffect(unusableRule)
     end
-
     cbResult.effects = effects
     return effects
 end

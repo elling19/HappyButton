@@ -21,11 +21,9 @@ local BarCore = addon:NewModule("BarCore")
 
 BarCore.Frame = CreateFrame("Frame")
 
-BarCore.DelayFrame = CreateFrame("Frame")
-
 BarCore.IsInitialized = false
 
--- 初始化配置
+-- 初始化
 function BarCore:Initial()
     PlayerCache:Initial()
     AttachFrameCache:Initial()
@@ -41,105 +39,168 @@ function BarCore:EnsureInitial()
     self.IsInitialized = true
 end
 
----@type table<EventString, boolean> key表示事件名称，value表示是否循环监听
+-- 事件配置
+---@class EventRegisterConfig
+---@field update boolean 是否触发按钮更新
+---@field interval number | nil 限流间隔（秒），nil表示不限流
+---@field delay boolean | nil 是否延迟到下一帧执行更新
+
+---@type table<EventString, EventRegisterConfig>
 local registerEvents = {
-    ["PLAYER_ENTERING_WORLD"] = true,           -- 读地图
-    ["PLAYER_LOGIN"] = true,                    -- 登录
-    ["UNIT_SPELLCAST_SUCCEEDED"] = true,        -- 施法成功
-    ["SPELL_UPDATE_CHARGES"] = true,            -- 技能充能改变
-    ["PLAYER_REGEN_ENABLED"] = true,            -- 退出战斗事件
-    ["PLAYER_EQUIPMENT_CHANGED"] = true,        -- 装备改变（物品、装备）
-    ["SPELLS_CHANGED"] = true,                  -- 技能改变（技能）
-    ["PLAYER_TALENT_UPDATE"] = true,            -- 天赋改变（技能）
-    ["PLAYER_TARGET_CHANGED"] = true,           -- 目标改变（脚本、触发器）
-    ["BAG_UPDATE"] = true,                      -- 背包物品改变(物品、装备)
-    ["BAG_UPDATE_DELAYED"] = true,              -- 背包延迟更新（含邮箱取件后）
-    ["MODIFIER_STATE_CHANGED"] = true,          -- 修饰按键按下
-    ["UPDATE_MOUSEOVER_UNIT"] = true,           -- 鼠标指向改变
-    ["ZONE_CHANGED"] = true,                    -- 区域改变
-    ["MOUNT_JOURNAL_USABILITY_CHANGED"] = true, -- 坐骑可用改变
-    ["NEW_MOUNT_ADDED"] = true,                 -- 学会新的坐骑
-    ["PET_BAR_UPDATE_COOLDOWN"] = true,         -- 宠物相关
-    ["NEW_PET_ADDED"] = true,                   -- 学会新的宠物
-    ["NEW_TOY_ADDED"] = true,                   -- 学会新的玩具
-    ["TOYS_UPDATED"] = true,                    -- 玩具盒数据更新
-    ["SPELL_UPDATE_COOLDOWN"] = false,          -- 触发冷却
-    ["ADDON_LOADED"] = false,                   -- 加载插件
-    ["CVAR_UPDATE"] = false,                    -- 改变cvar
-    ["PLAYER_REGEN_DISABLED"] = false,          -- 进入战斗事件
+    ["ADDON_LOADED"] = { update = false },                               -- 加载插件
+    ["PLAYER_LOGIN"] = { update = true },                                -- 登录
+    ["PLAYER_ENTERING_WORLD"] = { update = true },                       -- 进入世界/读地图
+
+    ["PLAYER_REGEN_DISABLED"] = { update = false },                      -- 进入战斗，战斗相关事件不限流
+    ["PLAYER_REGEN_ENABLED"] = { update = true },                        -- 退出战斗，战斗相关事件不限流
+    ["SPELL_UPDATE_COOLDOWN"] = { update = true, interval = 0.05 },      -- 触发冷却，需刷新图标冷却计时
+    ["SPELL_UPDATE_CHARGES"] = { update = true },                        -- 技能充能改变，战斗相关事件不限流
+    ["SPELL_UPDATE_USABLE"] = { update = true },                         -- 技能可用性改变，战斗相关事件不限流
+    ["SPELLS_CHANGED"] = { update = true },                              -- 技能改变
+    ["PLAYER_TALENT_UPDATE"] = { update = true },                        -- 天赋改变
+
+    ["BAG_UPDATE"] = { update = true, interval = 0.20 },                 -- 背包物品改变
+    ["BAG_UPDATE_DELAYED"] = { update = true, interval = 0.20 },         -- 背包延迟更新（含邮箱取件后）
+    ["BAG_UPDATE_COOLDOWN"] = { update = true, interval = 0.05 },        -- 背包物品冷却变化
+    ["PLAYER_EQUIPMENT_CHANGED"] = { update = true },                    -- 装备改变
+
+    ["PLAYER_TARGET_CHANGED"] = { update = true },                       -- 目标改变
+    ["UPDATE_MOUSEOVER_UNIT"] = { update = true, interval = 0.03, delay = true }, -- 鼠标指向改变
+    ["MODIFIER_STATE_CHANGED"] = { update = true, interval = 0.03 },     -- 修饰按键按下
+    ["ZONE_CHANGED"] = { update = true },                                -- 区域改变
+
+    ["MOUNT_JOURNAL_USABILITY_CHANGED"] = { update = true },             -- 坐骑可用改变
+    ["NEW_MOUNT_ADDED"] = { update = true },                             -- 学会新的坐骑
+    ["PET_BAR_UPDATE_COOLDOWN"] = { update = true },                     -- 宠物相关
+    ["NEW_PET_ADDED"] = { update = true },                               -- 学会新的宠物
+    ["NEW_TOY_ADDED"] = { update = true },                               -- 学会新的玩具
+    ["TOYS_UPDATED"] = { update = true },                                -- 玩具盒数据更新
+
+    ["CVAR_UPDATE"] = { update = false },                                -- 改变 cvar
 }
 
--- 限流事件
-local throttlingEvents = {
-    ["BAG_UPDATE"] = {},
+---@type table<EventString, {waiting: boolean, hasPending: boolean, pendingArgs: any[]|nil}>
+local throttleStates = {}
+
+-- 临时调试：输出指定事件是否触发
+local debugEvents = {
+    ["BAG_UPDATE_DELAYED"] = true,
+    ["SPELL_UPDATE_USABLE"] = true,
+    ["TOYS_UPDATED"] = true,
 }
 
--- 延迟事件
-local delayEvents = {
-    ["UPDATE_MOUSEOVER_UNIT"] = true,
-    ["UNIT_SPELLCAST_SUCCEEDED"] = true
-}
+---@param event EventString
+---@param eventArgs any[]
+function BarCore:HandleEventSideEffects(event, eventArgs)
+    if event == "ADDON_LOADED" and eventArgs[1] == addonName then
+        BarCore:EnsureInitial()
+    end
+
+    if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then
+        BarCore:EnsureInitial()
+    end
+
+    if event == "PLAYER_ENTERING_WORLD" and (eventArgs[1] == true or eventArgs[2] == true) then
+        C_Timer.After(0.3, function()
+            HbFrame:UpdateAllEframes("PLAYER_ENTERING_WORLD", {})
+        end)
+    end
+
+    if event == "PLAYER_REGEN_DISABLED" then
+        HbFrame:OnCombatEvent()
+    end
+
+    if event == "PLAYER_REGEN_ENABLED" then
+        HbFrame:OnCombatEvent()
+    end
+
+    if event == "CVAR_UPDATE" then
+        local cvarName = eventArgs[1]
+        if cvarName == "ActionButtonUseKeyDown" then
+            HbFrame:UpdateRegisterForClicks()
+        end
+    end
+
+    if event == "SPELL_UPDATE_COOLDOWN" then
+        ItemCache:UpdateGcd()
+    end
+
+    -- 当玩家技能发生改变的时候，如果配置文件中有需要更新的 ItemAttr，则更新 ItemAttr
+    if event == "PLAYER_TALENT_UPDATE" or event == "SPELLS_CHANGED" then
+        HbFrame:CompleteItemAttr()
+    end
+end
+
+---@param event EventString
+---@param eventArgs any[]
+---@param eventConfig EventRegisterConfig
+function BarCore:DispatchUpdateEvent(event, eventArgs, eventConfig)
+    local function DispatchNow()
+        HbFrame:UpdateAllEframes(event, eventArgs)
+    end
+
+    if eventConfig.delay == true then
+        C_Timer.After(0, function()
+            DispatchNow()
+        end)
+    else
+        DispatchNow()
+    end
+end
+
+---@param event EventString
+---@param eventArgs any[]
+---@param eventConfig EventRegisterConfig
+function BarCore:DispatchWithThrottle(event, eventArgs, eventConfig)
+    local interval = eventConfig.interval or 0
+    if interval <= 0 then
+        self:DispatchUpdateEvent(event, eventArgs, eventConfig)
+        return
+    end
+
+    local state = throttleStates[event]
+    if state == nil then
+        state = { waiting = false, hasPending = false, pendingArgs = nil }
+        throttleStates[event] = state
+    end
+
+    if state.waiting == true then
+        state.hasPending = true
+        state.pendingArgs = eventArgs
+        return
+    end
+
+    state.waiting = true
+    self:DispatchUpdateEvent(event, eventArgs, eventConfig)
+
+    C_Timer.After(interval, function()
+        state.waiting = false
+        if state.hasPending == true then
+            local pendingArgs = state.pendingArgs or {}
+            state.hasPending = false
+            state.pendingArgs = nil
+            BarCore:DispatchWithThrottle(event, pendingArgs, eventConfig)
+        end
+    end)
+end
 
 -- 注册事件
 function BarCore:Start()
-    for event, _ in pairs(registerEvents) do
-        BarCore.Frame:RegisterEvent(event)
+    for eventName, _ in pairs(registerEvents) do
+        BarCore.Frame:RegisterEvent(eventName)
     end
+
     BarCore.Frame:SetScript("OnEvent", function(_, event, ...)
-        local args = { ... }
-        if event == "ADDON_LOADED" and args[1] == addonName then
-            BarCore:EnsureInitial()
+        local eventArgs = { ... }
+        local eventConfig = registerEvents[event]
+
+        if debugEvents[event] == true then
+            -- U.Print.PrintInfoText("[Debug] Event fired: " .. event)
         end
-        if event == "PLAYER_LOGIN" or event == "PLAYER_ENTERING_WORLD" then
-            BarCore:EnsureInitial()
-        end
-        if event == "PLAYER_ENTERING_WORLD" and (args[1] == true or args[2] == true) then
-            C_Timer.After(0.3, function()
-                HbFrame:UpdateAllEframes("PLAYER_ENTERING_WORLD", {})
-            end)
-        end
-        if event == "PLAYER_REGEN_DISABLED" then
-            HbFrame:OnCombatEvent()
-        end
-        if event == "CVAR_UPDATE" then
-            -- 如果用户修改了鼠标按下CVAR，需要通知按钮改变RegisterForClicks
-            local cvar_name = args[1]
-            if cvar_name == "ActionButtonUseKeyDown" then
-                HbFrame:UpdateRegisterForClicks()
-            end
-        end
-        if event == "SPELL_UPDATE_COOLDOWN" then
-            ItemCache:UpdateGcd()
-        end
-        -- 当玩家技能发生改变的时候，如果配置文件中有需要更新的ItemAttr，则更新ItemAttr（这是由于API无法获取非当前玩家拥有技能的信息）
-        if event == "PLAYER_TALENT_UPDATE" or event == "SPELLS_CHANGED" then
-            HbFrame:CompleteItemAttr()
-        end
-        if registerEvents[event] == true then
-            if throttlingEvents[event] ~= nil then
-                if throttlingEvents[event].waiting ~= true then
-                    HbFrame:UpdateAllEframes(event, args)
-                    throttlingEvents[event].waiting = true
-                    C_Timer.After(0.2, function()
-                        throttlingEvents[event].waiting = false
-                    end)
-                end
-            elseif delayEvents[event] ~= nil then
-                BarCore.DelayFrame:SetScript("OnUpdate", function(_this)
-                    -- 施法完成事件只监控玩家
-                    if event == "UNIT_SPELLCAST_SUCCEEDED" then
-                        if args[1] == "player" then
-                            ItemCache:Update(event, args)
-                            HbFrame:UpdateAllEframes(event, args)
-                        end
-                    else
-                        HbFrame:UpdateAllEframes(event, args)
-                    end
-                    _this:SetScript("OnUpdate", nil)
-                end)
-            else
-                HbFrame:UpdateAllEframes(event, args)
-            end
+        BarCore:HandleEventSideEffects(event, eventArgs)
+
+        if eventConfig ~= nil and eventConfig.update == true then
+            BarCore:DispatchWithThrottle(event, eventArgs, eventConfig)
         end
     end)
 end

@@ -10,6 +10,7 @@ local Api = addon:NewModule("Api")
 
 local C_Spell = C_Spell
 local C_Item = C_Item
+local C_ToyBox = C_ToyBox
 ---@diagnostic disable-next-line: deprecated
 local GetSpellCooldown = GetSpellCooldown
 ---@diagnostic disable-next-line: deprecated
@@ -58,61 +59,91 @@ Api.GetSpellInfo = function (spellIdentifier)
 end
 
 ---@param spellIdentifier string | number
----@return any | nil
+---@return DurationObject | nil
 Api.GetSpellCooldown = function (spellIdentifier)
+    if C_Spell and C_Spell.GetSpellCooldownDuration then
+        local durationObject = C_Spell.GetSpellCooldownDuration(spellIdentifier)
+        if durationObject ~= nil then
+            return durationObject
+        end
+    end
+
     if C_Spell and C_Spell.GetSpellCooldown then
         local spellCooldownInfo = C_Spell.GetSpellCooldown(spellIdentifier)
         if spellCooldownInfo ~= nil then
-            -- 优先返回客户端原生对象，供 SetCooldownFromDurationObject 使用
-            return spellCooldownInfo
+            local enabledValue = spellCooldownInfo.enable
+            if enabledValue == nil then
+                enabledValue = spellCooldownInfo.isEnabled
+            end
+            local isEnabled = enabledValue == 1 or enabledValue == true
+            return {
+                startTime = spellCooldownInfo.startTime or 0,
+                duration = spellCooldownInfo.duration or 0,
+                enable = isEnabled,
+                isEnabled = isEnabled,
+                modRate = spellCooldownInfo.modRate or 1,
+            }
         end
     end
     if GetSpellCooldown then
         ---@diagnostic disable-next-line: deprecated
         local startTime, duration, enabled = GetSpellCooldown(spellIdentifier)
-        if startTime ~= nil then
-            return {
-                startTime = startTime,
-                duration = duration,
-                enable = enabled == 1,
-            }
-        end
+        local isEnabled = enabled == 1 or enabled == true
+        return {
+            startTime = startTime,
+            duration = duration,
+            enable = isEnabled,
+            isEnabled = isEnabled,
+            modRate = 1,
+        }
     end
     return nil
 end
 
 ---@param itemIdentifier string | number
----@return any | nil
+---@return NonSpellCooldownInfo | nil
 Api.GetItemCooldown = function (itemIdentifier)
-    if C_Item and C_Item.GetItemCooldown then
-        local cooldownInfo = C_Item.GetItemCooldown(itemIdentifier)
-        if type(cooldownInfo) == "table" then
-            -- 优先返回客户端原生对象，供 SetCooldownFromDurationObject 使用
-            return cooldownInfo
-        end
-
-        local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(itemIdentifier)
-        if startTimeSeconds ~= nil then
-            return {
-                startTime = startTimeSeconds,
-                duration = durationSeconds,
-                enable = enableCooldownTimer == 1 or enableCooldownTimer == true,
-                isEnabled = enableCooldownTimer == 1 or enableCooldownTimer == true,
-            }
-        end
-    end
-
+    -- 物品/玩具走旧冷却数据路径，避免将 number 直接传入转换函数。
     if GetItemCooldown then
-        ---@diagnostic disable-next-line: deprecated
         local startTime, duration, enable = GetItemCooldown(itemIdentifier)
-        if startTime ~= nil then
-            return {
-                startTime = startTime,
-                duration = duration,
-                enable = enable == 1,
-            }
-        end
+        local isEnabled = enable == 1 or enable == true
+        return {
+            startTime = startTime,
+            duration = duration,
+            enable = isEnabled,
+            isEnabled = isEnabled,
+            modRate = 1,
+        }
     end
 
+    if C_Item and C_Item.GetItemCooldown then
+        local startTimeSeconds, durationSeconds, enableCooldownTimer = C_Item.GetItemCooldown(itemIdentifier)
+        local isEnabled = enableCooldownTimer == 1 or enableCooldownTimer == true
+        return {
+            startTime = startTimeSeconds,
+            duration = durationSeconds,
+            enable = isEnabled,
+            isEnabled = isEnabled,
+            modRate = 1,
+        }
+    end
+
+    return nil
+end
+
+---@param itemIdentifier string | number
+---@return NonSpellCooldownInfo | nil
+Api.GetToyCooldown = function (itemIdentifier)
+    if C_ToyBox and C_ToyBox.GetToyCooldown then
+        local startTime, duration, enable = C_ToyBox.GetToyCooldown(itemIdentifier)
+        local isEnabled = enable == 1 or enable == true
+        return {
+            startTime = startTime,
+            duration = duration,
+            enable = isEnabled,
+            isEnabled = isEnabled,
+            modRate = 1,
+        }
+    end
     return nil
 end

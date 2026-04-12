@@ -50,7 +50,14 @@ local TEXT_COLOR_WHITE = { 1, 1, 1, 1 }
 ---@field BindKey string | nil
 ---@field MasqueGroup table | nil
 ---@field isMasqueSkinned boolean | nil
+---@field BindkeyEventHandler Frame | nil
 local Btn = addon:NewModule("Btn")
+
+-- 按键绑定相关事件：仅监听战斗状态切换
+local bindkeyListenEvents = {
+    ["PLAYER_REGEN_DISABLED"] = true,
+    ["PLAYER_REGEN_ENABLED"] = true,
+}
 
 ---@return number
 function Btn:GetIconBaseSize()
@@ -193,10 +200,39 @@ function Btn:New(eFrame, cbInfo, cbIndex)
     end
     Btn.UpdateRegisterForClicks(obj)
     Btn.SetMouseEvent(obj)
+    Btn.RegisterBindkeyEvents(obj)
     obj.Button:SetAttribute("type", "macro")
     obj.Button:SetAttribute("macrotext", "")
     obj:ApplyButtonSkin()
     return obj ---@type Btn
+end
+
+-- 注册按钮自身监听事件，用于按键绑定抢先刷新
+function Btn:RegisterBindkeyEvents()
+    if self.BindkeyEventHandler ~= nil then
+        return
+    end
+    self.BindkeyEventHandler = CreateFrame("Frame", nil, self.Button)
+    for eventName, _ in pairs(bindkeyListenEvents) do
+        self.BindkeyEventHandler:RegisterEvent(eventName)
+    end
+    self.BindkeyEventHandler:SetScript("OnEvent", function(_, event, ...)
+        -- 战斗中无法修改安全绑定，进入战斗事件仅作为边界信号处理
+        if InCombatLockdown() then
+            return
+        end
+        self:UpdateBindkey(event)
+    end)
+end
+
+function Btn:UnregisterBindkeyEvents()
+    if self.BindkeyEventHandler == nil then
+        return
+    end
+    self.BindkeyEventHandler:UnregisterAllEvents()
+    self.BindkeyEventHandler:SetScript("OnEvent", nil)
+    self.BindkeyEventHandler:SetParent(nil)
+    self.BindkeyEventHandler = nil
 end
 
 --- 按钮🔘从Frame中获取CbResult并更新
@@ -603,9 +639,9 @@ function Btn:CreateCoolDown()
     if self.Cooldown == nil then
         self.Cooldown = CreateFrame("Cooldown", nil, self.Button, "CooldownFrameTemplate")
         self.Cooldown:SetAllPoints()                -- 设置冷却效果覆盖整个按钮
-        pcall(self.Cooldown.SetDrawSwipe, self.Cooldown, false) -- 关闭圆形遮罩
-        pcall(self.Cooldown.SetDrawEdge, self.Cooldown, false)  -- 关闭边缘圈
-        pcall(self.Cooldown.SetDrawBling, self.Cooldown, false) -- 关闭结束闪光
+        pcall(self.Cooldown.SetDrawSwipe, self.Cooldown, true) -- 关闭圆形遮罩
+        pcall(self.Cooldown.SetDrawEdge, self.Cooldown, true)  -- 关闭边缘圈
+        pcall(self.Cooldown.SetDrawBling, self.Cooldown, true) -- 关闭结束闪光
         self.Cooldown:SetHideCountdownNumbers(false) -- 显示倒计时数字
         if addon.G.Masque then
             self:ApplyMasqueSkin()
@@ -727,21 +763,16 @@ function Btn:SetCooldown()
     end
     -- 更新冷却倒计时
     if r.itemCooldown then
-        local updated = false
-        if self.Cooldown.SetCooldownFromDurationObject then
-            ---@diagnostic disable-next-line: param-type-mismatch
-            updated = pcall(self.Cooldown.SetCooldownFromDurationObject, self.Cooldown, r.itemCooldown, true)
-        end
-        if not updated then
+        -- 判断是否是DurationObject类型
+        if r.itemCooldown.IsZero ~= nil then
+            self.Cooldown:SetCooldownFromDurationObject(r.itemCooldown)
+        else
             local startTime = r.itemCooldown.startTime or 0
             local duration = r.itemCooldown.duration or 0
-            local setOk = pcall(self.Cooldown.SetCooldown, self.Cooldown, startTime, duration)
-            if not setOk then
-                pcall(self.Cooldown.SetCooldown, self.Cooldown, 0, 0)
-            end
+            self.Cooldown:SetCooldown(startTime, duration)
         end
     else
-        pcall(self.Cooldown.SetCooldown, self.Cooldown, 0, 0)
+        self.Cooldown:SetCooldown(0, 0)
     end
 end
 
@@ -819,6 +850,7 @@ function Btn:Delete()
         end
     end
     self.Texts = nil
+    self:UnregisterBindkeyEvents()
     self:ClearOverrideBinding()
     self.Button:Hide()
     self.Button:ClearAllPoints()

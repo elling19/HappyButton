@@ -43,7 +43,7 @@ function Item:IsLearned(itemID, itemType)
             return true
         end
     elseif itemType == const.ITEM_TYPE.SPELL then
-        if IsSpellKnownOrOverridesKnown(itemID) then
+        if IsSpellKnownOrOverridesKnown(itemID, false) then
             return true
         end
     elseif itemType == const.ITEM_TYPE.MOUNT then
@@ -114,16 +114,16 @@ function Item:IsUsable(itemID, itemType)
 end
 
 -- 确认物品是否已经冷却完毕
----@param cooldownInfo CooldownInfo | nil
+---@param cooldownInfo DurationObject | CooldownInfo
 ---@return boolean
 function Item:IsCooldown(cooldownInfo)
-    if Client:IsSecret() then
-        return false
+    if cooldownInfo.HasSecretValues ~= nil then
+        if cooldownInfo:HasSecretValues() then
+            return false
+        end
+        return cooldownInfo:IsZero()
     end
-    if cooldownInfo == nil then
-        return true
-    end
-    if cooldownInfo.enable == false then
+    if cooldownInfo.enable == false or cooldownInfo.isEnabled == false then
         return true
     end
     if cooldownInfo.duration ~= 0 and cooldownInfo.duration > 1.5 then -- 需要判断是否是公共冷却
@@ -346,20 +346,25 @@ end
 
 -- 获取物品冷却信息
 ---@param itemAttr ItemAttr
----@return CooldownInfo | nil
+---@return DurationObject | CooldownInfo | nil
 function Item:GetCooldown(itemAttr)
-    if itemAttr.type == const.ITEM_TYPE.ITEM or itemAttr.type == const.ITEM_TYPE.EQUIPMENT or itemAttr.type == const.ITEM_TYPE.TOY then
+    if itemAttr.type == const.ITEM_TYPE.ITEM or itemAttr.type == const.ITEM_TYPE.EQUIPMENT then
         return Api.GetItemCooldown(itemAttr.id)
+    elseif itemAttr.type == const.ITEM_TYPE.TOY then
+        return Api.GetToyCooldown(itemAttr.id) or Api.GetItemCooldown(itemAttr.id)
     elseif itemAttr.type == const.ITEM_TYPE.SPELL then
         return Api.GetSpellCooldown(itemAttr.id)
     elseif itemAttr.type == const.ITEM_TYPE.PET then
         local _, petGUID = C_PetJournal.FindPetIDByName(itemAttr.name)
         if petGUID then
             local start, duration, isEnabled = C_PetJournal.GetPetCooldownByGUID(petGUID)
+            local enabled = isEnabled == 1 or isEnabled == true
             return {
                 startTime = start,
                 duration = duration,
-                enable = isEnabled == 1
+                enable = enabled,
+                isEnabled = enabled,
+                modRate = 1,
             }
         end
     end

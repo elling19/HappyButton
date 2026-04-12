@@ -14,6 +14,7 @@
 ---@class DisplayRuleConfig
 ---@field unlearned "hide" | "gray" | nil  -- 未拥有时的展示规则
 ---@field unusable "hide" | "gray" | nil  -- 不可用时的展示规则
+---@field uncooled "hide" | "gray" | nil  -- 未冷却时的展示规则（技能在战斗中无效）
 
 ---@class MacroAttr
 ---@field macro string | nil -- 宏脚本

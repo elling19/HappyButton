@@ -144,6 +144,7 @@ function E:GetItemAttrEvents(itemAttr)
     if itemAttr.type == const.ITEM_TYPE.ITEM then
         events["BAG_UPDATE"] = {}
         events["BAG_UPDATE_DELAYED"] = {}
+        events["SPELL_UPDATE_COOLDOWN"] = {}
         events["UNIT_SPELLCAST_SUCCEEDED"] = {{"player"}, }
         events["HB_ITEM_COOLDOWN_CHNAGED"] = {}
         return events
@@ -159,12 +160,14 @@ function E:GetItemAttrEvents(itemAttr)
     if itemAttr.type == const.ITEM_TYPE.TOY then
         events["NEW_TOY_ADDED"] = {}
         events["TOYS_UPDATED"] = {}
+        events["SPELL_UPDATE_COOLDOWN"] = {}
         events["UNIT_SPELLCAST_SUCCEEDED"] = {{"player"}, }
         events["HB_ITEM_COOLDOWN_CHNAGED"] = {}
         return events
     end
     if itemAttr.type == const.ITEM_TYPE.SPELL then
         events["SPELLS_CHANGED"] = {}
+        events["SPELL_UPDATE_COOLDOWN"] = {}
         events["UNIT_SPELLCAST_SUCCEEDED"] = {{"player"}, }
         events["SPELL_UPDATE_CHARGES"] = {}
         events[const.EVENT.HB_GCD_UPDATE] = {}

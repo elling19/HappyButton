@@ -198,7 +198,7 @@ function ItemCache:Get(item)
             ItemCache.cache[const.ITEM_TYPE.SPELL][item.id] = {}
         end
         if ItemCache.cache[const.ITEM_TYPE.SPELL][item.id].isLearned == nil then
-            ItemCache.cache[const.ITEM_TYPE.SPELL][item.id].isLearned = IsSpellKnownOrOverridesKnown(item.id)
+            ItemCache.cache[const.ITEM_TYPE.SPELL][item.id].isLearned = IsSpellKnownOrOverridesKnown(item.id, false)
         end
         if ItemCache.cache[const.ITEM_TYPE.SPELL][item.id].isUsable == nil then
             local isUsable, _ = Api.IsSpellUsable(item.id)
