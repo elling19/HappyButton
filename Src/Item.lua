@@ -114,9 +114,12 @@ function Item:IsUsable(itemID, itemType)
 end
 
 -- 确认物品是否已经冷却完毕
----@param cooldownInfo DurationObject | CooldownInfo
+---@param cooldownInfo DurationObject | CooldownInfo | nil
 ---@return boolean
 function Item:IsCooldown(cooldownInfo)
+    if cooldownInfo == nil then
+        return false
+    end
     if cooldownInfo.HasSecretValues ~= nil then
         if cooldownInfo:HasSecretValues() then
             return false
