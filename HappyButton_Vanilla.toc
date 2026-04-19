@@ -45,6 +45,8 @@ Src\Frame\ElementFrame.lua
 Src\Frame\HbFrame.lua
 Src\Core.lua
 Src\Command.lua
+Src\UI\GUI.lua
+Src\UI\ConfigFrame.lua
 HappyButton.lua
 Src\Config.lua
 Src\Event.lua

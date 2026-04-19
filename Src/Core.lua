@@ -35,6 +35,9 @@ function BarCore:EnsureInitial()
     if self.IsInitialized then
         return
     end
+    if not addon.db then
+        return
+    end
     self:Initial()
     self.IsInitialized = true
 end

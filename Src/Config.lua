@@ -2600,28 +2600,8 @@ function ConfigOptions.ElementsOptions()
                 type = 'header',
                 name = L["Import Configuration"]
             },
-            keyBindToggle = {
-                order = 5,
-                width = 2,
-                type = 'toggle',
-                name = L["Whether to import keybind settings."],
-                set = function(_, _)
-                    addon.G.tmpImportKeybind = not addon.G.tmpImportKeybind
-                end,
-                get = function(_) return addon.G.tmpImportKeybind end
-            },
-            coverToggle = {
-                order = 6,
-                width = 2,
-                type = 'toggle',
-                name = L["Whether to overwrite the existing configuration."],
-                set = function(_, _)
-                    addon.G.tmpCoverConfig = not addon.G.tmpCoverConfig
-                end,
-                get = function(_) return addon.G.tmpCoverConfig end
-            },
             importEditBox = {
-                order = 7,
+                order = 5,
                 type = 'input',
                 name = L["Configuration string"],
                 multiline = 10,
@@ -2675,27 +2655,47 @@ function ConfigOptions.ElementsOptions()
                         U.Print.PrintErrorText(errorMsg)
                         return
                     end
+                    -- Always strip keybinds on import
+                    addon.G.tmpImportKeybind = false
                     Config.HandleConfig(eleConfig)
                     eleConfig = Config.NormalizeAsRootBar(eleConfig,
                         addon.db.profile.elements)
                     if Config.IsIdDuplicated(eleConfig.id,
                             addon.db.profile.elements) then
-                        --- 如果覆盖配置
-                        if addon.G.tmpCoverConfig == true then
-                            for i, ele in ipairs(addon.db.profile.elements) do
-                                if ele.id == eleConfig.id then
-                                    addon.db.profile.elements[i] = eleConfig
+                        -- Show confirm dialog for overwrite
+                        local dialog = StaticPopup_Show("HAPPYBUTTON_CONFIRM_IMPORT_OVERWRITE")
+                        if dialog then
+                            dialog.data = {
+                                onAccept = function()
+                                    for i, ele in ipairs(addon.db.profile.elements) do
+                                        if ele.id == eleConfig.id then
+                                            addon.db.profile.elements[i] = eleConfig
+                                            addon:UpdateOptions()
+                                            AceConfigDialog:SelectGroup(addonName,
+                                                "element",
+                                                "elementMenu" .. i)
+                                            return
+                                        end
+                                    end
+                                end,
+                                onCancel = function()
+                                    eleConfig.id = U.String.GenerateID()
+                                    if Config.IsTitleDuplicated(eleConfig.title,
+                                            addon.db.profile.elements) then
+                                        eleConfig.title =
+                                            Config.CreateDuplicateTitle(eleConfig.title,
+                                                addon.db.profile.elements)
+                                    end
+                                    table.insert(addon.db.profile.elements, eleConfig)
+                                    HbFrame:AddEframe(eleConfig)
                                     addon:UpdateOptions()
-                                    AceConfigDialog:SelectGroup(addonName,
-                                        "element",
+                                    AceConfigDialog:SelectGroup(addonName, "element",
                                         "elementMenu" ..
-                                        i)
-                                    return true
-                                end
-                            end
-                        else
-                            eleConfig.id = U.String.GenerateID()
+                                        #addon.db.profile.elements)
+                                end,
+                            }
                         end
+                        return
                     end
                     if Config.IsTitleDuplicated(eleConfig.title,
                             addon.db.profile.elements) then
@@ -2762,8 +2762,6 @@ function addon:OnInitialize()
         iconWidth = 32,
         iconHeight = 32,
         IsEditMode = false,
-        tmpImportKeybind = false,           -- 默认选择不导入按键设置
-        tmpCoverConfig = false,             -- 默认选择不覆盖配置，默认创建副本
         tmpImportElementConfigString = nil, -- 导入elementconfig配置字符串
         tmpConfigString = nil,              -- 全局配置编辑字符串
         tmpNewItemType = nil,
@@ -2789,6 +2787,8 @@ function addon:OnInitialize()
         tmpNewText = nil, -- 添加文本
         tmpMacroAst = nil,  -- 宏解析结果
     }
+    -- Expose Config table so other modules (ConfigFrame) can access utility functions
+    self.G.Config = Config
     -- 注册数据库，添加分类设置
     self.db = LibStub("AceDB-3.0"):New("HappyButtonDB", {
         profile = {
@@ -2797,15 +2797,18 @@ function addon:OnInitialize()
     }, true)
     -- 对配置文件进行兼容性处理
     Config.NormalizeProfileElements()
-    -- 注册选项表
-    AceConfig:RegisterOptionsTable(addonName, ConfigOptions.Options)
-    Config.PatchAceConfigTooltipSetText()
-    AceConfigDialog:SetDefaultSize(addonName, DEFAULT_CONFIG_UI_WIDTH, DEFAULT_CONFIG_UI_HEIGHT)
-    -- 在Blizzard界面选项中添加一个子选项
-    -- self.optionsFrame = AceConfigDialog:AddToBlizOptions(addonName, addonName)
-    -- 输入 /HappyButton 或者 /hb 打开配置
-    self:RegisterChatCommand(addonName, "OpenConfig")
-    self:RegisterChatCommand("hb", "OpenConfig")
+    if Client:IsRetail() then
+        -- 正式服使用新配置UI
+        self:RegisterChatCommand(addonName, "OpenNewConfig")
+        self:RegisterChatCommand("hb", "OpenNewConfig")
+    else
+        -- 怀旧服使用旧 Ace3 配置面板
+        AceConfig:RegisterOptionsTable(addonName, ConfigOptions.Options)
+        Config.PatchAceConfigTooltipSetText()
+        AceConfigDialog:SetDefaultSize(addonName, DEFAULT_CONFIG_UI_WIDTH, DEFAULT_CONFIG_UI_HEIGHT)
+        self:RegisterChatCommand(addonName, "OpenConfig")
+        self:RegisterChatCommand("hb", "OpenConfig")
+    end
 end
 
 function addon:OpenConfig()
@@ -2814,7 +2817,6 @@ function addon:OpenConfig()
         return
     end
     AceConfigDialog:Open(addonName)
-    -- 延迟设置框架大小，避免被 AceConfigDialog 自动布局覆盖
     C_Timer.After(0.1, function()
         local frame = AceConfigDialog.OpenFrames[addonName]
         if frame then
@@ -2829,6 +2831,13 @@ function addon:OpenConfig()
             frame:SetHeight(status.height)
         end
     end)
+end
+
+function addon:OpenNewConfig()
+    local ConfigFrame = self:GetModule("ConfigFrame")
+    if ConfigFrame then
+        ConfigFrame:Toggle()
+    end
 end
 
 function addon:UpdateOptions()

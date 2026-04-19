@@ -32,6 +32,9 @@ L["Configuration string"] = true
 L["Whether to overwrite the existing configuration."]= true
 L["Whether to import keybind settings."] = true
 L["Import failed: Invalid configuration string."] = true
+L["Import successful."] = true
+L["Detected existing configuration, overwrite it?"] = true
+L["Import"] = true
 L["Wheter to use element title to replace item name."] = true
 L["Add Item"] = true
 L["Item Type"] = true
@@ -114,6 +117,7 @@ L["Text"] = true
 L["Actions"] = true
 L["Basic"] = true
 L["Children Elements"] = true
+L["No elements"] = true
 L["Delete This Bar"] = true
 L["Select an element from the left tree to edit its settings."] = true
 L["Edit Child Elements"] = true
@@ -156,6 +160,7 @@ L["Position Settings"] = true
 L["Element Anchor Position"] = true
 L["AttachFrame"] = true
 L["AttachFrame Anchor Position"] = true
+L["Preset"] = true
 
 
 L["Combat Load Condition"] = true

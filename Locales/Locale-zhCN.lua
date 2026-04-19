@@ -1,4 +1,5 @@
 local L = LibStub("AceLocale-3.0"):NewLocale("HappyButton", "zhCN")
+-- if true then return end  -- 临时禁用中文，测试英文
 if not L then return end
 
 L["Version"] = "版本"
@@ -33,6 +34,9 @@ L["Configuration string"] = "配置字符串"
 L["Whether to overwrite the existing configuration."] = "覆盖旧配置"
 L["Whether to import keybind settings."] = "导入按键设置"
 L["Import failed: Invalid configuration string."] = "导入失败：非法配置字符串"
+L["Import successful."] = "导入成功"
+L["Detected existing configuration, overwrite it?"] = "检测到已有配置，是否覆盖？"
+L["Import"] = "导入"
 L["Whether to display only learned or owned items."] = "只展示已经学习或者拥有的物品。"
 L["Wheter to use element title to replace item name."] = "使用元素标题替代物品名称。"
 L["Add Item"] = "添加物品"
@@ -116,6 +120,7 @@ L["Text"] = "文本"
 L["Actions"] = "操作"
 L["Basic"] = "基本"
 L["Children Elements"] = "子元素"
+L["No elements"] = "暂无元素"
 L["Delete This Bar"] = "删除该物品条"
 L["Select an element from the left tree to edit its settings."] = "从左侧树中选择元素后，在右侧编辑设置。"
 L["Edit Child Elements"] = "编辑子元素"
@@ -167,6 +172,7 @@ L["Position Settings"] = "位置设置"
 L["Element Anchor Position"] = "元素锚点"
 L["AttachFrame"] = "依附框体"
 L["AttachFrame Anchor Position"] = "依附框体锚点"
+L["Preset"] = "预设"
 
 L["Text Settings"] = "文本设置"
 L["Use root element settings"] = "使用根元素的设置"
