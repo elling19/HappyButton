@@ -2809,6 +2809,13 @@ function addon:OnInitialize()
         self:RegisterChatCommand(addonName, "OpenConfig")
         self:RegisterChatCommand("hb", "OpenConfig")
     end
+    -- 所有版本都支持 /hbo 打开旧 Ace3 配置面板
+    AceConfig:RegisterOptionsTable(addonName, ConfigOptions.Options)
+    Config.PatchAceConfigTooltipSetText()
+    AceConfigDialog:SetDefaultSize(addonName, DEFAULT_CONFIG_UI_WIDTH, DEFAULT_CONFIG_UI_HEIGHT)
+    self:RegisterChatCommand("hbo", "OpenOldConfig")
+    -- 初始化提示标志：新配置UI的 /hbo 提示每次登录只显示一次
+    self.newConfigHintShown = false
 end
 
 function addon:OpenConfig()
@@ -2837,7 +2844,34 @@ function addon:OpenNewConfig()
     local ConfigFrame = self:GetModule("ConfigFrame")
     if ConfigFrame then
         ConfigFrame:Toggle()
+        -- 每次登录只输出一次提示
+        if not self.newConfigHintShown then
+            U.Print.PrintInfoText(L["If you prefer the old editing window, use /hbo to open it."])
+            self.newConfigHintShown = true
+        end
     end
+end
+
+function addon:OpenOldConfig()
+    if InCombatLockdown() then
+        U.Print.PrintInfoText(L["You cannot use this in combat."] )
+        return
+    end
+    AceConfigDialog:Open(addonName)
+    C_Timer.After(0.1, function()
+        local frame = AceConfigDialog.OpenFrames[addonName]
+        if frame then
+            local status = AceConfigDialog:GetStatusTable(addonName)
+            if status.width == nil then
+                status.width = DEFAULT_CONFIG_UI_WIDTH
+            end
+            if status.height == nil then
+                status.height = DEFAULT_CONFIG_UI_HEIGHT
+            end
+            frame:SetWidth(status.width)
+            frame:SetHeight(status.height)
+        end
+    end)
 end
 
 function addon:UpdateOptions()

@@ -467,6 +467,7 @@ function CF:BuildTree()
         btn.title:SetPoint("RIGHT", btn.tag, "LEFT", -4, 0)
 
         -- Tag
+        btn.tag:Show()
         btn.tag:SetText(L["Bar"])
         btn.tag:SetTextColor(1.00, 0.82, 0.00)
 
@@ -518,12 +519,16 @@ function CF:BuildTree()
                 cBtn.icon:Show()
                 local cIcon = childConfig.icon or DEFAULT_ICON
                 local cTitle = childConfig.title or ("Element " .. childIdx)
-                -- ITEM type: use actual item icon and name from extraAttr
+                -- ITEM type: use actual item icon and title text as name + crafting quality markup
                 if childConfig.type == const.ELEMENT_TYPE.ITEM and childConfig.extraAttr then
                     if childConfig.extraAttr.icon then
                         cIcon = childConfig.extraAttr.icon
                     end
-                    if childConfig.extraAttr.name then
+                    -- Keep list title consistent with item value input, but do not prepend icon here
+                    local itemDisplay = BuildItemDisplayView(childConfig.extraAttr)
+                    if itemDisplay.name ~= "" or itemDisplay.qualityMarkup ~= "" then
+                        cTitle = itemDisplay.name .. itemDisplay.qualityMarkup
+                    elseif childConfig.extraAttr.name then
                         cTitle = childConfig.extraAttr.name
                     end
                 end
@@ -538,7 +543,10 @@ function CF:BuildTree()
                 cBtn.title:ClearAllPoints()
                 cBtn.title:SetText(cTitle)
                 cBtn.title:SetPoint("LEFT", cBtn.icon, "RIGHT", 4, 0)
-                cBtn.title:SetPoint("RIGHT", cBtn.tag, "LEFT", -4, 0)
+                cBtn.title:SetPoint("RIGHT", -8, 0)
+
+                -- Hide type tag on child rows to free horizontal space
+                cBtn.tag:Hide()
 
                 -- Type tag
                 local typeLabel = ""
