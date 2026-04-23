@@ -129,9 +129,7 @@ function ElementFrame:ReLoadUI()
     self:ClearCbBtns(self.Cbs)
     self.Cbs = self:GetCbs(self.Config, nil)
     self.Events = E:GetEvents(self.Config, nil)
-    self.attachFrameName, self.attachFrame = self:GetAttachFrame()
-    AttachFrameCache:Add(self.attachFrameName, self.attachFrame)
-    self:UpdateWindow()
+    self:RefreshAttachFrame()
     self:UpdateBar()
     self:CreateEditModeFrame()
     self:Update("PLAYER_ENTERING_WORLD", {})
@@ -139,6 +137,28 @@ function ElementFrame:ReLoadUI()
     if self.Config.isDisplayMouseEnter == true then
         self:SetBarTransparency()
     end
+end
+
+-- Re-resolve attach frame and update window when target frame becomes available later.
+---@return boolean changed
+function ElementFrame:RefreshAttachFrame()
+    local attachFrameName, attachFrame = self:GetAttachFrame()
+    local changed = (self.attachFrame ~= attachFrame)
+        or (self.attachFrameName ~= attachFrameName)
+    self.attachFrameName = attachFrameName
+    self.attachFrame = attachFrame
+
+    if self.attachFrame then
+        AttachFrameCache:Add(self.attachFrameName, self.attachFrame)
+    end
+
+    if self.attachFrame and changed then
+        self:UpdateWindow()
+    elseif self.attachFrame == nil then
+        -- Target frame is not available yet. Keep window hidden until a later event retries and succeeds.
+        self:HideWindow()
+    end
+    return changed
 end
 
 ---@param eleConfig ElementConfig
@@ -225,6 +245,14 @@ end
 ---@param event EventString
 ---@param eventArgs any[]
 function ElementFrame:Update(event, eventArgs)
+    -- Before rendering/updating, retry attach-frame resolution if previous mount failed.
+    if self.attachFrame == nil then
+        self:RefreshAttachFrame()
+        if self.attachFrame == nil then
+            return
+        end
+    end
+
     self:UpdateCbPassLoadCond(self.Cbs, event, eventArgs)
     if InCombatLockdown() then
         self:InCombatUpdate(event, eventArgs)
@@ -478,9 +506,10 @@ end
 
 
 -- 获取当前依附的框体名称、框体
----@return string, Frame
+---@return string, Frame | nil
 function ElementFrame:GetAttachFrame()
-    -- 设置Window框体挂载目标
+    -- Default: attach to UIParent when config is empty or explicitly UIParent.
+    ---@type Frame | nil
     local attachFrame = UIParent
     local attachFrameName = const.ATTACH_FRAME.UIParent
     if self.Config.attachFrame and self.Config.attachFrame ~= const.ATTACH_FRAME.UIParent then
@@ -488,12 +517,20 @@ function ElementFrame:GetAttachFrame()
         if frame then
             attachFrame = frame
             attachFrameName = self.Config.attachFrame
+        else
+            -- Target attach frame is configured but not created yet.
+            attachFrame = nil
+            attachFrameName = self.Config.attachFrame
         end
     end
     return attachFrameName, attachFrame
 end
 
 function ElementFrame:UpdateWindow()
+    if not self.attachFrame then
+        return
+    end
+
     if self:IsHorizontal() then
         self.Window:SetHeight(self.IconHeight)
         self.Window:SetWidth(self.IconWidth)
