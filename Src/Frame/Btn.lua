@@ -401,17 +401,25 @@ end
 function Btn:UpdateByElementFrame(cbIndex, btnIndex, event, eventArgs)
     self.CbResult = self.CbInfo.r[cbIndex]
     local bar = self.EFrame.Bar
+    local anchorFrame = bar.BarFrame
+    if self.EFrame:IsFlyoutEnabled() and bar.FlyoutFrame then
+        anchorFrame = bar.FlyoutFrame
+    end
+    if self.Button:GetParent() ~= anchorFrame then
+        self.Button:SetParent(anchorFrame)
+    end
+    self.Button:ClearAllPoints()
     if self.EFrame.Config.elesGrowth == const.GROWTH.LEFTTOP or self.EFrame.Config.elesGrowth == const.GROWTH.LEFTBOTTOM then
-        self.Button:SetPoint("RIGHT", bar.BarFrame, "RIGHT", -self.EFrame.IconWidth * (btnIndex - 1), 0)
+        self.Button:SetPoint("RIGHT", anchorFrame, "RIGHT", -self.EFrame.IconWidth * (btnIndex - 1), 0)
     elseif self.EFrame.Config.elesGrowth == const.GROWTH.TOPLEFT or self.EFrame.Config.elesGrowth == const.GROWTH.TOPRIGHT then
-        self.Button:SetPoint("BOTTOM", bar.BarFrame, "BOTTOM", 0, self.EFrame.IconHeight * (btnIndex - 1))
+        self.Button:SetPoint("BOTTOM", anchorFrame, "BOTTOM", 0, self.EFrame.IconHeight * (btnIndex - 1))
     elseif self.EFrame.Config.elesGrowth == const.GROWTH.BOTTOMLEFT or self.EFrame.Config.elesGrowth == const.GROWTH.BOTTOMRIGHT then
-        self.Button:SetPoint("TOP", bar.BarFrame, "TOP", 0, -self.EFrame.IconHeight * (btnIndex - 1))
+        self.Button:SetPoint("TOP", anchorFrame, "TOP", 0, -self.EFrame.IconHeight * (btnIndex - 1))
     elseif self.EFrame.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM or self.EFrame.Config.elesGrowth == const.GROWTH.RIGHTTOP then
-        self.Button:SetPoint("LEFT", bar.BarFrame, "LEFT", self.EFrame.IconWidth * (btnIndex - 1), 0)
+        self.Button:SetPoint("LEFT", anchorFrame, "LEFT", self.EFrame.IconWidth * (btnIndex - 1), 0)
     else
         -- 默认右下
-        self.Button:SetPoint("LEFT", bar.BarFrame, "LEFT", self.EFrame.IconWidth * (btnIndex - 1), 0)
+        self.Button:SetPoint("LEFT", anchorFrame, "LEFT", self.EFrame.IconWidth * (btnIndex - 1), 0)
     end
     self:EnsureSkinAppliedOnRender()
     if self.CbInfo.e[event] == nil or not E:CompareEventParam(self.CbInfo.e[event], eventArgs) then
@@ -874,7 +882,7 @@ function Btn:SetMacro()
     -- 设置宏命令
     self.Button:SetAttribute("type", "macro")
     if r.macro then
-        self.Button:SetAttribute("macrotext", r.macro)
+        self.Button:SetAttribute("macrotext", self:AppendFlyoutCloseMacro(r.macro))
         return
     end
     local macroText = ""
@@ -896,7 +904,33 @@ function Btn:SetMacro()
     elseif r.item.type == const.ITEM_TYPE.PET then
         macroText = "/SummonPet " .. r.item.name -- 可以使用/sp替代 支持petNameOrGUID
     end
-    self.Button:SetAttribute("macrotext", macroText)
+    self.Button:SetAttribute("macrotext", self:AppendFlyoutCloseMacro(macroText))
+end
+
+---@param macroText string
+---@return string
+function Btn:AppendFlyoutCloseMacro(macroText)
+    if type(macroText) ~= "string" or macroText == "" then
+        return macroText
+    end
+    local eFrame = self.EFrame
+    if not eFrame or not eFrame.IsFlyoutAutoCollapseEnabled or not eFrame:IsFlyoutAutoCollapseEnabled() then
+        return macroText
+    end
+    ---@diagnostic disable-next-line: undefined-field
+    local closeHandler = eFrame.Bar and eFrame.Bar.CloseClickHandler
+    if not closeHandler then
+        return macroText
+    end
+    local handlerName = closeHandler:GetName()
+    if type(handlerName) ~= "string" or handlerName == "" then
+        return macroText
+    end
+    local clickLine = "/click " .. handlerName
+    if string.find(macroText, clickLine, 1, true) then
+        return macroText
+    end
+    return macroText .. "\n" .. clickLine
 end
 
 -- 设置按钮冷却
@@ -941,7 +975,7 @@ function Btn:SetScriptEvent()
         self.Button:SetAttribute("type", "macro")
         local macroText = ""
         macroText = macroText .. r.macro
-        self.Button:SetAttribute("macrotext", macroText)
+        self.Button:SetAttribute("macrotext", self:AppendFlyoutCloseMacro(macroText))
     end
 end
 

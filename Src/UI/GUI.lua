@@ -14,6 +14,7 @@ local math_floor = math.floor
 local math_max = math.max
 local math_min = math.min
 local math_abs = math.abs
+local string_gsub = string.gsub
 
 -- Skin detection: flat style when ElvUI or NDui is loaded
 local _IsAddOnLoaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
@@ -866,6 +867,72 @@ function GUI:CreateInput(parent, item)
     container.SetValue = function(_, v) eb:SetText(v or "") end
     container.GetValue = function() return eb:GetText() end
     return container
+end
+
+-------------------------------------------------------------------------------
+-- Icon Input
+-------------------------------------------------------------------------------
+
+local function BuildIconInputDisplayValue(iconValue, defaultIcon)
+    local raw = iconValue and tostring(iconValue) or ""
+    local icon = "|T" .. tostring(iconValue or defaultIcon or 134400) .. ":16|t"
+    if raw ~= "" then
+        return raw, icon .. " " .. raw
+    end
+    return raw, icon
+end
+
+---@param parent Frame
+---@param item table
+---@return Frame
+function GUI:CreateIconInput(parent, item)
+    local state = {
+        raw = "",
+        text = "",
+    }
+
+    local function syncDisplay(iconValue)
+        state.raw, state.text = BuildIconInputDisplayValue(iconValue, item.defaultIcon)
+    end
+
+    local widget
+    widget = GUI:CreateInput(parent, {
+        label = item.label,
+        labelWidth = item.labelWidth,
+        width = item.width,
+        height = item.height,
+        get = function()
+            local value = item.get and item.get() or nil
+            syncDisplay(value)
+            return state.text
+        end,
+        set = function(v)
+            local raw = v or ""
+            if raw == state.text then
+                raw = state.raw or ""
+            end
+            raw = string_gsub(raw, "^|T.-|t%s*", "")
+            raw = string_gsub(raw, "^%s+", "")
+            raw = string_gsub(raw, "%s+$", "")
+
+            local num = tonumber(raw)
+            local normalized = num or (raw ~= "" and raw or nil)
+            syncDisplay(normalized)
+
+            if item.set then item.set(normalized, raw) end
+            if item.onChangeValue then item.onChangeValue(normalized, raw) end
+
+            if widget and widget.SetValue then
+                widget:SetValue(state.text)
+            end
+        end,
+    })
+
+    widget.GetRawValue = function()
+        return state.raw
+    end
+
+    return widget
 end
 
 -------------------------------------------------------------------------------

@@ -814,9 +814,9 @@ function CF:RenderBarSettings(parent, eleConfig, contentW)
     -- === Basic Section ===
     yOff = SectionDivider(parent, L["Basic"], yOff, contentW - 20)
 
-    -- Title
+    -- Title + Icon (same row)
     local titleInput = GUI:CreateInput(parent, {
-        width = 250,
+        width = 200,
         get = function() return eleConfig.title end,
         set = function(v)
             eleConfig.title = v
@@ -824,7 +824,21 @@ function CF:RenderBarSettings(parent, eleConfig, contentW)
         end,
     })
     titleInput = GUI:VGroup(parent, L["Title"], titleInput)
-    yOff = LayoutWidget(titleInput, parent, yOff, PADDING + 10)
+
+    local iconInput = GUI:CreateIconInput(parent, {
+        width = 200,
+        defaultIcon = DEFAULT_ICON,
+        ---@diagnostic disable-next-line: return-type-mismatch
+        get = function() return (eleConfig.icon) end,
+        set = function(v)
+            eleConfig.icon = v
+            self:BuildTree()
+            HbFrame:ReloadEframeUI(eleConfig)
+            self:SelectTab(self.selectedTabKey)
+        end,
+    })
+    iconInput = GUI:VGroup(parent, L["Element Icon ID or Path"], iconInput)
+    yOff = LayoutRow({titleInput, iconInput}, parent, yOff, PADDING + 10)
 
     -- Icon size (same row)
     local iconWSlider = GUI:CreateSlider(parent, {
@@ -1034,12 +1048,13 @@ function CF:RenderElementSettings(parent, eleConfig, topEleConfig, contentW)
         })
         titleInput = GUI:VGroup(parent, L["Title"], titleInput)
 
-        local iconInput = GUI:CreateInput(parent, {
+        local iconInput = GUI:CreateIconInput(parent, {
             width = 200,
-            get = function() return tostring(eleConfig.icon or "") end,
+            defaultIcon = DEFAULT_ICON,
+            ---@diagnostic disable-next-line: return-type-mismatch
+            get = function() return (eleConfig.icon) end,
             set = function(v)
-                local num = tonumber(v)
-                eleConfig.icon = num or (v ~= "" and v or nil)
+                eleConfig.icon = v
                 self:BuildTree()
             end,
         })
@@ -1219,12 +1234,13 @@ function CF:RenderElementSettings(parent, eleConfig, topEleConfig, contentW)
         })
         titleInput = GUI:VGroup(parent, L["Title"], titleInput)
 
-        local iconInput = GUI:CreateInput(parent, {
+        local iconInput = GUI:CreateIconInput(parent, {
             width = 200,
-            get = function() return tostring(eleConfig.icon or "") end,
+            defaultIcon = DEFAULT_ICON,
+            ---@diagnostic disable-next-line: return-type-mismatch
+            get = function() return (eleConfig.icon) end,
             set = function(v)
-                local num = tonumber(v)
-                eleConfig.icon = num or (v ~= "" and v or nil)
+                eleConfig.icon = v
                 self:BuildTree()
             end,
         })
@@ -1266,12 +1282,13 @@ function CF:RenderElementSettings(parent, eleConfig, topEleConfig, contentW)
         })
         titleInput = GUI:VGroup(parent, L["Title"], titleInput)
 
-        local iconInput = GUI:CreateInput(parent, {
+        local iconInput = GUI:CreateIconInput(parent, {
             width = 200,
-            get = function() return tostring(eleConfig.icon or "") end,
+            defaultIcon = DEFAULT_ICON,
+            ---@diagnostic disable-next-line: return-type-mismatch
+            get = function() return (eleConfig.icon) end,
             set = function(v)
-                local num = tonumber(v)
-                eleConfig.icon = num or (v ~= "" and v or nil)
+                eleConfig.icon = v
                 self:BuildTree()
             end,
         })
@@ -1509,6 +1526,33 @@ function CF:RenderDisplay(parent, eleConfig, topEleConfig, contentW)
         })
         growthDD = GUI:VGroup(parent, L["Direction of elements growth"], growthDD)
         yOff = LayoutWidget(growthDD, parent, yOff, PADDING + 10)
+
+        -- Flyout mode
+        local flyoutSwitch = GUI:CreateSwitch(parent, {
+            label = L["Flyout"],
+            get = function() return eleConfig.flyout == true end,
+            set = function(v)
+                eleConfig.flyout = v or nil
+                if eleConfig.flyout == true and eleConfig.flyoutAutoCollapse == nil then
+                    eleConfig.flyoutAutoCollapse = true
+                end
+                HbFrame:ReloadEframeUI(eleConfig)
+                self:SelectTab(self.selectedTabKey)
+            end,
+        })
+        if eleConfig.flyout == true then
+            local flyoutAutoCollapseSwitch = GUI:CreateSwitch(parent, {
+                label = L["Auto collapse flyout after button click"],
+                get = function() return eleConfig.flyoutAutoCollapse ~= false end,
+                set = function(v)
+                    eleConfig.flyoutAutoCollapse = v and true or false
+                    HbFrame:ReloadEframeUI(eleConfig)
+                end,
+            })
+            yOff = LayoutRow({flyoutSwitch, flyoutAutoCollapseSwitch}, parent, yOff, PADDING + 10)
+        else
+            yOff = LayoutWidget(flyoutSwitch, parent, yOff, PADDING + 10)
+        end
     end
 
     parent:SetHeight(math_abs(yOff) + PADDING)

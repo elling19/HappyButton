@@ -41,6 +41,11 @@ local LoadCondition = addon:GetModule("LoadCondition")
 ---@class Bar
 ---@field BarFrame nil|table|Button
 ---@field Icon string | number | nil
+---@field TriggerButton nil|Button
+---@field TriggerIcon nil|Texture
+---@field FlyoutFrame nil|Frame
+---@field CloseBackdrop nil|Button
+---@field CloseClickHandler nil|Button
 
 ---@class ElementFrame: AceModule
 ---@field Cbs ElementCbInfo | nil
@@ -65,6 +70,19 @@ function ElementFrame:IsHorizontal()
         or self.Config.elesGrowth == const.GROWTH.LEFTTOP
         or self.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM
         or self.Config.elesGrowth == const.GROWTH.RIGHTTOP
+end
+
+---@return boolean
+function ElementFrame:IsFlyoutEnabled()
+    return self.Config and self.Config.flyout == true
+end
+
+---@return boolean
+function ElementFrame:IsFlyoutAutoCollapseEnabled()
+    if not self:IsFlyoutEnabled() then
+        return false
+    end
+    return self.Config.flyoutAutoCollapse ~= false
 end
 
 -- 获取框体相对屏幕的位置
@@ -238,6 +256,171 @@ function ElementFrame:UpdateBar()
     end
     self.Bar.BarFrame:SetWidth(self.IconWidth)
     self.Bar.BarFrame:SetHeight(self.IconHeight)
+
+    if self.Bar.TriggerButton == nil then
+        local trigger = CreateFrame("Button", ("HtBarTrigger-%s"):format(self.Config.id), self.Bar.BarFrame, "SecureHandlerClickTemplate")
+        trigger:SetAllPoints(self.Bar.BarFrame)
+        local icon = trigger:CreateTexture(nil, "ARTWORK")
+        icon:SetAllPoints(trigger)
+        icon:SetTexture(self.Config.icon or 134400)
+        self.Bar.TriggerButton = trigger
+        self.Bar.TriggerIcon = icon
+    end
+
+    if self.Bar.FlyoutFrame == nil then
+        local flyout = CreateFrame("Frame", ("HtBarFlyout-%s"):format(self.Config.id), self.Window, "SecureHandlerShowHideTemplate")
+        flyout:SetFrameStrata("FULLSCREEN_DIALOG")
+        flyout:Hide()
+        self.Bar.FlyoutFrame = flyout
+    end
+
+    -- 关闭处理器：供按钮宏追加 /click 使用
+    if self.Bar.CloseClickHandler == nil then
+        local closeHandler = CreateFrame("Button", ("HtFlyoutClose-%s"):format(self.Config.id), UIParent, "SecureHandlerClickTemplate")
+        closeHandler:Hide()
+        closeHandler:SetPoint("TOPLEFT", UIParent, "TOPLEFT", 0, 0)
+        closeHandler:SetPoint("BOTTOMRIGHT", UIParent, "BOTTOMRIGHT", 0, 0)
+        self.Bar.CloseClickHandler = closeHandler
+    end
+
+    -- 全屏点击关闭底板：点击 flyout 外任意位置可关闭
+    if self.Bar.CloseBackdrop == nil then
+        local backdrop = CreateFrame("Button", ("HtFlyoutBackdrop-%s"):format(self.Config.id), UIParent, "SecureHandlerClickTemplate")
+        backdrop:SetAllPoints(UIParent)
+        backdrop:SetFrameStrata("FULLSCREEN")
+        backdrop:EnableMouse(true)
+        backdrop:Hide()
+        self.Bar.CloseBackdrop = backdrop
+    end
+    -- 绑定底板与 FlyoutFrame（非战斗才能调用 SetFrameRef/SetAttribute）
+    if not InCombatLockdown() then
+        local backdrop = self.Bar.CloseBackdrop
+        local flyout   = self.Bar.FlyoutFrame
+        if backdrop and flyout then
+            ---@diagnostic disable-next-line: undefined-field
+            backdrop:SetFrameRef("FlyoutFrame", flyout)
+            ---@diagnostic disable-next-line: undefined-field
+            backdrop:SetAttribute("_onclick", [=[
+                local flyout = self:GetFrameRef("FlyoutFrame")
+                if flyout then flyout:Hide() end
+            ]=])
+            -- FlyoutFrame 显隐时同步底板
+            flyout:HookScript("OnShow", function() backdrop:Show() end)
+            flyout:HookScript("OnHide", function() backdrop:Hide() end)
+        end
+
+        local closeHandler = self.Bar.CloseClickHandler
+        if closeHandler and flyout then
+            ---@diagnostic disable-next-line: undefined-field
+            closeHandler:SetFrameRef("FlyoutFrame", flyout)
+            ---@diagnostic disable-next-line: undefined-field
+            closeHandler:SetAttribute("_onclick", [=[
+                local flyout = self:GetFrameRef("FlyoutFrame")
+                if flyout then flyout:Hide() end
+            ]=])
+        end
+    end
+
+    if self.Bar.TriggerIcon then
+        self.Bar.TriggerIcon:SetTexture(self.Config.icon or 134400)
+    end
+    self:ApplyTriggerSkin()
+
+    self:UpdateFlyoutAnchor()
+    self:UpdateFlyoutSecureHandler()
+
+    if self:IsFlyoutEnabled() then
+        self.Bar.TriggerButton:Show()
+    else
+        self.Bar.TriggerButton:Hide()
+        if self.Bar.FlyoutFrame and self.Bar.FlyoutFrame:IsShown() then
+            self.Bar.FlyoutFrame:Hide()
+        end
+    end
+end
+
+-- 对 TriggerButton/TriggerIcon 应用当前皮肤（图标裁切 + 高亮纹理）
+function ElementFrame:ApplyTriggerSkin()
+    local trigger = self.Bar and self.Bar.TriggerButton
+    local icon    = self.Bar and self.Bar.TriggerIcon
+    if not trigger or not icon then
+        return
+    end
+    -- 图标裁切（与 Btn:ApplyIconCropByProvider 保持一致）
+    local provider = Btn:GetSkinProvider()
+    if provider == "elvui" then
+        local coords = addon.G and addon.G.ElvUI and addon.G.ElvUI.TexCoords
+        if type(coords) == "table" and #coords >= 4 then
+            icon:SetTexCoord(unpack(coords))
+        else
+            icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        end
+    elseif provider == "ndui" then
+        icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    else
+        icon:SetTexCoord(0, 1, 0, 1)
+    end
+    -- 高亮/按下纹理
+    local white8x8 = "Interface\\Buttons\\WHITE8x8"
+    if addon.G and addon.G.ElvUI and addon.G.ElvUI.Media
+        and addon.G.ElvUI.Media.Textures and addon.G.ElvUI.Media.Textures.White8x8 then
+        white8x8 = addon.G.ElvUI.Media.Textures.White8x8
+    end
+    trigger:SetHighlightTexture(white8x8)
+    trigger:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.3)
+    trigger:SetPushedTexture(white8x8)
+    trigger:GetPushedTexture():SetVertexColor(1, 1, 1, 0.3)
+end
+
+function ElementFrame:UpdateFlyoutAnchor()
+    if not self.Bar then
+        return
+    end
+    local flyout = self.Bar.FlyoutFrame
+    local anchor = self.Bar.BarFrame
+    if flyout == nil or anchor == nil then
+        return
+    end
+    flyout:ClearAllPoints()
+    if self.Config.elesGrowth == const.GROWTH.LEFTTOP or self.Config.elesGrowth == const.GROWTH.LEFTBOTTOM then
+        flyout:SetPoint("RIGHT", anchor, "LEFT", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.TOPLEFT or self.Config.elesGrowth == const.GROWTH.TOPRIGHT then
+        flyout:SetPoint("BOTTOM", anchor, "TOP", 0, 0)
+    elseif self.Config.elesGrowth == const.GROWTH.BOTTOMLEFT or self.Config.elesGrowth == const.GROWTH.BOTTOMRIGHT then
+        flyout:SetPoint("TOP", anchor, "BOTTOM", 0, 0)
+    else
+        flyout:SetPoint("LEFT", anchor, "RIGHT", 0, 0)
+    end
+end
+
+function ElementFrame:UpdateFlyoutSecureHandler()
+    if not self:IsFlyoutEnabled() then
+        return
+    end
+    if InCombatLockdown() then
+        return
+    end
+    if not self.Bar then
+        return
+    end
+    local trigger = self.Bar.TriggerButton
+    local flyout = self.Bar.FlyoutFrame
+    if trigger == nil or flyout == nil then
+        return
+    end
+    ---@diagnostic disable-next-line: undefined-field
+    trigger:SetFrameRef("FlyoutFrame", flyout)
+    ---@diagnostic disable-next-line: undefined-field
+    trigger:SetAttribute("_onclick", [=[
+        local flyout = self:GetFrameRef("FlyoutFrame")
+        if flyout then
+            if flyout:IsShown() then
+                flyout:Hide()
+            else
+                flyout:Show()
+            end
+        end
+    ]=])
 end
 
 
@@ -573,6 +756,9 @@ end
 --- 将单个Bar类型设置成隐藏
 function ElementFrame:SetBarHidden()
     self.Bar.BarFrame:Hide()
+    if self.Bar.FlyoutFrame then
+        self.Bar.FlyoutFrame:Hide()
+    end
 end
 
 --- 将单个Bar类型设置成不透明
@@ -586,7 +772,19 @@ function ElementFrame:SetWindowSize()
     if buttonNum == 0 then
         buttonNum = 1
     end
-    if self:IsHorizontal() then
+    if self:IsFlyoutEnabled() then
+        self.Window:SetWidth(self.IconWidth)
+        self.Window:SetHeight(self.IconHeight)
+        if self.Bar and self.Bar.FlyoutFrame then
+            if self:IsHorizontal() then
+                self.Bar.FlyoutFrame:SetWidth(self.IconWidth * buttonNum)
+                self.Bar.FlyoutFrame:SetHeight(self.IconHeight)
+            else
+                self.Bar.FlyoutFrame:SetWidth(self.IconWidth)
+                self.Bar.FlyoutFrame:SetHeight(self.IconHeight * buttonNum)
+            end
+        end
+    elseif self:IsHorizontal() then
         self.Window:SetWidth(self.IconWidth * buttonNum)
         self.Window:SetHeight(self.IconHeight)
     else
@@ -632,6 +830,27 @@ end
 
 -- 卸载框体
 function ElementFrame:Delete()
+    if self.Bar and self.Bar.CloseClickHandler then
+        self.Bar.CloseClickHandler:Hide()
+        self.Bar.CloseClickHandler:ClearAllPoints()
+        self.Bar.CloseClickHandler = nil
+    end
+    if self.Bar and self.Bar.CloseBackdrop then
+        self.Bar.CloseBackdrop:Hide()
+        self.Bar.CloseBackdrop:ClearAllPoints()
+        self.Bar.CloseBackdrop = nil
+    end
+    if self.Bar and self.Bar.FlyoutFrame then
+        self.Bar.FlyoutFrame:Hide()
+        self.Bar.FlyoutFrame:ClearAllPoints()
+        self.Bar.FlyoutFrame = nil
+    end
+    if self.Bar and self.Bar.TriggerButton then
+        self.Bar.TriggerButton:Hide()
+        self.Bar.TriggerButton:ClearAllPoints()
+        self.Bar.TriggerButton = nil
+        self.Bar.TriggerIcon = nil
+    end
     self.Window:Hide()
     self.Window:ClearAllPoints()
     self.Window = nil
