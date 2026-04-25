@@ -56,6 +56,10 @@ local LoadCondition = addon:GetModule("LoadCondition")
 ---@field IsMouseInside boolean  -- 鼠标是否处在框体内
 ---@field IconHeight number
 ---@field IconWidth number
+---@field BindkeyFontSize number
+---@field BindkeyMargin number
+---@field CountFontSize number
+---@field CooldownFontSize number
 ---@field CurrentBarIndex number | nil 当前选择的Bar的下标
 ---@field attachFrameName string | nil -- 挂载frame的名字
 ---@field attachFrame Frame | nil -- 挂载frame
@@ -83,6 +87,39 @@ function ElementFrame:IsFlyoutAutoCollapseEnabled()
         return false
     end
     return self.Config.flyoutAutoCollapse ~= false
+end
+
+---@return number
+function ElementFrame:GetIconBaseSize()
+    local base = math.min(self.IconWidth or 0, self.IconHeight or 0)
+    if base <= 0 then
+        local defaultW = addon.G and addon.G.iconWidth or 36
+        local defaultH = addon.G and addon.G.iconHeight or 36
+        base = math.min(defaultW, defaultH)
+    end
+    return base
+end
+
+---@param ratio number
+---@param minValue number
+---@param maxValue number
+---@return number
+function ElementFrame:GetScaledValue(ratio, minValue, maxValue)
+    local value = math.floor(self:GetIconBaseSize() * ratio + 0.5)
+    if value < minValue then
+        return minValue
+    end
+    if value > maxValue then
+        return maxValue
+    end
+    return value
+end
+
+function ElementFrame:RefreshFontMetrics()
+    self.BindkeyFontSize = self:GetScaledValue(0.38, 11, 24)
+    self.BindkeyMargin = self:GetScaledValue(0.06, 2, 8)
+    self.CountFontSize = self:GetScaledValue(0.36, 12, 28)
+    self.CooldownFontSize = self:GetScaledValue(0.40, 12, 36)
 end
 
 -- 获取框体相对屏幕的位置
@@ -135,6 +172,7 @@ function ElementFrame:New(element)
     obj.IsMouseInside = false
     obj.IconHeight = obj.Config.iconHeight or addon.G.iconHeight
     obj.IconWidth = obj.Config.iconWidth or addon.G.iconWidth
+    obj:RefreshFontMetrics()
     obj.CurrentBarIndex = 1
     ElementFrame.ReLoadUI(obj)
     return obj
@@ -143,6 +181,7 @@ end
 function ElementFrame:ReLoadUI()
     self.IconHeight = self.Config.iconHeight or addon.G.iconHeight
     self.IconWidth = self.Config.iconWidth or addon.G.iconWidth
+    self:RefreshFontMetrics()
     -- 移除旧的Cbs中的按钮
     self:ClearCbBtns(self.Cbs)
     self.Cbs = self:GetCbs(self.Config, nil)

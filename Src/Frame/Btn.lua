@@ -30,6 +30,7 @@ local Api = addon:GetModule("Api")
 local LCG = LibStub("LibCustomGlow-1.0")
 
 local FONT_PATH = DAMAGE_TEXT_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
+local COOLDOWN_FONT_PATH = DAMAGE_TEXT_FONT or FONT_PATH
 local TEXT_COLOR_WHITE = { 1, 1, 1, 1 }
 
 
@@ -106,19 +107,27 @@ function Btn:GetDynamicMargin(ratio, minMargin, maxMargin)
 end
 
 ---@param fString FontString
+---@param fontSize number
+---@param isDim boolean|nil
+function Btn:ApplyFontStyleBySize(fString, fontSize, isDim)
+    if fString == nil then
+        return
+    end
+    local size = math.max(1, math.floor((fontSize or 12) + 0.5))
+    fString:SetFont(FONT_PATH, size, "")
+    fString:SetTextColor(unpack(TEXT_COLOR_WHITE))
+    fString:SetShadowColor(0, 0, 0, 0)
+    fString:SetShadowOffset(0, 0)
+end
+
+---@param fString FontString
 ---@param ratio number
 ---@param minSize number
 ---@param maxSize number
 ---@param isDim boolean|nil
 function Btn:ApplyFontStyle(fString, ratio, minSize, maxSize, isDim)
-    if fString == nil then
-        return
-    end
     local fontSize = self:GetDynamicFontSize(ratio, minSize, maxSize)
-    fString:SetFont(FONT_PATH, fontSize, "")
-    fString:SetTextColor(unpack(TEXT_COLOR_WHITE))
-    fString:SetShadowColor(0, 0, 0, 0)
-    fString:SetShadowOffset(0, 0)
+    self:ApplyFontStyleBySize(fString, fontSize, isDim)
 end
 
 ---@return string
@@ -491,16 +500,13 @@ function Btn:UpdateBindkey(event)
     if self:PassBindKeyCond(event) then
         if self.BindkeyString == nil then
             self.BindkeyString = self.Button:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            local bindKeyMargin = self.EFrame.BindkeyMargin or self:GetDynamicMargin(0.06, 2, 8)
+            self.BindkeyString:SetPoint("TOPRIGHT", self.Button, "TOPRIGHT", -bindKeyMargin, -bindKeyMargin)
+            self:ApplyFontStyleBySize(self.BindkeyString, self.EFrame.BindkeyFontSize or self:GetDynamicFontSize(0.38, 11, 24))
+            -- 仅按键文字保留轻微阴影，提升纯白字体可读性
+            self.BindkeyString:SetShadowColor(0, 0, 0, 0.95)
+            self.BindkeyString:SetShadowOffset(1, -1)
         end
-        -- 角落边距建议比例：图标最短边 * 0.06
-        local bindKeyMargin = self:GetDynamicMargin(0.06, 2, 8)
-        self.BindkeyString:ClearAllPoints()
-        self.BindkeyString:SetPoint("TOPRIGHT", self.Button, "TOPRIGHT", -bindKeyMargin, -bindKeyMargin)
-        -- 绑定键建议字号比例：图标最短边 * 0.38（整体再放大）
-        self:ApplyFontStyle(self.BindkeyString, 0.38, 11, 24)
-        -- 仅按键文字保留轻微阴影，提升纯白字体可读性
-        self.BindkeyString:SetShadowColor(0, 0, 0, 0.95)
-        self.BindkeyString:SetShadowOffset(1, -1)
         if self.BindKey ~= bindKey.key then
             self:SetOverrideBinding(bindKey.key)
             self.BindkeyString:SetText(self:GetBindKeyShort(bindKey.key))
@@ -628,12 +634,15 @@ function Btn:UpdateTexts()
             local textFrame = CreateFrame("Frame", nil, self.Button)
             local fString = textFrame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
             fString:SetPoint("CENTER", textFrame, "CENTER")
+            if text.text == "%n" then
+                self:ApplyFontStyle(fString, 0.30, 11, 24)
+            elseif text.text == "%s" then
+                self:ApplyFontStyleBySize(fString, self.EFrame.CountFontSize or self:GetDynamicFontSize(0.36, 12, 28))
+            end
             table.insert(self.Texts, {textFrame, fString})
         end
         local textFrame, fString = unpack(self.Texts[tIndex])
         if text.text == "%n" then
-            -- 名称文本建议字号比例：图标最短边 * 0.30（整体放大）
-            self:ApplyFontStyle(fString, 0.30, 11, 24)
             local t = self.CbResult.text or (self.CbResult.item and self.CbResult.item.name) or self.CbInfo.p.title or ""
             if text.growth == const.TEXT_GROWTH.TOP then
                 fString:SetText(U.String.ToVertical(t))
@@ -669,16 +678,13 @@ function Btn:UpdateTexts()
                     textFrame:SetPoint("LEFT", self.Button, "RIGHT", margin, 0)
                 end
             end
-            -- 未学会时使用更深灰色，提高状态辨识度
             if self.CbResult.isLearned == false then
-                self:ApplyFontStyle(fString, 0.30, 11, 24, true)
+                fString:SetTextColor(0.45, 0.45, 0.45, 1)
             else
-                self:ApplyFontStyle(fString, 0.30, 11, 24)
+                fString:SetTextColor(unpack(TEXT_COLOR_WHITE))
             end
         end
         if text.text == "%s" then
-            -- 数量文本建议字号比例：图标最短边 * 0.36（同步放大）
-            self:ApplyFontStyle(fString, 0.36, 12, 28)
             if self.CbResult.count ~= nil then
                 fString:SetText(tostring(self.CbResult.count))
             else
@@ -798,10 +804,16 @@ function Btn:CreateCoolDown()
     if self.Cooldown == nil then
         self.Cooldown = CreateFrame("Cooldown", nil, self.Button, "CooldownFrameTemplate")
         self.Cooldown:SetAllPoints()                -- 设置冷却效果覆盖整个按钮
+        self.Cooldown:SetFrameLevel(self.Button:GetFrameLevel() + 10) -- 高于按钮文本层
         pcall(self.Cooldown.SetDrawSwipe, self.Cooldown, true) -- 关闭圆形遮罩
         pcall(self.Cooldown.SetDrawEdge, self.Cooldown, true)  -- 关闭边缘圈
         pcall(self.Cooldown.SetDrawBling, self.Cooldown, true) -- 关闭结束闪光
-        self.Cooldown:SetHideCountdownNumbers(false) -- 显示倒计时数字
+        self.Cooldown:SetHideCountdownNumbers(false) -- 使用系统倒计时数字
+        local cdFont = self.Cooldown:GetCountdownFontString()
+        if cdFont then
+            cdFont:SetFont(COOLDOWN_FONT_PATH, self.EFrame.CooldownFontSize, "OUTLINE")
+        end
+
         if addon.G.Masque then
             self:ApplyMasqueSkin()
         end
