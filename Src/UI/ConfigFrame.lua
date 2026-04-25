@@ -816,7 +816,6 @@ function CF:RenderBarSettings(parent, eleConfig, contentW)
 
     -- Title + Icon (same row)
     local titleInput = GUI:CreateInput(parent, {
-        width = 200,
         get = function() return eleConfig.title end,
         set = function(v)
             eleConfig.title = v
@@ -826,7 +825,6 @@ function CF:RenderBarSettings(parent, eleConfig, contentW)
     titleInput = GUI:VGroup(parent, L["Title"], titleInput)
 
     local iconInput = GUI:CreateIconInput(parent, {
-        width = 200,
         defaultIcon = DEFAULT_ICON,
         ---@diagnostic disable-next-line: return-type-mismatch
         get = function() return (eleConfig.icon) end,
@@ -842,7 +840,7 @@ function CF:RenderBarSettings(parent, eleConfig, contentW)
 
     -- Icon size (same row)
     local iconWSlider = GUI:CreateSlider(parent, {
-        label = L["Icon Width"], width = 200,
+        label = L["Icon Width"],
         min = 24, max = 128, step = 1,
         get = function() return eleConfig.iconWidth or addon.G.iconWidth or 32 end,
         set = function(v)
@@ -852,7 +850,7 @@ function CF:RenderBarSettings(parent, eleConfig, contentW)
     })
 
     local iconHSlider = GUI:CreateSlider(parent, {
-        label = L["Icon Height"], width = 200,
+        label = L["Icon Height"],
         min = 24, max = 128, step = 1,
         get = function() return eleConfig.iconHeight or addon.G.iconHeight or 32 end,
         set = function(v)
@@ -867,7 +865,6 @@ function CF:RenderBarSettings(parent, eleConfig, contentW)
 
     -- Attach frame (input + preset dropdown on same row)
     local afInput = GUI:CreateInput(parent, {
-        width = 200,
         get = function() return eleConfig.attachFrame or "UIParent" end,
         set = function(v)
             eleConfig.attachFrame = (v ~= "" and v) or "UIParent"
@@ -881,7 +878,6 @@ function CF:RenderBarSettings(parent, eleConfig, contentW)
         tinsert(afOpts, { value = k, text = v })
     end
     local afDD = GUI:CreateDropdown(parent, {
-        width = 200,
         options = afOpts,
         get = function() return eleConfig.attachFrame end,
         set = function(v)
@@ -899,7 +895,6 @@ function CF:RenderBarSettings(parent, eleConfig, contentW)
         tinsert(apOpts, { value = k, text = v })
     end
     local anchorDD = GUI:CreateDropdown(parent, {
-        width = 160,
         options = apOpts,
         get = function() return eleConfig.anchorPos end,
         set = function(v)
@@ -910,7 +905,6 @@ function CF:RenderBarSettings(parent, eleConfig, contentW)
     anchorDD = GUI:VGroup(parent, L["Element Anchor Position"], anchorDD)
 
     local afapDD = GUI:CreateDropdown(parent, {
-        width = 160,
         options = apOpts,
         get = function() return eleConfig.attachFrameAnchorPos end,
         set = function(v)
@@ -925,7 +919,7 @@ function CF:RenderBarSettings(parent, eleConfig, contentW)
     local screenW = math_floor(GetScreenWidth())
     local screenH = math_floor(GetScreenHeight())
     local posXSlider = GUI:CreateSlider(parent, {
-        label = L["Relative X-Offset"], width = 200,
+        label = L["Relative X-Offset"],
         min = -screenW, max = screenW, step = 1,
         get = function() return eleConfig.posX or 0 end,
         set = function(v)
@@ -935,7 +929,7 @@ function CF:RenderBarSettings(parent, eleConfig, contentW)
     })
 
     local posYSlider = GUI:CreateSlider(parent, {
-        label = L["Relative Y-Offset"], width = 200,
+        label = L["Relative Y-Offset"],
         min = -screenH, max = screenH, step = 1,
         get = function() return eleConfig.posY or 0 end,
         set = function(v)
@@ -981,7 +975,6 @@ function CF:RenderElementSettings(parent, eleConfig, topEleConfig, contentW)
         end
 
         local itemTypeDD = GUI:CreateDropdown(parent, {
-            width = 180,
             options = itOpts,
             get = function() return state.itemType end,
             set = function(v) state.itemType = v end,
@@ -990,7 +983,6 @@ function CF:RenderElementSettings(parent, eleConfig, topEleConfig, contentW)
 
         -- Item value (shows icon+name+quality markup as display text, same row as itemType)
         local itemValInput = GUI:CreateInput(parent, {
-            width = 200,
             get = function() return state.itemVal or "" end,
             set = function(v)
                 state.itemVal = v
@@ -1042,14 +1034,12 @@ function CF:RenderElementSettings(parent, eleConfig, topEleConfig, contentW)
 
         -- Title + Icon (same row)
         local titleInput = GUI:CreateInput(parent, {
-            width = 200,
             get = function() return eleConfig.title end,
             set = function(v) eleConfig.title = v; self:BuildTree() end,
         })
         titleInput = GUI:VGroup(parent, L["Title"], titleInput)
 
         local iconInput = GUI:CreateIconInput(parent, {
-            width = 200,
             defaultIcon = DEFAULT_ICON,
             ---@diagnostic disable-next-line: return-type-mismatch
             get = function() return (eleConfig.icon) end,
@@ -1093,7 +1083,6 @@ function CF:RenderElementSettings(parent, eleConfig, topEleConfig, contentW)
             tinsert(itOpts, { value = k, text = v })
         end
         local addTypeDD = GUI:CreateDropdown(parent, {
-            width = 180,
             options = itOpts,
             get = function() return addState.itemType end,
             set = function(v) addState.itemType = v end,
@@ -1103,7 +1092,6 @@ function CF:RenderElementSettings(parent, eleConfig, topEleConfig, contentW)
 
         -- Item value input (adding child item)
         local addValInput = GUI:CreateInput(parent, {
-            width = 200,
             get = function() return addState.itemVal or "" end,
             set = function(v)
                 addState.itemVal = v
@@ -1228,14 +1216,12 @@ function CF:RenderElementSettings(parent, eleConfig, topEleConfig, contentW)
 
         -- Title + Icon (same row)
         local titleInput = GUI:CreateInput(parent, {
-            width = 200,
             get = function() return eleConfig.title end,
             set = function(v) eleConfig.title = v; self:BuildTree() end,
         })
         titleInput = GUI:VGroup(parent, L["Title"], titleInput)
 
         local iconInput = GUI:CreateIconInput(parent, {
-            width = 200,
             defaultIcon = DEFAULT_ICON,
             ---@diagnostic disable-next-line: return-type-mismatch
             get = function() return (eleConfig.icon) end,
@@ -1276,14 +1262,12 @@ function CF:RenderElementSettings(parent, eleConfig, topEleConfig, contentW)
 
         -- Title + Icon (same row)
         local titleInput = GUI:CreateInput(parent, {
-            width = 200,
             get = function() return eleConfig.title end,
             set = function(v) eleConfig.title = v; self:BuildTree() end,
         })
         titleInput = GUI:VGroup(parent, L["Title"], titleInput)
 
         local iconInput = GUI:CreateIconInput(parent, {
-            width = 200,
             defaultIcon = DEFAULT_ICON,
             ---@diagnostic disable-next-line: return-type-mismatch
             get = function() return (eleConfig.icon) end,
@@ -1390,7 +1374,7 @@ function CF:RenderDisplay(parent, eleConfig, topEleConfig, contentW)
                 tinsert(combatOpts, { value = k, text = v })
             end
             local combatDD = GUI:CreateDropdown(parent, {
-                label = "", width = 200,
+                label = "",
                 options = combatOpts,
                 get = function() return eleConfig.loadCond.CombatCond end,
                 set = function(v)
@@ -1729,7 +1713,6 @@ function CF:RenderCreate(parent, eleConfig, contentW)
         typeDD = GUI:VGroup(parent, L["Item Type"], typeDD)
 
         local valInput = GUI:CreateInput(parent, {
-            width = 200,
             get = function() return s.itemVal or "" end,
             set = function(v)
                 s.itemVal = v
@@ -1793,7 +1776,6 @@ function CF:RenderCreate(parent, eleConfig, contentW)
             tinsert(modeOpts, { value = k, text = v })
         end
         local modeDD = GUI:CreateDropdown(parent, {
-            width = 200,
             options = modeOpts,
             get = function() return s.mode end,
             set = function(v) s.mode = v end,
@@ -1801,7 +1783,6 @@ function CF:RenderCreate(parent, eleConfig, contentW)
         modeDD = GUI:VGroup(parent, L["Mode"], modeDD)
 
         local titleInput = GUI:CreateInput(parent, {
-            width = 200,
             get = function() return s.title or "" end,
             set = function(v)
                 if v and v ~= "" then
@@ -2039,7 +2020,7 @@ function CF:RenderBindkey(parent, eleConfig, contentW)
                 tinsert(combatOpts, { value = k, text = v })
             end
             local combatDD = GUI:CreateDropdown(parent, {
-                label = "", width = 200,
+                label = "",
                 options = combatOpts,
                 get = function() return eleConfig.bindKey.combat end,
                 set = function(v) eleConfig.bindKey.combat = v end,
@@ -2069,7 +2050,7 @@ function CF:RenderBindkey(parent, eleConfig, contentW)
                 tinsert(afOpts, { value = k, text = v })
             end
             local afDD = GUI:CreateDropdown(parent, {
-                label = "", width = 200,
+                label = "",
                 options = afOpts,
                 get = function() return eleConfig.bindKey.attachFrame end,
                 set = function(v) eleConfig.bindKey.attachFrame = v end,

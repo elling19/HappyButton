@@ -1054,7 +1054,7 @@ end
 function GUI:CreateSlider(parent, item)
     local width  = item.width or 180
     local sliderH = 16
-    local totalH  = 48
+    local totalH  = 56
 
     local container = CreateFrame("Frame", nil, parent)
     container:SetSize(width, totalH)
@@ -1068,7 +1068,7 @@ function GUI:CreateSlider(parent, item)
 
     local slider = CreateFrame("Slider", nil, container, "BackdropTemplate")
     slider:SetSize(width, sliderH)
-    slider:SetPoint("BOTTOMLEFT", 0, 12)
+    slider:SetPoint("BOTTOMLEFT", 0, 20)
     slider:SetOrientation("HORIZONTAL")
     slider:SetMinMaxValues(item.min or 0, item.max or 100)
     slider:SetValueStep(item.step or 1)
@@ -1092,19 +1092,68 @@ function GUI:CreateSlider(parent, item)
         slider:SetThumbTexture("Interface\\Buttons\\UI-SliderBar-Button-Horizontal")
     end
 
-    local valText = GUI:CreateText(slider, "", GUI.Fonts.size_normal - 2)
-    valText:SetPoint("TOP", slider, "BOTTOM", 0, -1)
+    -- 可直接输入数值的 EditBox（替代只读 valText）
+    local ebW = 56
+    local ebH = 16
+    local eb
+    if GUI.isSkinEnabled then
+        eb = CreateFrame("EditBox", nil, container, "BackdropTemplate")
+        eb:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8" })
+        eb:SetBackdropColor(0.05, 0.05, 0.05, 1)
+        GUI:CreateBorder(eb, unpack(GUI.Colors.border))
+    else
+        eb = CreateFrame("EditBox", nil, container, "InputBoxTemplate")
+    end
+    eb:SetSize(ebW, ebH)
+    eb:SetPoint("TOP", slider, "BOTTOM", 0, -1)
+    eb:SetAutoFocus(false)
+    eb:SetMaxLetters(8)
+    eb:SetNumeric(true)
+    eb:SetFont(GUI.Fonts.normal, GUI.Fonts.size_normal, "")
+    eb:SetTextInsets(4, 4, 0, 0)
+    eb:SetJustifyH("CENTER")
+    eb:SetTextColor(unpack(GUI.Colors.text))
 
-    local minText = GUI:CreateText(slider, tostring(item.min or 0), GUI.Fonts.size_normal - 3)
-    minText:SetPoint("TOPLEFT", slider, "BOTTOMLEFT", 0, -1)
+    eb:SetScript("OnEditFocusGained", function(self)
+        if GUI.isSkinEnabled then
+            GUI:SetBorderColor(self, unpack(GUI.Colors.border_highlight))
+        end
+    end)
+    eb:SetScript("OnEditFocusLost", function(self)
+        if GUI.isSkinEnabled then
+            GUI:SetBorderColor(self, unpack(GUI.Colors.border))
+        end
+        -- 失焦时应用输入的值
+        local v = tonumber(self:GetText())
+        if v then
+            local minV, maxV = slider:GetMinMaxValues()
+            local step = item.step or 1
+            v = math_max(minV, math_min(maxV, math_floor(v / step + 0.5) * step))
+            slider:SetValue(v)
+        else
+            self:SetText(tostring(math_floor(slider:GetValue() + 0.5)))
+        end
+    end)
+    eb:SetScript("OnEscapePressed", function(self)
+        self:SetText(tostring(math_floor(slider:GetValue() + 0.5)))
+        self:ClearFocus()
+    end)
+    eb:SetScript("OnEnterPressed", function(self)
+        self:ClearFocus()
+    end)
+
+    -- eb 顶部在 slider 底部偏移 -1，高度 ebH，故 eb 中心 y = -(1 + ebH/2)
+    local ebCenterY = -(1 + ebH / 2)
+    local minText = GUI:CreateText(container, tostring(item.min or 0), GUI.Fonts.size_normal - 3)
+    minText:SetPoint("LEFT", slider, "BOTTOMLEFT", 0, ebCenterY)
     minText:SetTextColor(unpack(GUI.Colors.disabled))
-    local maxText = GUI:CreateText(slider, tostring(item.max or 100), GUI.Fonts.size_normal - 3)
-    maxText:SetPoint("TOPRIGHT", slider, "BOTTOMRIGHT", 0, -1)
+    local maxText = GUI:CreateText(container, tostring(item.max or 100), GUI.Fonts.size_normal - 3)
+    maxText:SetPoint("RIGHT", slider, "BOTTOMRIGHT", 0, ebCenterY)
     maxText:SetTextColor(unpack(GUI.Colors.disabled))
 
     slider:SetScript("OnValueChanged", function(_, value)
         value = math_floor(value + 0.5)
-        valText:SetText(value)
+        eb:SetText(tostring(value))
         if item.set then item.set(value) end
         if item.onChange then item.onChange(slider, value) end
     end)
@@ -1149,11 +1198,11 @@ local function CloseActiveDropdown()
 end
 
 function GUI:CreateDropdown(parent, item)
-    local width = item.width or 160
-    local btnH = 26
+    local width = item.width or 180
+    local btnH = item.height or 26
 
     local container = CreateFrame("Frame", nil, parent)
-    container:SetHeight(32)
+    container:SetHeight(btnH)
 
     local ddX = 0
     if item.label then
