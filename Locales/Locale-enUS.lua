@@ -25,6 +25,7 @@ L["Icon"] = true
 L["New"] = true
 L["Delete"] = true
 L["Copy"] = true
+L["Move"] = true
 L["Mode"] = true
 L["Select items to display"] = true
 L["Macro"] = true

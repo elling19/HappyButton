@@ -1365,17 +1365,253 @@ end
 -- Dropdown
 -------------------------------------------------------------------------------
 
+local CloseActiveDropdown
+
 function GUI:OpenDropdown(anchor, options)
-    MenuUtil.CreateContextMenu(anchor, function(_, rootDescription)
-        for _, opt in ipairs(options) do
-            local btn = rootDescription:CreateButton(opt.text, function()
-                if opt.func then opt.func() end
-            end)
-            if opt.disabled then
-                btn:SetEnabled(false)
+    local items = {}
+    for _, opt in ipairs(options) do
+        tinsert(items, {
+            text = opt.text,
+            disabled = opt.disabled,
+            func = opt.func,
+        })
+    end
+    self:OpenCascadingMenu(anchor, items)
+end
+
+local _activeCascadingMenu = nil
+local _cascadingMenuOverlay = nil
+local _menuMeasureText = nil
+
+local function EnsureCascadingMenuOverlay()
+    if _cascadingMenuOverlay then
+        return _cascadingMenuOverlay
+    end
+
+    local overlay = CreateFrame("Button", nil, UIParent)
+    overlay:SetAllPoints(UIParent)
+    overlay:SetFrameStrata("FULLSCREEN_DIALOG")
+    overlay:EnableMouse(true)
+    overlay:RegisterForClicks("AnyDown")
+    overlay:Hide()
+    _cascadingMenuOverlay = overlay
+    return overlay
+end
+
+local function HideMenuBranch(menu)
+    if not menu then return end
+    if menu.activeChild then
+        HideMenuBranch(menu.activeChild)
+        menu.activeChild = nil
+    end
+    menu:Hide()
+end
+
+local function CloseActiveCascadingMenu()
+    if _activeCascadingMenu then
+        HideMenuBranch(_activeCascadingMenu)
+        _activeCascadingMenu = nil
+    end
+    if _cascadingMenuOverlay then
+        _cascadingMenuOverlay:Hide()
+    end
+end
+
+local function EnsureMenuMeasureText()
+    if _menuMeasureText then
+        return _menuMeasureText
+    end
+
+    local fs = UIParent:CreateFontString(nil, "OVERLAY")
+    fs:SetFont(GUI.Fonts.normal, GUI.Fonts.size_normal, "")
+    _menuMeasureText = fs
+    return fs
+end
+
+local function GetMenuWidth(items, minWidth)
+    local width = minWidth or 160
+    local fs = EnsureMenuMeasureText()
+
+    for _, item in ipairs(items) do
+        fs:SetText(item.text or "")
+        local itemWidth = fs:GetStringWidth() + (item.children and 42 or 24)
+        if itemWidth > width then
+            width = itemWidth
+        end
+    end
+
+    return width
+end
+
+local function CreateMenuFrame(width, height)
+    local sp = GUI:GetSkinProvider()
+    local frame = CreateFrame("Frame", nil, UIParent, "BackdropTemplate")
+    frame:SetFrameStrata("FULLSCREEN_DIALOG")
+    frame:SetClampedToScreen(true)
+    frame:SetSize(width, height)
+
+    if sp and sp.CreateBDFrame then
+        pcall(sp.CreateBDFrame, frame, 0.9, true)
+    elseif GUI.isSkinEnabled then
+        frame:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8" })
+        frame:SetBackdropColor(0.08, 0.08, 0.08, 0.95)
+        GUI:CreateBorder(frame, unpack(GUI.Colors.border))
+    else
+        frame:SetBackdrop({
+            bgFile = "Interface\\Tooltips\\UI-Tooltip-Background",
+            edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+            tile = true, tileSize = 16, edgeSize = 16,
+            insets = { left = 4, right = 4, top = 4, bottom = 4 },
+        })
+        frame:SetBackdropColor(0.08, 0.08, 0.08, 0.95)
+        frame:SetBackdropBorderColor(0.6, 0.6, 0.6, 1)
+    end
+
+    frame.buttons = {}
+    return frame
+end
+
+local function SetMenuButtonEnabled(button, enabled)
+    button.isDisabled = not enabled
+    button:EnableMouse(enabled)
+    if enabled then
+        button.text:SetTextColor(unpack(GUI.Colors.text))
+        if button.arrow then
+            button.arrow:SetTextColor(0.7, 0.7, 0.7, 1)
+        end
+    else
+        button.text:SetTextColor(unpack(GUI.Colors.disabled))
+        if button.arrow then
+            button.arrow:SetTextColor(unpack(GUI.Colors.disabled))
+        end
+    end
+end
+
+local function CreateMenuButton(menu, width, itemHeight)
+    local button = CreateFrame("Button", nil, menu)
+    button:SetSize(width - 4, itemHeight)
+    button:RegisterForClicks("AnyUp")
+
+    local highlight = button:CreateTexture(nil, "HIGHLIGHT")
+    highlight:SetAllPoints()
+    highlight:SetTexture("Interface\\Buttons\\WHITE8x8")
+    highlight:SetVertexColor(1, 1, 1, 0.08)
+
+    local text = button:CreateFontString(nil, "OVERLAY")
+    text:SetFont(GUI.Fonts.normal, GUI.Fonts.size_normal, "")
+    text:SetPoint("LEFT", 10, 0)
+    text:SetPoint("RIGHT", -24, 0)
+    text:SetJustifyH("LEFT")
+    text:SetWordWrap(false)
+    button.text = text
+
+    local arrow = button:CreateFontString(nil, "OVERLAY")
+    arrow:SetFont(GUI.Fonts.normal, GUI.Fonts.size_normal, "")
+    arrow:SetPoint("RIGHT", -8, 0)
+    arrow:SetJustifyH("RIGHT")
+    arrow:SetText(">")
+    arrow:Hide()
+    button.arrow = arrow
+
+    return button
+end
+
+local function BuildMenuLevel(anchor, items, config, parentMenu, parentButton)
+    local itemHeight = config.itemHeight or 24
+    local width = GetMenuWidth(items, config.width)
+    local height = #items * itemHeight + 4
+    local menu = CreateMenuFrame(width, height)
+    menu.parentMenu = parentMenu
+    menu.parentButton = parentButton
+
+    if parentButton then
+        menu:SetPoint("TOPLEFT", parentButton, "TOPRIGHT", -2, 0)
+    else
+        menu:SetPoint("TOPLEFT", anchor, "BOTTOMLEFT", 0, -2)
+    end
+
+    for index, item in ipairs(items) do
+        local button = CreateMenuButton(menu, width, itemHeight)
+        button:SetPoint("TOPLEFT", 2, -((index - 1) * itemHeight) - 2)
+        button.menuItem = item
+        button.text:SetText(item.text or "")
+
+        if item.children and #item.children > 0 then
+            button.arrow:Show()
+        else
+            button.arrow:Hide()
+        end
+
+        SetMenuButtonEnabled(button, not item.disabled)
+
+        button:SetScript("OnEnter", function(self)
+            if self.isDisabled then
+                if menu.activeChild then
+                    HideMenuBranch(menu.activeChild)
+                    menu.activeChild = nil
+                end
+                return
             end
+
+            if menu.activeChild and menu.activeChild.parentButton ~= self then
+                HideMenuBranch(menu.activeChild)
+                menu.activeChild = nil
+            end
+
+            if item.children and #item.children > 0 then
+                if not menu.activeChild or menu.activeChild.parentButton ~= self then
+                    menu.activeChild = BuildMenuLevel(anchor, item.children, config, menu, self)
+                end
+                menu.activeChild:Show()
+            end
+        end)
+
+        button:SetScript("OnClick", function()
+            if button.isDisabled then
+                return
+            end
+            if item.children and #item.children > 0 then
+                return
+            end
+            CloseActiveCascadingMenu()
+            if item.func then
+                item.func()
+            end
+        end)
+
+        tinsert(menu.buttons, button)
+    end
+
+    menu:SetScript("OnHide", function(self)
+        if self.activeChild then
+            HideMenuBranch(self.activeChild)
+            self.activeChild = nil
         end
     end)
+
+    return menu
+end
+
+function GUI:OpenCascadingMenu(anchor, items, config)
+    if not anchor or not items or #items == 0 then
+        return
+    end
+
+    config = config or {}
+
+    -- 统一关闭已有的自绘弹层，避免与下拉和旧菜单叠加。
+    CloseActiveDropdown()
+    CloseActiveCascadingMenu()
+
+    local overlay = EnsureCascadingMenuOverlay()
+    overlay:SetScript("OnClick", function()
+        CloseActiveCascadingMenu()
+    end)
+    overlay:Show()
+
+    _activeCascadingMenu = BuildMenuLevel(anchor, items, config)
+    _activeCascadingMenu:Show()
+    return _activeCascadingMenu
 end
 
 -------------------------------------------------------------------------------
@@ -1383,7 +1619,7 @@ end
 -------------------------------------------------------------------------------
 local _activeDropdownList = nil  -- track currently open dropdown list
 
-local function CloseActiveDropdown()
+CloseActiveDropdown = function()
     if _activeDropdownList then
         _activeDropdownList:Hide()
         _activeDropdownList = nil

@@ -2383,50 +2383,116 @@ function CF:OnExport(nodeInfo)
     Cfg.ShowExportDialog(encoded)
 end
 
+---@param nodeInfo table 当前物品所在的节点信息
+---@param targetBar ElementConfig 目标 bar 配置
+function CF:OnMoveTo(nodeInfo, targetBar)
+    if not nodeInfo or not nodeInfo.eleConfig or not nodeInfo.topEleConfig or not targetBar then
+        return
+    end
+    
+    local sourceBar = nodeInfo.topEleConfig
+    if sourceBar.id == targetBar.id then
+        return
+    end
+    
+    if not sourceBar.elements or not targetBar.elements then
+        return
+    end
+    
+    -- 从源 bar 中查找并移除该元素
+    local elementToMove = nil
+    for i, ele in ipairs(sourceBar.elements) do
+        if ele.id == nodeInfo.eleConfig.id then
+            elementToMove = table.remove(sourceBar.elements, i)
+            break
+        end
+    end
+    
+    if not elementToMove then
+        return
+    end
+    
+    -- 添加到目标 bar
+    table.insert(targetBar.elements, elementToMove)
+    
+    -- 重新加载两个 bar 的 UI
+    HbFrame:ReloadEframeUI(sourceBar)
+    HbFrame:ReloadEframeUI(targetBar)
+    
+    -- 清除选中并刷新界面
+    self.selectedNode = nil
+    self:Refresh()
+end
+
 function CF:ShowContextMenu(anchor, nodeInfo)
     local isBar = nodeInfo.childIndex == nil
     local elements = addon.db.profile.elements
-    local options = {}
 
-    -- Move Up
     local canUp = isBar and (nodeInfo.barIndex > 1) or (not isBar and nodeInfo.childIndex > 1)
-    tinsert(options, {
-        text = L["Move Up"],
-        disabled = not canUp,
-        func = function() self:OnMoveUp(nodeInfo) end,
-    })
-
-    -- Move Down
     local canDown
     if isBar then
         canDown = elements and nodeInfo.barIndex < #elements
     else
         canDown = nodeInfo.topEleConfig.elements and nodeInfo.childIndex < #nodeInfo.topEleConfig.elements
     end
-    tinsert(options, {
-        text = L["Move Down"],
-        disabled = not canDown,
-        func = function() self:OnMoveDown(nodeInfo) end,
-    })
 
-    -- Copy (child elements only, not bars)
+    local menuItems = {
+        {
+            text = L["Move Up"],
+            disabled = not canUp,
+            func = function()
+                self:OnMoveUp(nodeInfo)
+            end,
+        },
+        {
+            text = L["Move Down"],
+            disabled = not canDown,
+            func = function()
+                self:OnMoveDown(nodeInfo)
+            end,
+        },
+    }
+
     if not isBar then
-        tinsert(options, {
+        table.insert(menuItems, {
             text = L["Copy"],
-            func = function() self:OnCopy(nodeInfo) end,
+            func = function()
+                self:OnCopy(nodeInfo)
+            end,
         })
     end
 
-    -- Export (bars only)
+    if not isBar and elements and #elements > 1 then
+        local moveChildren = {}
+        for barIdx, bar in ipairs(elements) do
+            if bar.id ~= nodeInfo.topEleConfig.id then
+                local barName = bar.title or ("Bar " .. barIdx)
+                table.insert(moveChildren, {
+                    text = barName,
+                    func = function()
+                        self:OnMoveTo(nodeInfo, bar)
+                    end,
+                })
+            end
+        end
+        if #moveChildren > 0 then
+            table.insert(menuItems, {
+                text = L["Move"],
+                children = moveChildren,
+            })
+        end
+    end
+
     if isBar then
-        tinsert(options, {
+        table.insert(menuItems, {
             text = L["Export"],
-            func = function() self:OnExport(nodeInfo) end,
+            func = function()
+                self:OnExport(nodeInfo)
+            end,
         })
     end
 
-    -- Delete
-    tinsert(options, {
+    table.insert(menuItems, {
         text = L["Delete"],
         func = function()
             if isBar then
@@ -2443,7 +2509,8 @@ function CF:ShowContextMenu(anchor, nodeInfo)
         end,
     })
 
-    GUI:OpenDropdown(anchor, options)
+    -- 右键菜单改为 GUI 自绘多级菜单，支持 hover 展开子菜单。
+    GUI:OpenCascadingMenu(anchor, menuItems, { width = 180, itemHeight = 24 })
 end
 
 -------------------------------------------------------------------------------
