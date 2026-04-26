@@ -25,6 +25,12 @@ local Client = addon:GetModule("Client")
 ---@class Api: AceModule
 local Api = addon:GetModule("Api")
 
+---@class Skin: AceModule
+---@field GetSkinProvider fun(self: Skin, btn: Btn | nil): string
+---@field ApplySkin fun(self: Skin, btn: Btn | nil, provider: string | nil): boolean
+---@field BindSkinReferences fun(self: Skin, btn: Btn | nil)
+local Skin = addon:GetModule("Skin")
+
 ---@type LibCustomGlow
 ---@diagnostic disable-next-line: assign-type-mismatch
 local LCG = LibStub("LibCustomGlow-1.0")
@@ -132,64 +138,7 @@ end
 
 ---@return string
 function Btn:GetSkinProvider()
-    if addon.G == nil then
-        return "native"
-    end
-    if addon.G.Masque then
-        return "masque"
-    end
-    if addon.G.ElvUI then
-        return "elvui"
-    end
-    if addon.G.NDui then
-        return "ndui"
-    end
-    return "native"
-end
-
-function Btn:BindSkinReferences()
-    if self.Button == nil or self.Icon == nil then
-        return
-    end
-    ---@diagnostic disable-next-line: undefined-field
-    self.Button.icon = self.Icon
-    ---@diagnostic disable-next-line: undefined-field
-    self.Button.Icon = self.Icon
-end
-
-function Btn:ApplyFallbackButtonTextures(highlightAlpha)
-    if self.Button == nil then
-        return
-    end
-    local white8x8 = "Interface\\Buttons\\WHITE8x8"
-    if addon.G and addon.G.ElvUI and addon.G.ElvUI.Media and addon.G.ElvUI.Media.Textures and addon.G.ElvUI.Media.Textures.White8x8 then
-        white8x8 = addon.G.ElvUI.Media.Textures.White8x8
-    end
-    self.Button:SetHighlightTexture(white8x8)
-    self.Button:GetHighlightTexture():SetVertexColor(1, 1, 1, highlightAlpha)
-    self.Button:SetPushedTexture(white8x8)
-    self.Button:GetPushedTexture():SetVertexColor(1, 1, 1, highlightAlpha)
-end
-
-function Btn:ApplyIconCropByProvider(provider)
-    if self.Icon == nil then
-        return
-    end
-    if provider == "elvui" then
-        ---@diagnostic disable-next-line: undefined-field
-        local coords = addon.G and addon.G.ElvUI and addon.G.ElvUI.TexCoords
-        if type(coords) == "table" and #coords >= 4 then
-            self.Icon:SetTexCoord(unpack(coords))
-        else
-            self.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-        end
-        return
-    end
-    if provider == "ndui" then
-        self.Icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-        return
-    end
-    self.Icon:SetTexCoord(0, 1, 0, 1)
+    return Skin:GetSkinProvider(self)
 end
 
 ---@param provider string
@@ -216,57 +165,6 @@ function Btn:SyncSkinProviderState()
     return provider
 end
 
----@return boolean
-function Btn:ApplyElvUISkin()
-    if self.Button == nil then
-        return false
-    end
-    self:BindSkinReferences()
-    local skinned = false
-    local skins = addon.G and addon.G.ElvUISkins
-    ---@diagnostic disable-next-line: undefined-field
-    if skins and skins.HandleButton then
-        ---@diagnostic disable-next-line: undefined-field
-        local ok, ret = pcall(skins.HandleButton, skins, self.Button)
-        skinned = ok and ret ~= false and ret ~= nil
-    end
-    ---@diagnostic disable-next-line: undefined-field
-    if skins and skins.HandleIcon and self.Icon then
-        ---@diagnostic disable-next-line: undefined-field
-        pcall(skins.HandleIcon, skins, self.Icon)
-    end
-    if not skinned then
-        self:ApplyFallbackButtonTextures(0.3)
-        skinned = true
-    end
-    return skinned
-end
-
----@return boolean
-function Btn:ApplyNDuiSkin()
-    if self.Button == nil then
-        return false
-    end
-    self:BindSkinReferences()
-    self:ApplyFallbackButtonTextures(0.25)
-    return true
-end
-
----@param provider string
----@return boolean
-function Btn:ApplySkinByProvider(provider)
-    if provider == "masque" then
-        return self:ApplyMasqueSkin()
-    end
-    if provider == "elvui" then
-        return self:ApplyElvUISkin()
-    end
-    if provider == "ndui" then
-        return self:ApplyNDuiSkin()
-    end
-    return true
-end
-
 ---@param phase "create"|"render"
 ---@return boolean
 function Btn:ApplyButtonSkin(phase)
@@ -276,7 +174,7 @@ function Btn:ApplyButtonSkin(phase)
     end
 
     if phase == "create" then
-        local applied = self:ApplySkinByProvider(provider)
+        local applied = Skin:ApplySkin(self, provider)
         if provider == "native" then
             self.isSkinApplied = applied
             self.didRenderSkinApply = true
@@ -290,7 +188,7 @@ function Btn:ApplyButtonSkin(phase)
     end
 
     self.didRenderSkinApply = true
-    local applied = self:ApplySkinByProvider(provider)
+    local applied = Skin:ApplySkin(self, provider)
     if provider == "native" then
         self.isSkinApplied = applied
         self.didDeferredSkinApply = true
@@ -302,7 +200,7 @@ function Btn:ApplyButtonSkin(phase)
         C_Timer.After(0, function()
             if self.Button ~= nil and self.Icon ~= nil then
                 local currentProvider = self:SyncSkinProviderState()
-                self.isSkinApplied = self:ApplySkinByProvider(currentProvider)
+                self.isSkinApplied = Skin:ApplySkin(self, currentProvider)
             end
         end)
     end
@@ -312,37 +210,6 @@ end
 
 function Btn:EnsureSkinAppliedOnRender()
     self:ApplyButtonSkin("render")
-end
-
-function Btn:GetMasqueGroup()
-    if self.MasqueGroup then
-        return self.MasqueGroup
-    end
-    if not addon.G.Masque then
-        return nil
-    end
-    -- 直接使用插件分组，不使用额外子分组
-    self.MasqueGroup = addon.G.Masque:Group(addonName)
-    return self.MasqueGroup
-end
-
-function Btn:ApplyMasqueSkin()
-    local masqueGroup = self:GetMasqueGroup()
-    if not masqueGroup or not self.Button or not self.Icon then
-        return false
-    end
-    if self.isMasqueSkinned then
-        return true
-    end
-    local ok = pcall(masqueGroup.AddButton, masqueGroup, self.Button, {
-        Icon = self.Icon,
-        Cooldown = self.Cooldown,
-        IconBorder = self.IconBorder,
-    })
-    if ok then
-        self.isMasqueSkinned = true
-    end
-    return ok
 end
 
 ---@param eFrame ElementFrame
@@ -629,8 +496,8 @@ function Btn:CreateIcon()
         self.Icon:SetTexture(134400)
         self.Icon:SetSize(self.Button:GetWidth(), self.Button:GetHeight())
         self.Icon:SetPoint("CENTER")
-        self:BindSkinReferences()
-        self:ApplyIconCropByProvider(self:GetSkinProvider())
+        Skin:BindSkinReferences(self)
+        Skin:ApplyIconCropByProvider(self, self:GetSkinProvider())
     end
     if self.ProfessionQualityOverlay == nil then
         self.ProfessionQualityOverlay = self.Button:CreateTexture(nil, "OVERLAY")
@@ -835,7 +702,7 @@ function Btn:CreateCoolDown()
         end
 
         if addon.G.Masque then
-            self:ApplyMasqueSkin()
+            Skin:ApplyMasqueSkin(self)
         end
     end
 end

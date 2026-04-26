@@ -40,6 +40,7 @@ Src\Element\ItemGroup.lua
 Src\Element\Script.lua
 Src\Element\Macro.lua
 Src\Frame\ElementCallback.lua
+Src\Frame\Skin.lua
 Src\Frame\Btn.lua
 Src\Frame\ElementFrame.lua
 Src\Frame\HbFrame.lua

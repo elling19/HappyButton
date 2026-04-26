@@ -21,6 +21,11 @@ local ECB = addon:GetModule('ElementCallback')
 ---@class Btn: AceModule
 local Btn = addon:GetModule("Btn")
 
+---@class Skin: AceModule
+---@field GetSkinProvider fun(self: Skin, btn: Btn | nil): string
+---@field ApplySkin fun(self: Skin, btn: Btn | nil, provider: string | nil): boolean
+local Skin = addon:GetModule("Skin")
+
 ---@class LoadCondition: AceModule
 local LoadCondition = addon:GetModule("LoadCondition")
 
@@ -381,30 +386,12 @@ function ElementFrame:ApplyTriggerSkin()
     if not trigger or not icon then
         return
     end
-    -- 图标裁切（与 Btn:ApplyIconCropByProvider 保持一致）
-    local provider = Btn:GetSkinProvider()
-    if provider == "elvui" then
-        local coords = addon.G and addon.G.ElvUI and addon.G.ElvUI.TexCoords
-        if type(coords) == "table" and #coords >= 4 then
-            icon:SetTexCoord(unpack(coords))
-        else
-            icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-        end
-    elseif provider == "ndui" then
-        icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
-    else
-        icon:SetTexCoord(0, 1, 0, 1)
-    end
-    -- 高亮/按下纹理
-    local white8x8 = "Interface\\Buttons\\WHITE8x8"
-    if addon.G and addon.G.ElvUI and addon.G.ElvUI.Media
-        and addon.G.ElvUI.Media.Textures and addon.G.ElvUI.Media.Textures.White8x8 then
-        white8x8 = addon.G.ElvUI.Media.Textures.White8x8
-    end
-    trigger:SetHighlightTexture(white8x8)
-    trigger:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.3)
-    trigger:SetPushedTexture(white8x8)
-    trigger:GetPushedTexture():SetVertexColor(1, 1, 1, 0.3)
+    -- Trigger 转成统一的 btn 结构，复用 Skin:ApplySkin 入口。
+    local triggerBtn = {
+        Button = trigger,
+        Icon = icon,
+    }
+    Skin:ApplySkin(triggerBtn, Skin:GetSkinProvider(nil))
 end
 
 function ElementFrame:UpdateFlyoutAnchor()
