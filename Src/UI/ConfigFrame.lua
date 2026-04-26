@@ -911,7 +911,8 @@ function CF:RenderBarSettings(parent, eleConfig, contentW)
         get = function() return eleConfig.attachFrame or "UIParent" end,
         set = function(v)
             eleConfig.attachFrame = (v ~= "" and v) or "UIParent"
-            HbFrame:ReloadEframeUI(eleConfig)
+            -- 依附框体修改时立即更新挂载目标与窗口锚点。
+            HbFrame:UpdateEframeWindow(eleConfig)
         end,
     })
     afInput = GUI:VGroup(parent, L["AttachFrame"], afInput)
@@ -926,7 +927,8 @@ function CF:RenderBarSettings(parent, eleConfig, contentW)
         set = function(v)
             eleConfig.attachFrame = v
             afInput:SetValue(v)
-            HbFrame:ReloadEframeUI(eleConfig)
+            -- 依附框体预设切换时立即更新挂载目标与窗口锚点。
+            HbFrame:UpdateEframeWindow(eleConfig)
         end,
     })
     afDD = GUI:VGroup(parent, L["Preset"], afDD)
@@ -942,7 +944,8 @@ function CF:RenderBarSettings(parent, eleConfig, contentW)
         get = function() return eleConfig.anchorPos end,
         set = function(v)
             eleConfig.anchorPos = v
-            HbFrame:ReloadEframeUI(eleConfig)
+            -- 元素锚点修改时直接刷新窗口定位，避免等待整 UI 重载。
+            HbFrame:UpdateEframeWindow(eleConfig)
         end,
     })
     anchorDD = GUI:VGroup(parent, L["Element Anchor Position"], anchorDD)
@@ -952,7 +955,8 @@ function CF:RenderBarSettings(parent, eleConfig, contentW)
         get = function() return eleConfig.attachFrameAnchorPos end,
         set = function(v)
             eleConfig.attachFrameAnchorPos = v
-            HbFrame:ReloadEframeUI(eleConfig)
+            -- 依附框体锚点修改时直接刷新窗口定位，确保立即生效。
+            HbFrame:UpdateEframeWindow(eleConfig)
         end,
     })
     afapDD = GUI:VGroup(parent, L["AttachFrame Anchor Position"], afapDD)

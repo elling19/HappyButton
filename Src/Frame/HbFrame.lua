@@ -81,6 +81,8 @@ function HbFrame:UpdateEframeWindow(eleConfig)
         return
     end
     local eFrame = self.EFrames[eleConfig.id]
+    -- 锚点相关设置需要先重新解析依附框体，再立即更新窗口定位。
+    eFrame:RefreshAttachFrame()
     eFrame:UpdateWindow()
 end
 
