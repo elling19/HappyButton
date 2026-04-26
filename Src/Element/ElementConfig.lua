@@ -33,7 +33,6 @@
 ---@field elements ElementConfig[]
 ---@field icon string | number | nil
 ---@field flyout boolean | nil -- 根Bar是否使用flyout模式
----@field flyoutAutoCollapse boolean | nil -- flyout按钮列表点击后是否自动收起；nil视为默认开启
 ---@field anchorPos string  --锚点位置
 ---@field attachFrame string  --依附框体
 ---@field attachFrameAnchorPos string -- 依附框体锚点位置
@@ -74,6 +73,5 @@ local ItemGroupConfig = {}
 
 ---@class BarConfig: ElementConfig
 ---@field flyout boolean | nil  -- 是否使用抽屉模式；nil表示不启用
----@field flyoutAutoCollapse boolean | nil -- 按钮点击后自动收起；nil表示默认开启
 local BarConfig = {}
 

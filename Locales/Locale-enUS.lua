@@ -15,6 +15,7 @@ L["Merchant"] = true
 L["Others"] = true
 L["Yes"] = true
 L["No"] = true
+L["Cancel"] = true
 L["Please copy the configuration to the clipboard."] = true
 L["Error"] = true
 L["Items Bar"] = true
@@ -169,6 +170,7 @@ L["Preset"] = true
 L["Combat Load Condition"] = true
 L["Load when out of combat"] = true
 L["Load when in combat"] = true
+L["Bindkey Help Content"] = "This bindkey works through override binding. \n\nIf the bindkey causes action bar buttons to stop working, try enabling Combat Load Condition and set it to load when out of combat.\n\nIt is not recommended to use bindkey in flyout mode unless you clearly understand how it works."
 
 L["AttachFrame Load Condition"] = true
 L["Load when attach frame hide"] = true

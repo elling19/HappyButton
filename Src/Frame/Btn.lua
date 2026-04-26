@@ -522,13 +522,33 @@ end
 ---@param event EventString
 function Btn:PassBindKeyCond(event)
     local bindKey = self.CbInfo.p.bindKey
+    -- Flyout bar 下，子按钮仅在 flyout 展开时允许按键触发
+    if self.EFrame:IsFlyoutEnabled() then
+        local bar = self.EFrame.Bar
+        local flyoutShown = bar and bar.FlyoutFrame and bar.FlyoutFrame:IsShown()
+        if not flyoutShown then
+            -- 战斗边界预绑定：进入战斗前一瞬允许建立 override binding
+            -- 否则 flyout 收起时会被条件拦截，导致战斗内完全没有按键绑定
+            if event ~= "PLAYER_REGEN_DISABLED" then
+                return false
+            end
+        end
+    end
     -- 是否设置了绑定按键
     if bindKey == nil or bindKey.key == nil or bindKey.key == "" then
         return false
     end
-    -- 如果设置了绑定角色，但是当前角色不在绑定角色中，职业也不再绑定职业中
-    if bindKey.characters ~= nil and (bindKey.characters[UnitGUID("player")] == nil and bindKey.classes[select(2, UnitClassBase("player"))] == nil) then
-        return false
+    -- 角色/职业范围：空表按“未限制(账号级)”处理，避免默认空表导致绑定永远不生效
+    local hasCharacterScope = bindKey.characters ~= nil and next(bindKey.characters) ~= nil
+    local hasClassScope = bindKey.classes ~= nil and next(bindKey.classes) ~= nil
+    if hasCharacterScope or hasClassScope then
+        local playerGuid = UnitGUID("player")
+        local playerClass = select(2, UnitClassBase("player"))
+        local inCharacterScope = hasCharacterScope and bindKey.characters[playerGuid] == true
+        local inClassScope = hasClassScope and bindKey.classes[playerClass] == true
+        if not inCharacterScope and not inClassScope then
+            return false
+        end
     end
     -- 战斗中加载条件不满足
     if bindKey.combat ~= nil then
@@ -926,7 +946,8 @@ function Btn:AppendFlyoutCloseMacro(macroText)
         return macroText
     end
     local eFrame = self.EFrame
-    if not eFrame or not eFrame.IsFlyoutAutoCollapseEnabled or not eFrame:IsFlyoutAutoCollapseEnabled() then
+    -- Flyout 模式下默认点击按钮后收起，不再提供开关。
+    if not eFrame or not eFrame.IsFlyoutEnabled or not eFrame:IsFlyoutEnabled() then
         return macroText
     end
     ---@diagnostic disable-next-line: undefined-field

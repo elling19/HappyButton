@@ -1,5 +1,9 @@
 local addonName, _ = ... ---@type string, table
 local addon = LibStub('AceAddon-3.0'):GetAddon(addonName)
+local L = LibStub("AceLocale-3.0"):GetLocale("HappyButton")
+
+---@class Utils: AceModule
+local U = addon:GetModule('Utils')
 
 ---@class GUI: AceModule
 local GUI = addon:NewModule("GUI")
@@ -172,18 +176,8 @@ GUI.Fonts = {
 
 -- Cache class color
 do
-    local _, class = UnitClass("player")
-    local color
-    if C_ClassColor and C_ClassColor.GetClassColor then
-        color = C_ClassColor.GetClassColor(class)
-    elseif RAID_CLASS_COLORS then
-        color = RAID_CLASS_COLORS[class]
-    end
-    if color then
-        GUI.Colors.class = {color.r, color.g, color.b, 1}
-    else
-        GUI.Colors.class = {1, 0.82, 0, 1}
-    end
+    local r, g, b, a = U:GetPlayerClassColor()
+    GUI.Colors.class = { r, g, b, a }
 end
 
 GUI.Colors_Hex = {}
@@ -213,12 +207,11 @@ function GUI:CreateText(parent, text, fontSize, justifyH)
     return fs
 end
 
--------------------------------------------------------------------------------
 -- VGroup: vertical label-on-top wrapper
 -- Wraps an existing widget with a label above it.
 -- Returns a container frame with .label, .widget, SetValue, GetValue proxied.
--------------------------------------------------------------------------------
-function GUI:VGroup(parent, label, widget)
+---@param help string | nil 可选帮助说明（鼠标悬停问号显示 tooltip）
+function GUI:VGroup(parent, label, widget, help)
     local LABEL_H = 18
     local container = CreateFrame("Frame", nil, parent)
 
@@ -226,6 +219,59 @@ function GUI:VGroup(parent, label, widget)
     lbl:SetPoint("TOPLEFT", 0, 0)
     lbl:SetTextColor(unpack(GUI.Colors.text))
     container.label = lbl
+
+    -- 可选帮助问号：统一在组件层处理，避免业务代码重复创建。
+    if help and help ~= "" then
+        local helpBtn = CreateFrame("Button", nil, container, "BackdropTemplate")
+        helpBtn:SetSize(16, 16)
+        helpBtn:SetPoint("LEFT", lbl, "RIGHT", 4, 0)
+
+        if GUI.isSkinEnabled then
+            helpBtn:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8" })
+            helpBtn:SetBackdropColor(0.15, 0.15, 0.15, 1)
+            GUI:CreateBorder(helpBtn, unpack(GUI.Colors.border))
+        else
+            helpBtn:SetBackdrop({
+                bgFile  = "Interface\\Tooltips\\UI-Tooltip-Background",
+                edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+                tile = true, tileSize = 16, edgeSize = 16,
+                insets = { left = 3, right = 3, top = 3, bottom = 3 },
+            })
+            helpBtn:SetBackdropColor(0, 0, 0, 0.7)
+            helpBtn:SetBackdropBorderColor(0.6, 0.6, 0.6, 1)
+        end
+
+        local helpText = helpBtn:CreateFontString(nil, "OVERLAY")
+        helpText:SetFont(STANDARD_TEXT_FONT, 12, "OUTLINE")
+        helpText:SetPoint("CENTER")
+        helpText:SetText("?")
+        helpText:SetTextColor(1, 0.82, 0, 1)
+
+        helpBtn:SetScript("OnEnter", function(self)
+            if GUI.isSkinEnabled then
+                GUI:SetBorderColor(self, unpack(GUI.Colors.border_highlight))
+            end
+            GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+            GameTooltip:ClearLines()
+            GameTooltip:AddLine(help, 1, 1, 1, true)
+            GameTooltip:Show()
+        end)
+        helpBtn:SetScript("OnLeave", function(self)
+            if GUI.isSkinEnabled then
+                GUI:SetBorderColor(self, unpack(GUI.Colors.border))
+            end
+            if GameTooltip:IsOwned(self) then
+                GameTooltip:Hide()
+            end
+        end)
+        helpBtn:SetScript("OnHide", function(self)
+            if GameTooltip:IsOwned(self) then
+                GameTooltip:Hide()
+            end
+        end)
+
+        container.helpBtn = helpBtn
+    end
 
     widget:SetParent(container)
     widget:ClearAllPoints()
@@ -701,6 +747,152 @@ function GUI:CreateDivider(parent, width, height, label, alignLeft)
 end
 
 -------------------------------------------------------------------------------
+-- Keybinding
+-------------------------------------------------------------------------------
+
+local _keyCaptureFrame = nil
+
+local function EnsureKeyCaptureFrame()
+    if _keyCaptureFrame then
+        return _keyCaptureFrame
+    end
+    local capture = CreateFrame("Frame", nil, UIParent)
+    capture:SetAllPoints(UIParent)
+    capture:SetFrameStrata("FULLSCREEN_DIALOG")
+    capture:EnableMouse(false)
+    capture:EnableKeyboard(false)
+    capture:Hide()
+    _keyCaptureFrame = capture
+
+    return _keyCaptureFrame
+end
+
+function GUI:CreateKeybinding(parent, item)
+    local width = item.width or 200
+    local height = item.height or 26
+    local emptyText = item.emptyText or "Bindkey"
+    local cancelWidth = 70
+    local gap = 8
+
+    local container = CreateFrame("Frame", nil, parent)
+    container:SetWidth(width + gap + cancelWidth)
+    container:SetHeight(height)
+
+    local btn = GUI:CreateButton(container, emptyText, width, height)
+    btn:SetPoint("LEFT", container, "LEFT", 0, 0)
+
+    local cancelText = (L and L["Cancel"]) or CANCEL or "Cancel"
+    local cancelBtn = GUI:CreateButton(container, cancelText, cancelWidth, height)
+    cancelBtn:SetPoint("LEFT", btn, "RIGHT", gap, 0)
+    cancelBtn:Hide()
+    local isCapturing = false
+
+    local function getCurrentBinding()
+        return item.get and item.get() or nil
+    end
+
+    local function refreshCancelButton()
+        local key = getCurrentBinding()
+        if isCapturing or (key and key ~= "") then
+            cancelBtn:Show()
+        else
+            cancelBtn:Hide()
+        end
+    end
+
+    local function refreshText()
+        local key = getCurrentBinding()
+        if key and key ~= "" then
+            btn:SetText(key)
+        else
+            btn:SetText(emptyText)
+        end
+        refreshCancelButton()
+    end
+
+    local function stopCapture()
+        local capture = _keyCaptureFrame
+        if not capture then
+            return
+        end
+        capture:SetScript("OnKeyDown", nil)
+        capture:SetScript("OnMouseDown", nil)
+        capture:EnableKeyboard(false)
+        capture:EnableMouse(false)
+        if capture.SetPropagateKeyboardInput then
+            capture:SetPropagateKeyboardInput(true)
+        end
+        capture:Hide()
+        isCapturing = false
+        refreshCancelButton()
+        if item.onCaptureEnd then
+            item.onCaptureEnd(btn)
+        end
+    end
+
+    local function cancelBinding()
+        if item.set then item.set(nil) end
+        stopCapture()
+        refreshText()
+    end
+
+    btn:SetScript("OnClick", function()
+        local capture = EnsureKeyCaptureFrame()
+
+        isCapturing = true
+        btn:SetText("|cffff8800...|r")
+        refreshCancelButton()
+        if item.onCaptureStart then
+            item.onCaptureStart(btn)
+        end
+
+        capture:Show()
+        capture:EnableMouse(true)
+        capture:EnableKeyboard(true)
+        if capture.SetPropagateKeyboardInput then
+            capture:SetPropagateKeyboardInput(false)
+        end
+
+        capture:SetScript("OnMouseDown", function()
+            stopCapture()
+            refreshText()
+        end)
+
+        capture:SetScript("OnKeyDown", function(_, key)
+            if key == "LSHIFT" or key == "RSHIFT" or key == "LCTRL" or key == "RCTRL" or key == "LALT" or key == "RALT" then
+                return
+            end
+
+            local bindStr = ""
+            if IsShiftKeyDown() then bindStr = "SHIFT-" end
+            if IsControlKeyDown() then bindStr = bindStr .. "CTRL-" end
+            if IsAltKeyDown() then bindStr = bindStr .. "ALT-" end
+            bindStr = bindStr .. key
+
+            -- 先清除脚本防止重复触发，再延迟一帧后停止捕获
+            -- 避免在 OnKeyDown 回调内重新开启 propagation 导致按键被游戏执行
+            capture:SetScript("OnKeyDown", nil)
+            if item.set then item.set(bindStr) end
+            C_Timer.After(0, function()
+                stopCapture()
+                refreshText()
+            end)
+        end)
+    end)
+
+    cancelBtn:SetScript("OnClick", function()
+        cancelBinding()
+    end)
+
+    container.RefreshBindingText = refreshText
+    container.button = btn
+    container.cancelButton = cancelBtn
+    btn.RefreshBindingText = refreshText
+    refreshText()
+    return container
+end
+
+-------------------------------------------------------------------------------
 -- Switch
 -------------------------------------------------------------------------------
 
@@ -1076,7 +1268,7 @@ function GUI:CreateSlider(parent, item)
 
     if GUI.isSkinEnabled then
         slider:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8" })
-        slider:SetBackdropColor(0.05, 0.05, 0.05, 1)
+        slider:SetBackdropColor(0.15, 0.15, 0.15, 1)
         GUI:CreateBorder(slider, unpack(GUI.Colors.border))
         local t = slider:CreateTexture(nil, "OVERLAY")
         t:SetSize(12, sliderH)
@@ -1099,7 +1291,7 @@ function GUI:CreateSlider(parent, item)
     if GUI.isSkinEnabled then
         eb = CreateFrame("EditBox", nil, container, "BackdropTemplate")
         eb:SetBackdrop({ bgFile = "Interface\\Buttons\\WHITE8x8" })
-        eb:SetBackdropColor(0.05, 0.05, 0.05, 1)
+        eb:SetBackdropColor(0.15, 0.15, 0.15, 1)
         GUI:CreateBorder(eb, unpack(GUI.Colors.border))
     else
         eb = CreateFrame("EditBox", nil, container, "InputBoxTemplate")
@@ -1108,7 +1300,8 @@ function GUI:CreateSlider(parent, item)
     eb:SetPoint("TOP", slider, "BOTTOM", 0, -1)
     eb:SetAutoFocus(false)
     eb:SetMaxLetters(8)
-    eb:SetNumeric(true)
+    -- 允许输入负数（SetNumeric(true) 会吞掉负号，导致负值显示/输入异常）。
+    eb:SetNumeric(false)
     eb:SetFont(GUI.Fonts.normal, GUI.Fonts.size_normal, "")
     eb:SetTextInsets(4, 4, 0, 0)
     eb:SetJustifyH("CENTER")
@@ -1218,7 +1411,12 @@ function GUI:CreateDropdown(parent, item)
         container:SetWidth(width)
     end
 
-    local selectedValue = item.get and item.get() or item.default
+    local selectedValue
+    if item.get then
+        selectedValue = item.get()
+    else
+        selectedValue = item.default
+    end
 
     -- Main button (acts as the dropdown toggle)
     local btn = CreateFrame("Button", nil, container, "BackdropTemplate")

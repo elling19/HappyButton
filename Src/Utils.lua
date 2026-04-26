@@ -38,9 +38,34 @@ local UtilsString = {}
 ---@class Utils: AceModule
 local Utils = addon:NewModule("Utils")
 
+local cachedPlayerClassColor = nil ---@type number[] | nil
+
 Utils.Table = UtilsTable
 Utils.Print = UtilsPrint
 Utils.String = UtilsString
+
+-- 缓存当前角色职业颜色，整个登录周期内只判断一次。
+---@return number, number, number, number
+function Utils:GetPlayerClassColor()
+    if cachedPlayerClassColor ~= nil then
+        return unpack(cachedPlayerClassColor)
+    end
+
+    local _, classFile = UnitClass("player")
+    local color = nil
+    if classFile and C_ClassColor and C_ClassColor.GetClassColor then
+        color = C_ClassColor.GetClassColor(classFile)
+    elseif classFile and RAID_CLASS_COLORS then
+        color = RAID_CLASS_COLORS[classFile]
+    end
+
+    if color then
+        cachedPlayerClassColor = { color.r, color.g, color.b, 1 }
+    else
+        cachedPlayerClassColor = { 1, 0.82, 0, 1 }
+    end
+    return unpack(cachedPlayerClassColor)
+end
 
 -- 判断table是否是数组
 function UtilsTable.IsArray(t)

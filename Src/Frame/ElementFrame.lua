@@ -15,9 +15,6 @@ local Item = addon:GetModule("Item")
 ---@class AttachFrameCache: AceModule
 local AttachFrameCache = addon:GetModule("AttachFrameCache")
 
----@class Utils: AceModule
-local U = addon:GetModule('Utils')
-
 ---@class ElementCallback: AceModule
 local ECB = addon:GetModule('ElementCallback')
 
@@ -26,6 +23,14 @@ local Btn = addon:GetModule("Btn")
 
 ---@class LoadCondition: AceModule
 local LoadCondition = addon:GetModule("LoadCondition")
+
+local FONT_PATH = DAMAGE_TEXT_FONT or STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
+
+-- Flyout 绑定键相关事件：仅监听战斗状态切换。
+local flyoutBindkeyListenEvents = {
+    ["PLAYER_REGEN_DISABLED"] = true,
+    ["PLAYER_REGEN_ENABLED"] = true,
+}
 
 ---@class ElementCbInfo
 ---@field f fun(ele: ElementConfig, lastCbResults: CbResult[]): CbResult[]  -- f: function
@@ -44,8 +49,11 @@ local LoadCondition = addon:GetModule("LoadCondition")
 ---@field TriggerButton nil|Button
 ---@field TriggerIcon nil|Texture
 ---@field FlyoutFrame nil|Frame
----@field CloseBackdrop nil|Button
 ---@field CloseClickHandler nil|Button
+---@field FlyoutBindkeyString nil|FontString
+---@field FlyoutBindKey nil|string
+---@field FlyoutBindkeyEventHandler nil|Frame
+---@field FlyoutVisibilityHooked boolean | nil
 
 ---@class ElementFrame: AceModule
 ---@field Cbs ElementCbInfo | nil
@@ -81,13 +89,6 @@ function ElementFrame:IsFlyoutEnabled()
     return self.Config and self.Config.flyout == true
 end
 
----@return boolean
-function ElementFrame:IsFlyoutAutoCollapseEnabled()
-    if not self:IsFlyoutEnabled() then
-        return false
-    end
-    return self.Config.flyoutAutoCollapse ~= false
-end
 
 ---@return number
 function ElementFrame:GetIconBaseSize()
@@ -212,8 +213,10 @@ function ElementFrame:RefreshAttachFrame()
     if self.attachFrame and changed then
         self:UpdateWindow()
     elseif self.attachFrame == nil then
-        -- Target frame is not available yet. Keep window hidden until a later event retries and succeeds.
-        self:HideWindow()
+        -- 目标帧尚不存在；战斗中无法调用 Hide，等出战斗后下一次事件重试
+        if not InCombatLockdown() then
+            self:HideWindow()
+        end
     end
     return changed
 end
@@ -308,9 +311,21 @@ function ElementFrame:UpdateBar()
 
     if self.Bar.FlyoutFrame == nil then
         local flyout = CreateFrame("Frame", ("HtBarFlyout-%s"):format(self.Config.id), self.Window, "SecureHandlerShowHideTemplate")
-        flyout:SetFrameStrata("FULLSCREEN_DIALOG")
+        -- flyout 列表层级与 trigger 图标保持一致，避免层级过高压住其它 UI。
+        flyout:SetFrameStrata(self.Bar.BarFrame:GetFrameStrata())
+        flyout:SetFrameLevel(self.Bar.BarFrame:GetFrameLevel())
         flyout:Hide()
         self.Bar.FlyoutFrame = flyout
+    end
+
+    if self.Bar.FlyoutFrame and not self.Bar.FlyoutVisibilityHooked then
+        self.Bar.FlyoutFrame:HookScript("OnShow", function()
+            self:UpdateFlyoutItemsBindkey("HB_FRAME_CHANGE")
+        end)
+        self.Bar.FlyoutFrame:HookScript("OnHide", function()
+            self:UpdateFlyoutItemsBindkey("HB_FRAME_CHANGE")
+        end)
+        self.Bar.FlyoutVisibilityHooked = true
     end
 
     -- 关闭处理器：供按钮宏追加 /click 使用
@@ -322,32 +337,9 @@ function ElementFrame:UpdateBar()
         self.Bar.CloseClickHandler = closeHandler
     end
 
-    -- 全屏点击关闭底板：点击 flyout 外任意位置可关闭
-    if self.Bar.CloseBackdrop == nil then
-        local backdrop = CreateFrame("Button", ("HtFlyoutBackdrop-%s"):format(self.Config.id), UIParent, "SecureHandlerClickTemplate")
-        backdrop:SetAllPoints(UIParent)
-        backdrop:SetFrameStrata("FULLSCREEN")
-        backdrop:EnableMouse(true)
-        backdrop:Hide()
-        self.Bar.CloseBackdrop = backdrop
-    end
-    -- 绑定底板与 FlyoutFrame（非战斗才能调用 SetFrameRef/SetAttribute）
+    -- 绑定关闭处理器：按钮点击后默认收起 flyout
     if not InCombatLockdown() then
-        local backdrop = self.Bar.CloseBackdrop
-        local flyout   = self.Bar.FlyoutFrame
-        if backdrop and flyout then
-            ---@diagnostic disable-next-line: undefined-field
-            backdrop:SetFrameRef("FlyoutFrame", flyout)
-            ---@diagnostic disable-next-line: undefined-field
-            backdrop:SetAttribute("_onclick", [=[
-                local flyout = self:GetFrameRef("FlyoutFrame")
-                if flyout then flyout:Hide() end
-            ]=])
-            -- FlyoutFrame 显隐时同步底板
-            flyout:HookScript("OnShow", function() backdrop:Show() end)
-            flyout:HookScript("OnHide", function() backdrop:Hide() end)
-        end
-
+        local flyout = self.Bar.FlyoutFrame
         local closeHandler = self.Bar.CloseClickHandler
         if closeHandler and flyout then
             ---@diagnostic disable-next-line: undefined-field
@@ -370,7 +362,11 @@ function ElementFrame:UpdateBar()
 
     if self:IsFlyoutEnabled() then
         self.Bar.TriggerButton:Show()
+        self:RegisterFlyoutBindkeyEvents()
+        self:UpdateFlyoutBindkey("PLAYER_ENTERING_WORLD")
     else
+        self:UnregisterFlyoutBindkeyEvents()
+        self:ClearFlyoutOverrideBinding()
         self.Bar.TriggerButton:Hide()
         if self.Bar.FlyoutFrame and self.Bar.FlyoutFrame:IsShown() then
             self.Bar.FlyoutFrame:Hide()
@@ -462,6 +458,156 @@ function ElementFrame:UpdateFlyoutSecureHandler()
     ]=])
 end
 
+function ElementFrame:RegisterFlyoutBindkeyEvents()
+    if not self.Bar or self.Bar.FlyoutBindkeyEventHandler ~= nil then
+        return
+    end
+    local trigger = self.Bar.TriggerButton
+    if not trigger then
+        return
+    end
+    self.Bar.FlyoutBindkeyEventHandler = CreateFrame("Frame", nil, trigger)
+    for eventName, _ in pairs(flyoutBindkeyListenEvents) do
+        self.Bar.FlyoutBindkeyEventHandler:RegisterEvent(eventName)
+    end
+    self.Bar.FlyoutBindkeyEventHandler:SetScript("OnEvent", function(_, event)
+        if InCombatLockdown() then
+            return
+        end
+        self:UpdateFlyoutBindkey(event)
+        -- 同步刷新 flyout 内子按钮的按键绑定
+        -- PLAYER_REGEN_DISABLED 是进入战斗前的边界信号，此时仍可设置 override binding
+        -- PLAYER_REGEN_ENABLED 是离开战斗后，恢复非战斗状态的绑定
+        self:CbBtnsUpdateBindkey(self.Cbs, event)
+    end)
+end
+
+function ElementFrame:UnregisterFlyoutBindkeyEvents()
+    if not self.Bar or self.Bar.FlyoutBindkeyEventHandler == nil then
+        return
+    end
+    self.Bar.FlyoutBindkeyEventHandler:UnregisterAllEvents()
+    self.Bar.FlyoutBindkeyEventHandler:SetScript("OnEvent", nil)
+    self.Bar.FlyoutBindkeyEventHandler:SetParent(nil)
+    self.Bar.FlyoutBindkeyEventHandler = nil
+end
+
+---@param bindkey string
+---@return string
+function ElementFrame:GetBindKeyShort(bindkey)
+    local modifierMap = {
+        ["ALT"] = "A",
+        ["CTRL"] = "C",
+        ["SHIFT"] = "S",
+        ["MOUSEWHEELUP"] = "MU",
+        ["MOUSEWHEELDOWN"] = "MD",
+    }
+
+    local parts = {}
+    for modifier in string.gmatch(bindkey, "[^%-]+") do
+        table.insert(parts, modifier)
+    end
+
+    for i, part in ipairs(parts) do
+        if modifierMap[part] then
+            parts[i] = modifierMap[part]
+        end
+    end
+
+    return table.concat(parts, "")
+end
+
+---@param key string
+function ElementFrame:SetFlyoutOverrideBinding(key)
+    if not self.Bar or not self.Bar.TriggerButton then
+        return
+    end
+    ---@diagnostic disable-next-line: param-type-mismatch
+    SetOverrideBinding(self.Bar.TriggerButton, true, key, "CLICK " .. self.Bar.TriggerButton:GetName() .. ":LeftButton")
+    self.Bar.FlyoutBindKey = key
+end
+
+function ElementFrame:ClearFlyoutOverrideBinding()
+    if not self.Bar then
+        return
+    end
+    if self.Bar.FlyoutBindKey ~= nil and self.Bar.TriggerButton then
+        ---@diagnostic disable-next-line: param-type-mismatch
+        SetOverrideBinding(self.Bar.TriggerButton, true, self.Bar.FlyoutBindKey, nil)
+        self.Bar.FlyoutBindKey = nil
+    end
+    if self.Bar.FlyoutBindkeyString ~= nil then
+        self.Bar.FlyoutBindkeyString:SetText("")
+    end
+end
+
+---@param event EventString
+---@return boolean
+function ElementFrame:PassFlyoutBindKeyCond(event)
+    local bindKey = self.Config and self.Config.bindKey
+    if bindKey == nil or bindKey.key == nil or bindKey.key == "" then
+        return false
+    end
+    if bindKey.characters ~= nil and (bindKey.characters[UnitGUID("player")] == nil and bindKey.classes[select(2, UnitClassBase("player"))] == nil) then
+        return false
+    end
+    if bindKey.combat ~= nil then
+        if event == "PLAYER_REGEN_DISABLED" then
+            if bindKey.combat == false then
+                return false
+            end
+        else
+            if bindKey.combat ~= InCombatLockdown() then
+                return false
+            end
+        end
+    end
+    if bindKey.attachFrame ~= nil then
+        if self.attachFrame == nil then
+            return false
+        end
+        if bindKey.attachFrame ~= self.attachFrame:IsShown() then
+            return false
+        end
+    end
+    return true
+end
+
+---@param event EventString
+function ElementFrame:UpdateFlyoutBindkey(event)
+    if InCombatLockdown() then
+        return
+    end
+    if not self:IsFlyoutEnabled() or not self.Bar or not self.Bar.TriggerButton then
+        self:ClearFlyoutOverrideBinding()
+        return
+    end
+
+    local bindKey = self.Config and self.Config.bindKey
+    if not bindKey then
+        self:ClearFlyoutOverrideBinding()
+        return
+    end
+
+    if self:PassFlyoutBindKeyCond(event) then
+        if self.Bar.FlyoutBindkeyString == nil then
+            self.Bar.FlyoutBindkeyString = self.Bar.TriggerButton:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+            local bindKeyMargin = self.BindkeyMargin or 2
+            self.Bar.FlyoutBindkeyString:SetPoint("TOPRIGHT", self.Bar.TriggerButton, "TOPRIGHT", -bindKeyMargin, -bindKeyMargin)
+            self.Bar.FlyoutBindkeyString:SetFont(FONT_PATH, self.BindkeyFontSize or 11, "OUTLINE")
+            self.Bar.FlyoutBindkeyString:SetTextColor(1, 1, 1, 1)
+            self.Bar.FlyoutBindkeyString:SetShadowColor(0, 0, 0, 0.95)
+            self.Bar.FlyoutBindkeyString:SetShadowOffset(1, -1)
+        end
+        if self.Bar.FlyoutBindKey ~= bindKey.key then
+            self:SetFlyoutOverrideBinding(bindKey.key)
+        end
+        self.Bar.FlyoutBindkeyString:SetText(self:GetBindKeyShort(bindKey.key))
+    else
+        self:ClearFlyoutOverrideBinding()
+    end
+end
+
 
 -- 更新
 ---@param event EventString
@@ -473,6 +619,10 @@ function ElementFrame:Update(event, eventArgs)
         if self.attachFrame == nil then
             return
         end
+    end
+
+    if not InCombatLockdown() then
+        self:UpdateFlyoutBindkey(event)
     end
 
     self:UpdateCbPassLoadCond(self.Cbs, event, eventArgs)
@@ -562,6 +712,33 @@ function ElementFrame:CbBtnsUpdateBySelf(cb, event, eventArgs)
             self:CbBtnsUpdateBySelf(c, event, eventArgs)
         end
     end
+end
+
+-- 更新 cb 下所有按钮的按键绑定（用于 flyout 展开/收起即时切换）
+---@param cb ElementCbInfo
+---@param event EventString
+function ElementFrame:CbBtnsUpdateBindkey(cb, event)
+    if cb == nil then
+        return
+    end
+    if cb.btns then
+        for _, btn in ipairs(cb.btns) do
+            btn:UpdateBindkey(event)
+        end
+    end
+    if cb.c then
+        for _, c in ipairs(cb.c) do
+            self:CbBtnsUpdateBindkey(c, event)
+        end
+    end
+end
+
+---@param event EventString
+function ElementFrame:UpdateFlyoutItemsBindkey(event)
+    if InCombatLockdown() then
+        return
+    end
+    self:CbBtnsUpdateBindkey(self.Cbs, event or "HB_FRAME_CHANGE")
 end
 
 
@@ -869,16 +1046,14 @@ end
 
 -- 卸载框体
 function ElementFrame:Delete()
+    self:UnregisterFlyoutBindkeyEvents()
+    self:ClearFlyoutOverrideBinding()
     if self.Bar and self.Bar.CloseClickHandler then
         self.Bar.CloseClickHandler:Hide()
         self.Bar.CloseClickHandler:ClearAllPoints()
         self.Bar.CloseClickHandler = nil
     end
-    if self.Bar and self.Bar.CloseBackdrop then
-        self.Bar.CloseBackdrop:Hide()
-        self.Bar.CloseBackdrop:ClearAllPoints()
-        self.Bar.CloseBackdrop = nil
-    end
+
     if self.Bar and self.Bar.FlyoutFrame then
         self.Bar.FlyoutFrame:Hide()
         self.Bar.FlyoutFrame:ClearAllPoints()
@@ -889,6 +1064,7 @@ function ElementFrame:Delete()
         self.Bar.TriggerButton:ClearAllPoints()
         self.Bar.TriggerButton = nil
         self.Bar.TriggerIcon = nil
+        self.Bar.FlyoutBindkeyString = nil
     end
     self.Window:Hide()
     self.Window:ClearAllPoints()

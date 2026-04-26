@@ -111,6 +111,38 @@ local TAB_DEFS = {
     },
 }
 
+local function GetTabsForElement(eleConfig)
+    if not eleConfig then return nil end
+    local baseTabs = TAB_DEFS[eleConfig.type]
+    if not baseTabs then return nil end
+
+    -- BAR 默认无绑定页，只有开启 flyout 时才开放绑定页。
+    if eleConfig.type ~= const.ELEMENT_TYPE.BAR then
+        return baseTabs
+    end
+
+    local tabs = {
+        { key = "settings", label = L["Settings"] },
+        { key = "display",  label = L["Display"] },
+        { key = "text",     label = L["Text"] },
+        { key = "create",   label = L["Create"] },
+    }
+    if eleConfig.flyout == true then
+        table.insert(tabs, 2, { key = "bindkey", label = L["Bindkey Settings"] })
+    end
+    return tabs
+end
+
+local function HasTab(tabs, key)
+    if not tabs then return false end
+    for _, tab in ipairs(tabs) do
+        if tab.key == key then
+            return true
+        end
+    end
+    return false
+end
+
 -------------------------------------------------------------------------------
 -- State
 -------------------------------------------------------------------------------
@@ -307,7 +339,7 @@ function CF:OnResize()
     end
     -- Rebuild tabs if visible
     if self.selectedNode then
-        self:BuildTabs(self.selectedNode.eleConfig.type)
+        self:BuildTabs(self.selectedNode.eleConfig)
     end
 end
 
@@ -613,11 +645,12 @@ function CF:SelectNode(nodeInfo)
     local oldType = self.selectedNode and self.selectedNode.eleConfig.type
     self.selectedNode = nodeInfo
 
+    self:BuildTabs(nodeInfo.eleConfig)
+
     -- Build tabs if element type changed or first selection
     if not oldType or oldType ~= nodeInfo.eleConfig.type then
-        self:BuildTabs(nodeInfo.eleConfig.type)
         -- Select first tab
-        local tabs = TAB_DEFS[nodeInfo.eleConfig.type]
+        local tabs = GetTabsForElement(nodeInfo.eleConfig)
         if tabs and tabs[1] then
             self:SelectTab(tabs[1].key)
         end
@@ -657,7 +690,7 @@ function CF:CreateRightPanel(parent, titleBar)
     self.placeholder = placeholder
 end
 
-function CF:BuildTabs(eleType)
+function CF:BuildTabs(eleOrType)
     -- Clear old tab buttons
     if self._tabGroup then
         self._tabGroup.frame:Hide()
@@ -668,8 +701,18 @@ function CF:BuildTabs(eleType)
     end
     wipe(self.tabButtons)
 
-    local tabs = TAB_DEFS[eleType]
+    local eleConfig = nil
+    if type(eleOrType) == "table" then
+        eleConfig = eleOrType
+    elseif self.selectedNode and self.selectedNode.eleConfig then
+        eleConfig = self.selectedNode.eleConfig
+    end
+    local tabs = GetTabsForElement(eleConfig)
     if not tabs or #tabs == 0 then return end
+
+    if not HasTab(tabs, self.selectedTabKey) then
+        self.selectedTabKey = tabs[1].key
+    end
 
     local barW = self.tabBar:GetWidth()
     if barW < 10 then barW = FRAME_WIDTH end
@@ -924,7 +967,8 @@ function CF:RenderBarSettings(parent, eleConfig, contentW)
         get = function() return eleConfig.posX or 0 end,
         set = function(v)
             eleConfig.posX = v
-            HbFrame:ReloadEframeUI(eleConfig)
+            -- 位置拖动时只更新窗口锚点，确保 slider 拖动过程立即可见。
+            HbFrame:UpdateEframeWindow(eleConfig)
         end,
     })
 
@@ -934,7 +978,8 @@ function CF:RenderBarSettings(parent, eleConfig, contentW)
         get = function() return eleConfig.posY or 0 end,
         set = function(v)
             eleConfig.posY = v
-            HbFrame:ReloadEframeUI(eleConfig)
+            -- 位置拖动时只更新窗口锚点，确保 slider 拖动过程立即可见。
+            HbFrame:UpdateEframeWindow(eleConfig)
         end,
     })
     yOff = LayoutRow({posXSlider, posYSlider}, parent, yOff, PADDING + 10)
@@ -1517,26 +1562,12 @@ function CF:RenderDisplay(parent, eleConfig, topEleConfig, contentW)
             get = function() return eleConfig.flyout == true end,
             set = function(v)
                 eleConfig.flyout = v or nil
-                if eleConfig.flyout == true and eleConfig.flyoutAutoCollapse == nil then
-                    eleConfig.flyoutAutoCollapse = true
-                end
                 HbFrame:ReloadEframeUI(eleConfig)
+                self:BuildTabs(eleConfig)
                 self:SelectTab(self.selectedTabKey)
             end,
         })
-        if eleConfig.flyout == true then
-            local flyoutAutoCollapseSwitch = GUI:CreateSwitch(parent, {
-                label = L["Auto collapse flyout after button click"],
-                get = function() return eleConfig.flyoutAutoCollapse ~= false end,
-                set = function(v)
-                    eleConfig.flyoutAutoCollapse = v and true or false
-                    HbFrame:ReloadEframeUI(eleConfig)
-                end,
-            })
-            yOff = LayoutRow({flyoutSwitch, flyoutAutoCollapseSwitch}, parent, yOff, PADDING + 10)
-        else
-            yOff = LayoutWidget(flyoutSwitch, parent, yOff, PADDING + 10)
-        end
+        yOff = LayoutWidget(flyoutSwitch, parent, yOff, PADDING + 10)
     end
 
     parent:SetHeight(math_abs(yOff) + PADDING)
@@ -1906,39 +1937,30 @@ function CF:RenderBindkey(parent, eleConfig, contentW)
     local updateId = self.selectedNode and self.selectedNode.topEleConfig or eleConfig
 
     -- Keybinding button (click to start listening, press key to bind)
-    local currentKey = eleConfig.bindKey and eleConfig.bindKey.key or nil
-    local keyBtn = GUI:CreateButton(parent, currentKey or L["Bindkey"], 200, 26)
-    keyBtn = GUI:VGroup(parent, L["Bindkey"], keyBtn)
-
-    keyBtn.widget:SetScript("OnClick", function(btn)
-        btn:SetText("|cffff8800...|r")
-        btn:EnableKeyboard(true)
-        btn:SetScript("OnKeyDown", function(self2, key)
-            self2:EnableKeyboard(false)
-            self2:SetScript("OnKeyDown", nil)
-            if key == "ESCAPE" then
-                -- Clear binding
+    local keyWidget = GUI:CreateKeybinding(parent, {
+        width = 200,
+        height = 26,
+        emptyText = L["Bindkey"],
+        specialFrameName = "HappyButtonConfigFrame",
+        get = function()
+            return eleConfig.bindKey and eleConfig.bindKey.key or nil
+        end,
+        set = function(bindStr)
+            if bindStr == nil or bindStr == "" then
                 eleConfig.bindKey = nil
-                HbFrame:ReloadEframeUI(updateId)
-                CF:SelectTab(CF.selectedTabKey)
-                return
-            end
-            local bindStr = ""
-            if IsShiftKeyDown() and key ~= "LSHIFT" and key ~= "RSHIFT" then bindStr = "SHIFT-" end
-            if IsControlKeyDown() and key ~= "LCTRL" and key ~= "RCTRL" then bindStr = bindStr .. "CTRL-" end
-            if IsAltKeyDown() and key ~= "LALT" and key ~= "RALT" then bindStr = bindStr .. "ALT-" end
-            if key ~= "LSHIFT" and key ~= "RSHIFT" and key ~= "LCTRL" and key ~= "RCTRL" and key ~= "LALT" and key ~= "RALT" then
-                bindStr = bindStr .. key
+            else
                 if not eleConfig.bindKey then
                     eleConfig.bindKey = { key = bindStr, characters = {}, classes = {} }
                 else
                     eleConfig.bindKey.key = bindStr
                 end
-                HbFrame:ReloadEframeUI(updateId)
-                CF:SelectTab(CF.selectedTabKey)
             end
-        end)
-    end)
+            HbFrame:ReloadEframeUI(updateId)
+            CF:SelectTab(CF.selectedTabKey)
+        end,
+    })
+    local keyBtn = GUI:VGroup(parent, L["Bindkey"], keyWidget, L["Bindkey Help Content"])
+
     yOff = LayoutWidget(keyBtn, parent, yOff, PADDING + 10)
 
     -- Show additional options only when a key is bound
@@ -2060,15 +2082,6 @@ function CF:RenderBindkey(parent, eleConfig, contentW)
             yOff = LayoutWidget(afSwitch, parent, yOff, PADDING + 10)
         end
 
-        -- Reload note
-        local reloadNote = GUI:CreateText(parent,
-            L["The newly created button do not immediately respond to key bindings and require executing the /reload command."],
-            GUI.Fonts.size_normal)
-        reloadNote:SetPoint("TOPLEFT", parent, "TOPLEFT", PADDING + 10, yOff - 10)
-        reloadNote:SetWidth(contentW - 40)
-        reloadNote:SetTextColor(unpack(GUI.Colors.disabled))
-        reloadNote:SetWordWrap(true)
-        yOff = yOff - 40
     end
 
     parent:SetHeight(math_abs(yOff) + PADDING)
