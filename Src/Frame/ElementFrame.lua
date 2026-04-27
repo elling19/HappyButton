@@ -281,6 +281,8 @@ function ElementFrame:UpdateBar()
         local barFrame = CreateFrame("Frame", ("HtBarFrame-%s"):format(self.Config.id), self.Window)
         self.Bar = { BarFrame = barFrame, Icon = self.Config.icon }
     end
+    -- 防止多次刷新后残留旧锚点导致视觉偏移。
+    self.Bar.BarFrame:ClearAllPoints()
     if self.Config.elesGrowth == const.GROWTH.RIGHTBOTTOM then
         self.Bar.BarFrame:SetPoint("TOPLEFT", self.Window, "TOPLEFT", 0, 0)
     elseif self.Config.elesGrowth == const.GROWTH.RIGHTTOP then
@@ -917,9 +919,10 @@ function ElementFrame:UpdateWindow()
         return
     end
 
-    if self:IsHorizontal() then
-        self.Window:SetHeight(self.IconHeight)
-        self.Window:SetWidth(self.IconWidth)
+    -- 位置更新时不要强制重置窗口尺寸，否则会在下一次事件刷新时被 SetWindowSize 覆盖，
+    -- 造成“打开配置后位置偏移、事件触发后又回正”的抖动现象。
+    if self.Cbs then
+        self:SetWindowSize()
     else
         self.Window:SetHeight(self.IconHeight)
         self.Window:SetWidth(self.IconWidth)
