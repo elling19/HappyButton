@@ -355,6 +355,9 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
     if cbResult.item then
         -- 物品、装备
         if const.ITEM_TYPE.ITEM == cbResult.item.type or const.ITEM_TYPE.EQUIPMENT == cbResult.item.type then
+            -- 统一先更新数量，避免在“未拥有”分支提前 return 时 count 仍为 nil。
+            -- 这样 reload/打开设置/事件刷新看到的数量表现保持一致（无库存时稳定为 0）。
+            cbResult.count = Api.GetItemCount(cbResult.item.id, false)
             if cbResult.isLearned == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE", "BAG_UPDATE_DELAYED", "PLAYER_EQUIPMENT_CHANGED" }, event) then
                 cbResult.isLearned = Item:IsLearned(cbResult.item.id, cbResult.item.type)
                 -- 如果物品没有学会，则默认不会对可用性和冷却进行判断以减少API调用
@@ -369,7 +372,6 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
                 cbResult.itemCooldown = Item:GetCooldown(cbResult.item)
                 cbResult.isCooldown = Item:IsCooldown(cbResult.itemCooldown)
             end
-            cbResult.count = Api.GetItemCount(cbResult.item.id, false)
         end
         -- 技能
         if const.ITEM_TYPE.SPELL == cbResult.item.type then
