@@ -524,7 +524,10 @@ function Btn:UpdateTexts()
             if text.text == "%n" then
                 self:ApplyFontStyle(fString, 0.30, 11, 24)
             elseif text.text == "%s" then
-                self:ApplyFontStyleBySize(fString, self.EFrame.CountFontSize or self:GetDynamicFontSize(0.36, 12, 28))
+                -- 创建时按字体大小计算固定尺寸，避免战斗中 GetStringWidth 返回秘密值
+                local countFontSize = self.EFrame.CountFontSize or self:GetDynamicFontSize(0.36, 12, 28)
+                self:ApplyFontStyleBySize(fString, countFontSize)
+                textFrame:SetSize(countFontSize * 4, countFontSize * 1.5)
             end
             table.insert(self.Texts, {textFrame, fString})
         end
@@ -578,7 +581,6 @@ function Btn:UpdateTexts()
                 fString:SetText("")
             end
             textFrame:ClearAllPoints()
-            textFrame:SetSize(fString:GetStringWidth(), fString:GetStringHeight())
             textFrame:SetPoint("BOTTOMRIGHT", self.Button, "BOTTOMRIGHT", -2, 2)
         end
     end
