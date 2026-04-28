@@ -19,6 +19,7 @@ local math_max = math.max
 local math_min = math.min
 local math_abs = math.abs
 local string_gsub = string.gsub
+local string_trim = strtrim
 
 -- Skin detection: flat style when ElvUI or NDui is loaded
 local _IsAddOnLoaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
@@ -1078,20 +1079,42 @@ end
 ---@param item table
 ---@return Frame
 function GUI:CreateIconInput(parent, item)
+    local pickerWidth = 30
+    local pickerGap = 6
+    local requestedWidth = item.width or 180
+    local inputWidth = math_max(80, requestedWidth - pickerWidth - pickerGap)
+
     local state = {
         raw = "",
         text = "",
     }
 
+    local function normalizeRawValue(value)
+        local raw = value
+        if raw ~= nil then
+            raw = tostring(raw)
+            raw = string_gsub(raw, "^|T.-|t%s*", "")
+            raw = string_trim(raw)
+            if raw == "" then
+                raw = nil
+            end
+        end
+        local num = tonumber(raw)
+        return num or raw, raw or ""
+    end
+
     local function syncDisplay(iconValue)
         state.raw, state.text = BuildIconInputDisplayValue(iconValue, item.defaultIcon)
     end
 
+    local container = CreateFrame("Frame", nil, parent)
+    container:SetHeight(item.height or 26)
+
     local widget
-    widget = GUI:CreateInput(parent, {
+    widget = GUI:CreateInput(container, {
         label = item.label,
         labelWidth = item.labelWidth,
-        width = item.width,
+        width = inputWidth,
         height = item.height,
         get = function()
             local value = item.get and item.get() or nil
@@ -1103,16 +1126,12 @@ function GUI:CreateIconInput(parent, item)
             if raw == state.text then
                 raw = state.raw or ""
             end
-            raw = string_gsub(raw, "^|T.-|t%s*", "")
-            raw = string_gsub(raw, "^%s+", "")
-            raw = string_gsub(raw, "%s+$", "")
 
-            local num = tonumber(raw)
-            local normalized = num or (raw ~= "" and raw or nil)
+            local normalized, cleanRaw = normalizeRawValue(raw)
             syncDisplay(normalized)
 
-            if item.set then item.set(normalized, raw) end
-            if item.onChangeValue then item.onChangeValue(normalized, raw) end
+            if item.set then item.set(normalized, cleanRaw) end
+            if item.onChangeValue then item.onChangeValue(normalized, cleanRaw) end
 
             if widget and widget.SetValue then
                 widget:SetValue(state.text)
@@ -1120,11 +1139,63 @@ function GUI:CreateIconInput(parent, item)
         end,
     })
 
-    widget.GetRawValue = function()
+    widget:SetParent(container)
+    widget:ClearAllPoints()
+    widget:SetPoint("LEFT", 0, 0)
+
+    local pickerBtn = GUI:CreateButton(container, "...", pickerWidth, item.height or 26)
+    pickerBtn:SetPoint("LEFT", widget, "RIGHT", pickerGap, 0)
+    pickerBtn:SetScript("OnClick", function()
+        -- 中文注释：使用 HappyButton 自有图标选择器，手动输入仍保留对贴图路径的支持。
+        local currentValue = item.get and item.get() or nil
+
+        GUI:OpenIconPicker(function(sel)
+            if not sel or not sel.icon then return end
+            syncDisplay(sel.icon)
+            if item.set then item.set(sel.icon, tostring(sel.icon)) end
+            if item.onChangeValue then item.onChangeValue(sel.icon, tostring(sel.icon)) end
+            if widget and widget.SetValue then
+                widget:SetValue(state.text)
+            end
+        end, {
+            icon = currentValue or item.defaultIcon,
+        })
+    end)
+    pickerBtn:SetScript("OnEnter", function(self)
+        GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+        GameTooltip:ClearLines()
+        GameTooltip:AddLine(L["Open Icon Picker"], 1, 1, 1)
+        GameTooltip:AddLine(L["Open Icon Picker::Desc"], 0.8, 0.8, 0.8, true)
+        GameTooltip:Show()
+    end)
+    pickerBtn:SetScript("OnLeave", function(self)
+        if GameTooltip:IsOwned(self) then
+            GameTooltip:Hide()
+        end
+    end)
+    pickerBtn:SetScript("OnHide", function(self)
+        if GameTooltip:IsOwned(self) then
+            GameTooltip:Hide()
+        end
+    end)
+    container:SetWidth(widget:GetWidth() + pickerGap + pickerWidth)
+    container.editbox = widget.editbox
+    container.pickerButton = pickerBtn
+
+    container.GetRawValue = function()
         return state.raw
     end
 
-    return widget
+    container.SetValue = function(_, v)
+        syncDisplay(v)
+        widget:SetValue(state.text)
+    end
+
+    container.GetValue = function()
+        return state.raw
+    end
+
+    return container
 end
 
 -------------------------------------------------------------------------------
