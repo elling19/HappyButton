@@ -58,7 +58,7 @@ local registerEvents = {
     ["PLAYER_REGEN_ENABLED"] = { update = true },                        -- 退出战斗，战斗相关事件不限流
     ["SPELL_UPDATE_COOLDOWN"] = { update = true, interval = 0.05 },      -- 触发冷却，需刷新图标冷却计时
     ["SPELL_UPDATE_CHARGES"] = { update = true },                        -- 技能充能改变，战斗相关事件不限流
-    ["SPELL_UPDATE_USABLE"] = { update = true },                         -- 技能可用性改变，战斗相关事件不限流
+    ["SPELL_UPDATE_USABLE"] = { update = true, interval = 0.1 },         -- 技能可用性改变；0.1s 限流，降低全局广播的触发频率
     ["SPELLS_CHANGED"] = { update = true },                              -- 技能改变
     ["PLAYER_TALENT_UPDATE"] = { update = true },                        -- 天赋改变
 

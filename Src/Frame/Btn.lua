@@ -311,6 +311,18 @@ function Btn:UpdateBySelf(event, eventArgs)
     if self.CbInfo.e[event] == nil or not E:CompareEventParam(self.CbInfo.e[event], eventArgs) then
         return
     end
+    -- SPELL_UPDATE_USABLE 是全局广播，没有携带具体技能 ID
+    -- 先检查本按钮绑定的技能可用性是否实际发生变化，未变化则跳过完整渲染，避免无效开销
+    if event == "SPELL_UPDATE_USABLE" then
+        local item = self.CbResult and self.CbResult.item
+        if item == nil or item.type ~= const.ITEM_TYPE.SPELL then
+            return
+        end
+        local newUsable = Item:IsUsable(item.id, item.type)
+        if newUsable == self.CbResult.isUsable then
+            return
+        end
+    end
     -- 宏在更新的时候需要改变宏图标
     if self.CbInfo.p.type == const.ELEMENT_TYPE.MACRO then
         self.CbResult.item = ECB.UpdateMacroItemInfo(self.CbInfo.p)

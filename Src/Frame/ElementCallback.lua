@@ -47,6 +47,7 @@ local ECB = addon:NewModule("ElementCallback")
 ---@field leftClickCallback function | nil
 local CbResult = {}
 
+
 -- 随机选择callback
 -- 函数永远只能返回包含一个CbResult的列表
 ---@param element ItemGroupConfig
@@ -381,7 +382,8 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
                     return
                 end
             end
-            if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED" }, event) then
+            -- SPELL_UPDATE_USABLE 是统一的技能可用性事件，覆盖移动/引导/战斗/资源等所有变化场景
+            if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED", "SPELL_UPDATE_USABLE", "PLAYER_REGEN_ENABLED" }, event) then
                 cbResult.isUsable = Item:IsUsable(cbResult.item.id, cbResult.item.type)
             end
             if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED", "MODIFIER_STATE_CHANGED", "HB_GCD_UPDATE", "SPELL_UPDATE_COOLDOWN" }, event) then
