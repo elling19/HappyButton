@@ -147,6 +147,8 @@ function E:GetItemAttrEvents(itemAttr)
         events["SPELL_UPDATE_COOLDOWN"] = {}
         events["UNIT_SPELLCAST_SUCCEEDED"] = {{"player"}, }
         events["HB_ITEM_COOLDOWN_CHNAGED"] = {}
+        -- PLAYER_TARGET_CHANGED 切换目标时立即更新超距
+        events["PLAYER_TARGET_CHANGED"] = {}
         return events
     end
     if itemAttr.type == const.ITEM_TYPE.EQUIPMENT then
@@ -155,6 +157,8 @@ function E:GetItemAttrEvents(itemAttr)
         events["PLAYER_EQUIPMENT_CHANGED"] = {}
         events["UNIT_SPELLCAST_SUCCEEDED"] = {{"player"}, }
         events["HB_ITEM_COOLDOWN_CHNAGED"] = {}
+        -- PLAYER_TARGET_CHANGED 切换目标时立即更新超距
+        events["PLAYER_TARGET_CHANGED"] = {}
         return events
     end
     if itemAttr.type == const.ITEM_TYPE.TOY then
@@ -163,6 +167,8 @@ function E:GetItemAttrEvents(itemAttr)
         events["SPELL_UPDATE_COOLDOWN"] = {}
         events["UNIT_SPELLCAST_SUCCEEDED"] = {{"player"}, }
         events["HB_ITEM_COOLDOWN_CHNAGED"] = {}
+        -- PLAYER_TARGET_CHANGED 切换目标时立即更新超距
+        events["PLAYER_TARGET_CHANGED"] = {}
         return events
     end
     if itemAttr.type == const.ITEM_TYPE.SPELL then
@@ -173,6 +179,8 @@ function E:GetItemAttrEvents(itemAttr)
         events["SPELL_UPDATE_CHARGES"] = {}
         events[const.EVENT.HB_GCD_UPDATE] = {}
         events["HB_ITEM_COOLDOWN_CHNAGED"] = {}
+        -- PLAYER_TARGET_CHANGED 切换目标时立即更新超距
+        events["PLAYER_TARGET_CHANGED"] = {}
         return events
     end
     if itemAttr.type == const.ITEM_TYPE.MOUNT then

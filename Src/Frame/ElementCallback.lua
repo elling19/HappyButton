@@ -36,6 +36,7 @@ local ECB = addon:NewModule("ElementCallback")
 ---@field borderColor RGBAColor | nil
 ---@field isLearned boolean | nil 是否学习或者拥有
 ---@field isUsable boolean | nil 是否可以使用
+---@field isOutOfRange boolean | nil 是否超出范围（有目标且超出施法范围）
 ---@field isCooldown boolean | nil 是否冷却中
 ---@field count number | nil 物品堆叠数量|技能充能次数
 ---@field item ItemAttr | nil
@@ -369,6 +370,9 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
             if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE", "BAG_UPDATE_DELAYED", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_EQUIPMENT_CHANGED" }, event) then
                 cbResult.isUsable = Item:IsUsable(cbResult.item.id, cbResult.item.type)
             end
+            if cbResult.isOutOfRange == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "PLAYER_TARGET_CHANGED", }, event) then
+                cbResult.isOutOfRange = Item:IsOutOfRange(cbResult.item.id, cbResult.item.type)
+            end
             if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "BAG_UPDATE", "BAG_UPDATE_DELAYED", "UNIT_SPELLCAST_SUCCEEDED", "PLAYER_EQUIPMENT_CHANGED", "MODIFIER_STATE_CHANGED", "SPELL_UPDATE_COOLDOWN"}, event) then
                 cbResult.itemCooldown = Item:GetCooldown(cbResult.item)
                 cbResult.isCooldown = Item:IsCooldown(cbResult.itemCooldown)
@@ -385,6 +389,9 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
             -- SPELL_UPDATE_USABLE 是统一的技能可用性事件，覆盖移动/引导/战斗/资源等所有变化场景
             if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED", "SPELL_UPDATE_USABLE", "PLAYER_REGEN_ENABLED" }, event) then
                 cbResult.isUsable = Item:IsUsable(cbResult.item.id, cbResult.item.type)
+            end
+            if cbResult.isOutOfRange == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "PLAYER_TARGET_CHANGED", }, event) then
+                cbResult.isOutOfRange = Item:IsOutOfRange(cbResult.item.id, cbResult.item.type)
             end
             if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "UNIT_SPELLCAST_SUCCEEDED", "MODIFIER_STATE_CHANGED", "HB_GCD_UPDATE", "SPELL_UPDATE_COOLDOWN" }, event) then
                 local newCooldown = Item:GetCooldown(cbResult.item)
@@ -408,6 +415,9 @@ function ECB:UpdateSelfTrigger(cbResult, event, eventArgs)
             end
             if cbResult.isUsable == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "TOYS_UPDATED" }, event) then
                 cbResult.isUsable = Item:IsUsable(cbResult.item.id, cbResult.item.type)
+            end
+            if cbResult.isOutOfRange == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "PLAYER_TARGET_CHANGED", }, event) then
+                cbResult.isOutOfRange = Item:IsOutOfRange(cbResult.item.id, cbResult.item.type)
             end
             if cbResult.isCooldown == nil or U.Table.IsInArray({ "PLAYER_ENTERING_WORLD", "TOYS_UPDATED", "UNIT_SPELLCAST_SUCCEEDED", "MODIFIER_STATE_CHANGED", "SPELL_UPDATE_COOLDOWN"}, event) then
                 local newCooldown = Item:GetCooldown(cbResult.item)
@@ -510,6 +520,12 @@ function ECB:UseTrigger(eleConfig, cbResult, rootConfig)
         AppendDisplayEffect(unlearnedRule)
     elseif cbResult.isUsable == false and unusableRule ~= nil then
         AppendDisplayEffect(unusableRule)
+    end
+    -- 超距加红色效果（默认行为，无需配置）
+    if cbResult.isOutOfRange == true then
+        table.insert(effects, Effect:NewBtnVertexColorEffect(true))
+    else
+        table.insert(effects, Effect:NewBtnVertexColorEffect(false))
     end
     cbResult.effects = effects
     return effects

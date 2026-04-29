@@ -113,6 +113,32 @@ function Item:IsUsable(itemID, itemType)
     return false
 end
 
+-- 判断技能/物品是否超出范围（需要有目标）
+-- 返回 true 表示超出范围，false 表示在范围内或无范围限制或无目标
+---@param itemID number
+---@param itemType ItemType
+---@return boolean
+function Item:IsOutOfRange(itemID, itemType)
+    -- 没有目标则不触发超距效果
+    if not UnitExists("target") then
+        return false
+    end
+    if itemType == const.ITEM_TYPE.SPELL or itemType == const.ITEM_TYPE.TOY then
+        -- C_Spell.IsSpellInRange 返回 true=在范围内，false=超出范围，nil=无范围限制
+        local inRange = C_Spell.IsSpellInRange(itemID, "target")
+        if inRange == false then
+            return true
+        end
+    elseif itemType == const.ITEM_TYPE.ITEM or itemType == const.ITEM_TYPE.EQUIPMENT then
+        -- C_Item.IsItemInRange 返回 true=在范围内，false=超出范围，nil=无范围限制
+        local inRange = C_Item.IsItemInRange(itemID, "target")
+        if inRange == false then
+            return true
+        end
+    end
+    return false
+end
+
 -- 确认物品是否已经冷却完毕
 ---@param cooldownInfo DurationObject | CooldownInfo | nil
 ---@return boolean
