@@ -23,7 +23,7 @@ local string_trim = strtrim
 
 -- Skin detection: flat style when ElvUI or NDui is loaded
 local _IsAddOnLoaded = C_AddOns and C_AddOns.IsAddOnLoaded or IsAddOnLoaded
-GUI.isSkinEnabled = _IsAddOnLoaded("ElvUI") or _IsAddOnLoaded("NDui")
+GUI.isSkinEnabled = _IsAddOnLoaded("ElvUI") or _IsAddOnLoaded("NDui") or _IsAddOnLoaded("EllesmereUI")
 
 -------------------------------------------------------------------------------
 -- Skin Provider: lazy-resolved references to ElvUI / NDui skinning APIs
@@ -111,6 +111,73 @@ function GUI:GetSkinProvider()
                 return skinProvider
             end
         end
+    end
+
+    -- EllesmereUI: 独立 UI 套件，使用 fallback 风格（去除原生纹理 + 纯色边框）
+    if _G.EllesmereUI then
+        skinProvider = {
+            name = "EllesmereUI",
+            SetBD = function(frame)
+                if frame.SetBackdrop then
+                    frame:SetBackdrop({
+                        bgFile = "Interface\\Buttons\\WHITE8x8",
+                        edgeFile = "Interface\\Buttons\\WHITE8x8",
+                        edgeSize = 1,
+                    })
+                    frame:SetBackdropColor(0.1, 0.1, 0.1, 0.9)
+                    frame:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+                end
+            end,
+            StripTextures = function(frame)
+                for i = 1, frame:GetNumRegions() do
+                    local region = select(i, frame:GetRegions())
+                    if region and region.IsObjectType and region:IsObjectType("Texture") then
+                        region:SetTexture(nil)
+                    end
+                end
+            end,
+            ReskinClose = function(btn)
+                if btn then
+                    btn:SetNormalTexture([[Interface\Buttons\UI-Panel-MinimizeButton-Up]])
+                    btn:SetPushedTexture([[Interface\Buttons\UI-Panel-MinimizeButton-Down]])
+                    btn:SetHighlightTexture([[Interface\Buttons\UI-Panel-MinimizeButton-Highlight]])
+                end
+            end,
+            Reskin = function(btn)
+                if btn then
+                    btn:SetNormalTexture("")
+                    btn:SetHighlightTexture("Interface\\Buttons\\WHITE8x8")
+                    btn:GetHighlightTexture():SetVertexColor(1, 1, 1, 0.3)
+                    btn:SetPushedTexture("Interface\\Buttons\\WHITE8x8")
+                    btn:GetPushedTexture():SetVertexColor(1, 1, 1, 0.3)
+                end
+            end,
+            ReskinEditBox = function(editBox)
+                if editBox and editBox.SetBackdrop then
+                    editBox:SetBackdrop({
+                        bgFile = "Interface\\Buttons\\WHITE8x8",
+                        edgeFile = "Interface\\Buttons\\WHITE8x8",
+                        edgeSize = 1,
+                    })
+                    editBox:SetBackdropColor(0.05, 0.05, 0.05, 0.9)
+                    editBox:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+                end
+            end,
+            ReskinScroll = function(scrollBar) end,
+            ReskinDropDown = function(dropdown) end,
+            CreateBDFrame = function(frame)
+                if frame and frame.SetBackdrop then
+                    frame:SetBackdrop({
+                        bgFile = "Interface\\Buttons\\WHITE8x8",
+                        edgeFile = "Interface\\Buttons\\WHITE8x8",
+                        edgeSize = 1,
+                    })
+                    frame:SetBackdropColor(0.1, 0.1, 0.1, 0.85)
+                    frame:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+                end
+            end,
+        }
+        return skinProvider
     end
 
     skinProvider = false -- mark as resolved (no provider)

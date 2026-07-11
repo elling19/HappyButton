@@ -2749,6 +2749,9 @@ function addon:OnInitialize()
     Masque = LibStub("Masque", true)
     ---@diagnostic disable-next-line: undefined-field
     NDui = _G.NDui
+    -- 检测是否安装了EllesmereUI
+    ---@diagnostic disable-next-line: undefined-field
+    local EllesmereUI = _G.EllesmereUI
     local screenWidth, screenHeight = GetPhysicalScreenSize()
     -- 全局变量
     ---@class GlobalValue
@@ -2757,6 +2760,7 @@ function addon:OnInitialize()
         ElvUISkins = ElvUISkins,
         Masque = Masque,
         NDui = NDui,
+        EllesmereUI = EllesmereUI, -- 检测EllesmereUI，使用ElvUI皮肤风格
         screenWidth = math.floor(screenWidth),   -- 屏幕宽度
         screenHeight = math.floor(screenHeight), -- 屏幕高度
         iconWidth = 32,

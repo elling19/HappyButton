@@ -128,47 +128,6 @@ function ElementFrame:RefreshFontMetrics()
     self.CooldownFontSize = self:GetScaledValue(0.40, 12, 36)
 end
 
--- 获取框体相对屏幕的位置
----@param frame  Frame
----@return number, number
-function ElementFrame:GetPosition(frame)
-    local frameLeft      = frame:GetLeft()
-    local frameRight     = frame:GetRight()
-    local frameBottom    = frame:GetBottom()
-    local frameTop       = frame:GetTop()
-    local frameX, frameY = frame:GetCenter()
-    local x, y           = frame:GetCenter()
-    if self.Config.attachFrameAnchorPos == const.ANCHOR_POS.TOPLEFT then
-        x = frameLeft
-        y = frameTop
-    elseif self.Config.attachFrameAnchorPos == const.ANCHOR_POS.TOPRIGHT then
-        x = frameRight
-        y = frameTop
-    elseif self.Config.attachFrameAnchorPos == const.ANCHOR_POS.BOTTOMLEFT then
-        x = frameLeft
-        y = frameBottom
-    elseif self.Config.attachFrameAnchorPos == const.ANCHOR_POS.BOTTOMRIGHT then
-        x = frameRight
-        y = frameBottom
-    elseif self.Config.attachFrameAnchorPos == const.ANCHOR_POS.TOP then
-        x = frameX
-        y = frameTop
-    elseif self.Config.attachFrameAnchorPos == const.ANCHOR_POS.BOTTOM then
-        x = frameX
-        y = frameBottom
-    elseif self.Config.attachFrameAnchorPos == const.ANCHOR_POS.LEFT then
-        x = frameLeft
-        y = frameY
-    elseif self.Config.attachFrameAnchorPos == const.ANCHOR_POS.RIGHT then
-        x = frameRight
-        y = frameY
-    elseif self.Config.attachFrameAnchorPos == const.ANCHOR_POS.CENTER then
-        x = frameX
-        y = frameY
-    end
-    return x, y
-end
-
 ---@param element ElementConfig
 ---@return ElementFrame
 function ElementFrame:New(element)
@@ -842,9 +801,7 @@ end
 function ElementFrame:InitialWindow()
     self.Window = CreateFrame("Frame", ("HtWindow-%s"):format(self.Config.id), UIParent)
     self.Window:SetFrameStrata("BACKGROUND")
-    self.Window:SetMovable(true)
     self.Window:EnableMouse(true)
-    self.Window:RegisterForDrag("LeftButton")
     self.Window:SetClampedToScreen(true)
     self:ShowWindow()
 
@@ -857,36 +814,18 @@ function ElementFrame:InitialWindow()
         end
     end)
 
-    -- 监听拖动事件并更新位置
-    self.Window:SetScript("OnDragStart", function(frame)
-        frame:StartMoving()
-    end)
-
-    -- 监听窗口的拖拽事件
-    self.Window:SetScript("OnDragStop", function(frame)
-        frame:StopMovingOrSizing()
-        local parentX, parentY = self:GetPosition(frame:GetParent() or UIParent)
-        local frameX, frameY   = self:GetPosition(frame)
-        local newX             = frameX - parentX
-        local newY             = frameY - parentY
-        self.Config.posX       = math.floor(newX)
-        self.Config.posY       = math.floor(newY)
-    end)
 
     self.Window:SetScript("OnUpdate", function(frame)
-        if addon.G.IsEditMode == true then
+        -- 仅在启用"鼠标移入显示"功能时才需要轮询
+        if self.Config.isDisplayMouseEnter ~= true then
             return
         end
         local mouseOver = frame:IsMouseOver()
         if mouseOver and not self.IsMouseInside then
-            if self.Config.isDisplayMouseEnter == true then
-                self:SetBarNonTransparency()
-            end
+            self:SetBarNonTransparency()
             self.IsMouseInside = true
         elseif not mouseOver and self.IsMouseInside then
-            if self.Config.isDisplayMouseEnter == true then
-                self:SetBarTransparency()
-            end
+            self:SetBarTransparency()
             self.IsMouseInside = false
         end
     end)

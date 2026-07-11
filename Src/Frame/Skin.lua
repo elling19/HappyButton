@@ -17,6 +17,10 @@ function Skin:ResolveSkinProvider()
     if addon.G.ElvUI then
         return "elvui"
     end
+    -- EllesmereUI 独立皮肤 provider
+    if addon.G.EllesmereUI then
+        return "ellesmereui"
+    end
     if addon.G.NDui then
         return "ndui"
     end
@@ -86,6 +90,10 @@ function Skin:ApplyIconTexCoordByProvider(icon, provider)
         return
     end
     if provider == "ndui" then
+        icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        return
+    end
+    if provider == "ellesmereui" then
         icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         return
     end
@@ -169,6 +177,17 @@ function Skin:ApplyNDuiSkin(btn)
 end
 
 ---@param btn Btn | nil
+---@return boolean
+function Skin:ApplyEllesmereUISkin(btn)
+    if btn == nil or btn.Button == nil then
+        return false
+    end
+    self:BindSkinReferences(btn)
+    self:ApplyFallbackButtonTextures(btn, 0.3)
+    return true
+end
+
+---@param btn Btn | nil
 ---@param provider string | nil
 ---@return boolean
 function Skin:ApplySkin(btn, provider)
@@ -199,6 +218,9 @@ function Skin:ApplySkinByProvider(btn, provider)
     end
     if provider == "ndui" then
         return self:ApplyNDuiSkin(btn)
+    end
+    if provider == "ellesmereui" then
+        return self:ApplyEllesmereUISkin(btn)
     end
     return true
 end
